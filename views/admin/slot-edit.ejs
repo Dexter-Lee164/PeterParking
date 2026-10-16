@@ -1,0 +1,18 @@
+<section class="card-surface" style="max-width: 600px">
+  <p class="text-muted">Taking a slot out of service is blocked while a vehicle is checked in or upcoming reservations exist, so no booking is silently broken.</p>
+  <form method="post" action="/admin/slots/<%= slot.id %>" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="form-grid">
+      <%- include('../partials/form-field', { name: 'code', label: 'Slot code', required: true, cls: 'span-6' }) %>
+      <%- include('../partials/form-field', { name: 'slotType', label: 'Type', type: 'select', cls: 'span-6', options: types.map(function (t) { return { value: t, label: typeLabel[t] }; }) }) %>
+      <%- include('../partials/form-field', { name: 'status', label: 'Operational status', type: 'select', options: statuses.map(function (s) { return { value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }; }) }) %>
+      <%- include('../partials/form-field', { name: 'notes', label: 'Notes', type: 'textarea', attrs: 'maxlength="200"' }) %>
+    </div>
+    <p class="text-muted small mt-3 mb-0">Zone: <strong><%= slot.zone_name %></strong> · Rate: <%= h.pesos(slot.hourly_rate_centavos) %>/hr (set per slot type)</p>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">Save slot</button><a class="btn btn-outline-light" href="/admin/slots">Cancel</a>
+      <button class="btn btn-outline-danger ms-auto" type="button" data-bs-toggle="modal" data-bs-target="#confirmModal" data-confirm-action="/admin/slots/<%= slot.id %>/delete"
+        data-confirm-title="Delete slot <%= slot.code %>?" data-confirm-message="Only slots with no booking history can be deleted. Otherwise set the slot to inactive." data-confirm-label="Delete slot">Delete</button>
+    </div>
+  </form>
+</section>

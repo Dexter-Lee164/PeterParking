@@ -1,0 +1,70 @@
+<%# Rendered inside the page and returned alone by /driver/find-parking/results so the map and list always come from the same markup. %>
+<% const _base = { date: form.date, start: form.start, end: form.end, vehicleType: form.vehicleType }; %>
+<% if (!valid) { %>
+  <div class="alert alert-warning mb-0" role="alert" id="results-error">
+    <strong>Check your reservation time.</strong>
+    <ul class="mb-0 mt-1"><% Object.values(errors).forEach(function (e) { %><li><%= e %></li><% }) %></ul>
+  </div>
+<% } else if (!zones.length) { %>
+  <%- include('./empty-state', { icon: 'map', title: 'No parking slots to show', text: 'No zones have slots for this vehicle type yet. Try another vehicle type or ask the parking office.' }) %>
+<% } else { %>
+<div class="slot-results" data-view="map" data-start-at="<%= range.startAt %>" data-end-at="<%= range.endAt %>" data-hours="<%= range.hours %>" data-available="<%= counts.available %>">
+  <div class="results-top">
+    <div class="zone-tabs" role="tablist" aria-label="Parking zones">
+      <% zones.forEach(function (z) { const on = activeZone && z.id === activeZone.id; %>
+        <a role="tab" class="zone-tab <%= on ? 'active' : '' %>" id="zone-tab-<%= z.id %>" data-zone-id="<%= z.id %>" aria-selected="<%= on %>" aria-controls="zone-panel-<%= z.id %>"
+           href="/driver/find-parking<%= h.qs(_base, { zone: z.id }) %>">
+          <span><%= z.name %></span><span class="zone-count <%= z.available ? '' : 'is-zero' %>"><%= z.available %> free</span>
+        </a>
+      <% }) %>
+    </div>
+    <div class="view-toggle" role="group" aria-label="Slot view">
+      <button type="button" class="active" data-view-btn="map" aria-pressed="true"><%- h.icon('map', 15) %>Map</button>
+      <button type="button" data-view-btn="list" aria-pressed="false"><%- h.icon('grid', 15) %>List</button>
+    </div>
+  </div>
+  <ul class="slot-legend" aria-label="Slot key">
+    <li><i class="dot dot-available"></i>Available</li><li><i class="dot dot-reserved"></i>Reserved</li>
+    <li><i class="dot dot-occupied"></i>Occupied</li><li><i class="dot dot-unavailable"></i>Unavailable</li><li><i class="dot dot-selected"></i>Selected</li>
+  </ul>
+
+  <% zones.forEach(function (z) { const on = activeZone && z.id === activeZone.id;
+       const half = z.slots.length > z.columns ? Math.ceil(z.slots.length / 2) : z.slots.length;
+       const top = z.slots.slice(0, half), bottom = z.slots.slice(half); %>
+    <section class="zone-panel" id="zone-panel-<%= z.id %>" role="tabpanel" aria-labelledby="zone-tab-<%= z.id %>" data-zone-panel="<%= z.id %>" <%= on ? '' : 'hidden' %>>
+      <div class="map-view">
+        <div class="lot" style="--cols: <%= z.columns %>">
+          <div class="lot-row"><% top.forEach(function (s) { %><%- include('./parking-slot', { s: s }) %><% }) %></div>
+          <% if (bottom.length) { %>
+            <div class="lot-lane" aria-hidden="true"><span>Driving lane</span></div>
+            <div class="lot-row"><% bottom.forEach(function (s) { %><%- include('./parking-slot', { s: s }) %><% }) %></div>
+          <% } %>
+        </div>
+      </div>
+      <div class="list-view table-wrap">
+        <table class="table data-table align-middle">
+          <caption class="visually-hidden">Slots in <%= z.name %> for the selected time</caption>
+          <thead><tr><th scope="col">Slot</th><th scope="col">Zone</th><th scope="col">Type</th><th scope="col">Rate</th><th scope="col">Availability</th><th scope="col"><span class="visually-hidden">Action</span></th></tr></thead>
+          <tbody>
+            <% z.slots.forEach(function (s) { %>
+              <tr data-slot-row="<%= s.id %>">
+                <td data-label="Slot"><strong><%= s.code %></strong></td>
+                <td data-label="Zone"><%= s.zone_name %></td>
+                <td data-label="Type"><%= h.typeLabel[s.slot_type] %></td>
+                <td data-label="Rate"><%= h.pesos(s.rate) %>/hr</td>
+                <td data-label="Availability"><%- h.statusBadge('slot', s.state) %></td>
+                <td data-label="" class="text-end">
+                  <% if (s.selectable) { %>
+                    <a class="btn btn-sm btn-outline-light js-select-slot" href="/driver/reserve<%= h.qs({ slot: s.id, date: form.date, start: form.start, end: form.end }) %>"
+                       data-slot-id="<%= s.id %>" data-code="<%= s.code %>" data-zone="<%= s.zone_name %>" data-type="<%= h.typeLabel[s.slot_type] %>" data-rate="<%= s.rate %>" data-state="available" data-state-text="Available">Select <span class="visually-hidden"><%= s.code %></span></a>
+                  <% } else { %><span class="text-muted small">Not selectable</span><% } %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  <% }) %>
+</div>
+<% } %>

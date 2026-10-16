@@ -1,0 +1,24 @@
+<%- include('./_subnav', { tab: tab }) %>
+<div class="page-grid">
+  <section class="card-surface col-span-8">
+    <div class="card-head"><h2>Parking zones</h2></div>
+    <%- include('../partials/data-table', { caption: 'Parking zones', rows: zones, empty: { icon: 'map', title: 'No zones yet', text: 'Add your first zone, for example “Main Building”.' }, columns: [
+      { label: 'Zone', render: function (z) { return h.stack('<strong>' + h.esc(z.name) + '</strong>', z.description || ''); } },
+      { label: 'Slots', cls: 'num', render: function (z) { return h.esc(z.active_slot_count + ' / ' + z.slot_count); } },
+      { label: 'Status', render: function (z) { return h.statusBadge('account', z.is_active ? 'active' : 'inactive'); } },
+      { label: '', cls: 'text-end', render: function (z) { return '<a class="btn btn-sm btn-outline-light" href="/admin/zones/' + z.id + '/edit">Edit</a>'; } } ] }) %>
+    <p class="policy-note mt-3 mb-0">Slots column shows in-service slots / all slots.</p>
+  </section>
+  <section class="card-surface col-span-4">
+    <div class="card-head"><h2>Add a zone</h2></div>
+    <form method="post" action="/admin/zones" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="form-grid">
+        <%- include('../partials/form-field', { name: 'name', label: 'Zone name', required: true, placeholder: 'Library' }) %>
+        <%- include('../partials/form-field', { name: 'description', label: 'Description', type: 'textarea', attrs: 'maxlength="200"' }) %>
+        <%- include('../partials/form-field', { name: 'mapColumns', label: 'Map columns', type: 'number', value: (old.mapColumns || 6), help: 'Bays per row on the driver map.' }) %>
+      </div>
+      <div class="form-actions"><button class="btn btn-primary" type="submit"><%- h.icon('plus', 16) %>Add zone</button></div>
+    </form>
+  </section>
+</div>

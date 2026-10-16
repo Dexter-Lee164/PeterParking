@@ -1,0 +1,47 @@
+<% const bal = r.bal; %>
+<div class="page-grid">
+  <section class="card-surface col-span-8">
+    <div class="hero-ref mb-3"><span class="ref mono"><%= r.reference %></span><%- h.statusBadge('reservation', r.status) %>
+      <% if (r.session_id && r.is_late) { %><%- h.statusBadge('session', 'late') %><% } %><% if (r.session_id && r.is_overstay) { %><%- h.statusBadge('session', 'overstay') %><% } %></div>
+    <dl class="kv">
+      <dt>Driver</dt><dd><a href="/admin/drivers/<%= r.user_id %>"><%= r.driver_name %></a> · <%= r.driver_email %></dd>
+      <dt>Vehicle</dt><dd><span class="mono"><%= r.plate_number %></span> · <%= r.vehicle_type %><% if (r.make_model) { %> · <%= r.make_model %><% } %></dd>
+      <dt>Slot</dt><dd><strong><%= r.slot_code %></strong> · <%= r.zone_name %> (<%= h.typeLabel[r.slot_type] %>)</dd>
+      <dt>Booked period</dt><dd><%= h.fmtRange(r.start_at, r.end_at) %></dd>
+      <dt>Rate</dt><dd><%= h.pesos(r.hourly_rate_centavos) %> per started hour</dd>
+      <% if (r.checked_in_at) { %><dt>Checked in</dt><dd><%= h.fmtDateTime(r.checked_in_at) %><% if (r.is_late) { %> · <strong><%= h.fmtDuration(r.late_minutes) %> late</strong><% } %></dd><% } %>
+      <% if (r.checked_out_at) { %><dt>Checked out</dt><dd><%= h.fmtDateTime(r.checked_out_at) %><% if (r.is_overstay) { %> · <strong>overstayed <%= h.fmtDuration(r.overstay_minutes) %></strong><% } %></dd><% } %>
+      <% if (r.status === 'cancelled') { %><dt>Cancelled</dt><dd><%= h.fmtDateTime(r.cancelled_at) %> · <%= r.cancel_reason || 'No reason given' %></dd><% } %>
+      <dt>Created</dt><dd><%= h.fmtDateTime(r.created_at) %><% if (r.rescheduled_count) { %> · rescheduled <%= r.rescheduled_count %>×<% } %></dd>
+    </dl>
+    <hr class="border-secondary-subtle my-4">
+    <div class="d-flex flex-wrap gap-2">
+      <% if (r.status === 'confirmed' || r.status === 'active') { %><a class="btn btn-primary" href="/admin/operations?q=<%= r.reference %>"><%- h.icon('swap', 16) %><%= r.status === 'active' ? 'Go to check-out' : 'Go to check-in' %></a><% } %>
+      <% if (bal.assessed > 0 && bal.balance > 0) { %><a class="btn btn-outline-light" href="/admin/payments?ref=<%= r.reference %>"><%- h.icon('card', 16) %>Record payment</a><% } %>
+      <% if (r.status === 'confirmed') { %>
+        <button class="btn btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#confirmModal" data-confirm-action="/admin/reservations/<%= r.reference %>/cancel" data-confirm-title="Cancel <%= r.reference %>?"
+          data-confirm-message="The slot is released immediately. The driver sees the reason you enter." data-confirm-label="Cancel reservation" data-confirm-reason="required" data-confirm-reason-label="Reason for cancelling (required)"><%- h.icon('x', 16) %>Cancel reservation</button>
+        <% if (canNoShow) { %><button class="btn btn-outline-light" type="button" data-bs-toggle="modal" data-bs-target="#confirmModal" data-confirm-action="/admin/reservations/<%= r.reference %>/no-show" data-confirm-title="Mark as no-show?"
+          data-confirm-message="The driver did not arrive. The slot is released<%= settings.no_show_fee_hours ? ' and a no-show fee of ' + h.pesos(r.hourly_rate_centavos * settings.no_show_fee_hours) + ' is assessed' : '; no fee is assessed' %>." data-confirm-label="Mark no-show" data-confirm-tone="primary"><%- h.icon('alert', 16) %>Mark no-show</button>
+        <% } else { %><span class="text-muted small align-self-center">No-show can be recorded after <%= h.fmtTime(noShowFrom) %>.</span><% } %>
+      <% } %>
+    </div>
+  </section>
+  <aside class="col-span-4 d-grid gap-3 align-content-start">
+    <%- include('../partials/summary-card', { title: 'Fees and payments', tone: 'accent', rows: [
+      { label: bal.finalized ? 'Final fee' : 'Estimated fee', value: h.pesos(bal.assessed) }, { label: 'Valid payments', value: h.pesos(bal.paid) },
+      { label: bal.balance < 0 ? 'Credit to return' : 'Balance due', value: h.pesos(Math.abs(bal.balance)), strong: true }, { label: 'Status', html: h.statusBadge('payment', bal.status) } ],
+      footer: bal.balance < 0 ? '<p class="policy-note mb-0">The driver paid more than the fee. Return the difference in person, then void the payment with the reason “refund”.</p>' : '' }) %>
+  </aside>
+  <section class="card-surface col-span-7"><div class="card-head"><h2>Payments</h2></div>
+    <%- include('../partials/data-table', { caption: 'Payments', rows: pays, empty: { icon: 'card', title: 'No payments recorded' }, columns: [
+      { label: 'Receipt', render: function (p) { return h.link('/admin/payments/' + p.id + '/receipt', p.receipt_number, 'mono'); } },
+      { label: 'When', render: function (p) { return h.esc(h.fmtDateTime(p.recorded_at)); } },
+      { label: 'Amount', cls: 'num', render: function (p) { return h.esc(h.pesos(p.amount_centavos)); } },
+      { label: 'Status', render: function (p) { return h.statusBadge('payment', p.status); } } ] }) %></section>
+  <section class="card-surface col-span-5"><div class="card-head"><h2>History</h2></div>
+    <%- include('../partials/data-table', { caption: 'Audit history', rows: history, empty: { icon: 'clock', title: 'No history' }, columns: [
+      { label: 'When', render: function (a) { return h.esc(h.fmtDateTime(a.created_at)); } },
+      { label: 'By', render: function (a) { return h.esc(a.user_name || 'System'); } },
+      { label: 'Action', render: function (a) { return '<span class="mono">' + h.esc(a.action) + '</span>'; } } ] }) %></section>
+</div>

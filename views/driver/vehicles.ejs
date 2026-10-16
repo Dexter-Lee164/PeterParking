@@ -1,0 +1,35 @@
+<div class="page-grid">
+  <section class="card-surface col-span-7" aria-labelledby="v-h">
+    <div class="card-head"><h2 id="v-h">Your vehicles</h2></div>
+    <% if (!vehicles.length) { %>
+      <%- include('../partials/empty-state', { icon: 'car', title: 'No vehicles yet', text: 'Add a car or motorcycle to start reserving slots.' }) %>
+    <% } else { %>
+      <ul class="list-plain">
+        <% vehicles.forEach(function (v) { %>
+          <li class="list-row">
+            <span class="d-flex align-items-center gap-3 meta"><span class="stat-icon"><%- h.icon(v.vehicle_type === 'motorcycle' ? 'bike' : 'car', 20) %></span>
+              <span class="meta"><strong class="mono"><%= v.plate_number %></strong><span class="text-muted small"><%= v.vehicle_type === 'car' ? 'Car' : 'Motorcycle' %><% if (v.make_model) { %> · <%= v.make_model %><% } %><% if (v.color) { %> · <%= v.color %><% } %></span></span></span>
+            <span class="d-flex gap-2">
+              <a class="btn btn-sm btn-outline-light" href="/driver/vehicles/<%= v.id %>/edit" aria-label="Edit <%= v.plate_number %>"><%- h.icon('edit', 15) %>Edit</a>
+              <button class="btn btn-sm btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#confirmModal" data-confirm-action="/driver/vehicles/<%= v.id %>/delete"
+                data-confirm-title="Remove <%= v.plate_number %>?" data-confirm-message="You will no longer be able to book with this vehicle. Past bookings keep their record." data-confirm-label="Remove vehicle" aria-label="Remove <%= v.plate_number %>"><%- h.icon('trash', 15) %>Remove</button>
+            </span>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </section>
+  <section class="card-surface col-span-5" aria-labelledby="av-h">
+    <div class="card-head"><h2 id="av-h">Add a vehicle</h2></div>
+    <form method="post" action="/driver/vehicles" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="form-grid">
+        <%- include('../partials/form-field', { name: 'plateNumber', label: 'Plate number', required: true, placeholder: 'ABC 1234', attrs: 'autocapitalize="characters" maxlength="12"' }) %>
+        <%- include('../partials/form-field', { name: 'vehicleType', label: 'Vehicle type', type: 'select', required: true, value: (old.vehicleType || 'car'), options: [{ value: 'car', label: 'Car' }, { value: 'motorcycle', label: 'Motorcycle' }] }) %>
+        <%- include('../partials/form-field', { name: 'makeModel', label: 'Make and model', cls: 'span-6', placeholder: 'Toyota Vios' }) %>
+        <%- include('../partials/form-field', { name: 'color', label: 'Colour', cls: 'span-6' }) %>
+      </div>
+      <div class="form-actions"><button class="btn btn-primary" type="submit"><%- h.icon('plus', 16) %>Add vehicle</button></div>
+    </form>
+  </section>
+</div>

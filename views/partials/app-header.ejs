@@ -1,0 +1,45 @@
+<header class="app-header">
+  <div class="header-left">
+    <button class="btn btn-icon d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar" aria-label="Open menu"><%- h.icon('menu', 20) %></button>
+    <div class="header-titles">
+      <% if (typeof crumbs !== 'undefined' && crumbs.length) { %>
+        <nav aria-label="Breadcrumb"><ol class="crumbs">
+          <% crumbs.forEach(function (c, i) { %>
+            <li <%- i === crumbs.length - 1 ? 'aria-current="page"' : '' %>><% if (c[1] && i < crumbs.length - 1) { %><a href="<%= c[1] %>"><%= c[0] %></a><% } else { %><%= c[0] %><% } %></li>
+          <% }) %>
+        </ol></nav>
+      <% } %>
+      <h1 class="page-title"><%= title %></h1>
+    </div>
+  </div>
+  <div class="header-right">
+    <% if (user && user.role === 'admin') { %>
+      <form class="header-search d-none d-md-flex" role="search" method="get" action="/admin/reservations">
+        <label class="visually-hidden" for="hdr-q">Find a booking</label>
+        <%- h.icon('search', 16) %>
+        <input id="hdr-q" name="q" type="search" placeholder="Booking reference, driver or plate" autocomplete="off">
+      </form>
+    <% } %>
+    <% (typeof actions !== 'undefined' ? actions : []).forEach(function (a) { %>
+      <a class="btn <%= a.primary ? 'btn-primary' : 'btn-outline-light' %> btn-sm d-none d-sm-inline-flex" href="<%= a.href %>"><%- a.icon ? h.icon(a.icon, 16) : '' %><span><%= a.label %></span></a>
+    <% }) %>
+    <div class="dropdown">
+      <button class="profile-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account menu">
+        <span class="avatar" aria-hidden="true"><%= h.initials(user.name) %></span>
+        <span class="profile-name d-none d-md-block"><strong><%= user.name %></strong><small><%= user.role === 'admin' ? 'Administrator' : 'Driver' %></small></span>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li class="dropdown-header"><%= user.email %></li>
+        <% if (user.role === 'driver') { %>
+          <li><a class="dropdown-item" href="/driver/profile">Profile</a></li>
+          <li><a class="dropdown-item" href="/driver/vehicles">My vehicles</a></li>
+        <% } else { %>
+          <li><a class="dropdown-item" href="/admin/settings">Settings</a></li>
+          <li><a class="dropdown-item" href="/admin/settings?tab=audit">Audit log</a></li>
+        <% } %>
+        <li><hr class="dropdown-divider"></li>
+        <li><button class="dropdown-item" type="submit" form="logout-form">Sign out</button></li>
+      </ul>
+    </div>
+  </div>
+</header>

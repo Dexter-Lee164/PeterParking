@@ -1,0 +1,23 @@
+<%#
+  filter-toolbar: fields [{name,label,type: search|select|date|time, options?, placeholder?, cls?, attrs?}], values, id?, action?, method?,
+  submitLabel?, resetHref?, extra? (raw html placed before the buttons), csrf? (only when method is post)
+%>
+<form class="filter-toolbar" <%- typeof id !== 'undefined' ? 'id="' + h.esc(id) + '"' : '' %> method="get" action="<%= typeof action !== 'undefined' ? action : '' %>" novalidate>
+  <% fields.forEach(function (f) { const val = (values && values[f.name] != null) ? values[f.name] : ''; %>
+    <div class="filter-field <%= f.cls || '' %>">
+      <label for="flt-<%= f.name %>"><%= f.label %></label>
+      <% if (f.type === 'select' || f.type === 'time') { %>
+        <select id="flt-<%= f.name %>" name="<%= f.name %>" class="form-select" <%- f.attrs || '' %>>
+          <% f.options.forEach(function (o) { %><option value="<%= o.value %>" <%= String(o.value) === String(val) ? 'selected' : '' %>><%= o.label %></option><% }) %>
+        </select>
+      <% } else { %>
+        <input id="flt-<%= f.name %>" name="<%= f.name %>" class="form-control" type="<%= f.type || 'search' %>" value="<%= val %>" <% if (f.placeholder) { %>placeholder="<%= f.placeholder %>"<% } %> <%- f.attrs || '' %>>
+      <% } %>
+    </div>
+  <% }) %>
+  <% if (typeof extra !== 'undefined' && extra) { %><%- extra %><% } %>
+  <div class="filter-actions">
+    <button type="submit" class="btn btn-primary" id="flt-submit"><%- h.icon('search', 16) %><span><%= typeof submitLabel !== 'undefined' ? submitLabel : 'Apply filters' %></span></button>
+    <% if (typeof resetHref !== 'undefined' && resetHref) { %><a class="btn btn-outline-light" href="<%= resetHref %>">Reset</a><% } %>
+  </div>
+</form>

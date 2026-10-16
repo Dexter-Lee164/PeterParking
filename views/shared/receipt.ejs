@@ -1,0 +1,27 @@
+<div class="no-print d-flex gap-2 mb-3 flex-wrap">
+  <a class="btn btn-outline-light btn-sm" href="<%= back %>">Back</a>
+  <button class="btn btn-primary btn-sm" type="button" data-print><%- h.icon('print', 16) %>Print receipt</button>
+</div>
+<article class="receipt" aria-label="Payment receipt">
+  <div class="d-flex justify-content-between align-items-start gap-3">
+    <div><h2><%= header %></h2><div class="muted small">Official receipt (recorded manually by parking staff)</div></div>
+    <div class="text-end"><div class="fw-bold mono"><%= payment.receipt_number %></div><div class="muted small"><%= h.fmtDateTime(payment.recorded_at) %></div></div>
+  </div>
+  <% if (payment.status === 'voided') { %><p class="mt-3 mb-0"><span class="stamp">VOIDED</span> <span class="muted small"><%= payment.void_reason %></span></p><% } %>
+  <hr>
+  <div class="r-row"><span class="muted">Driver</span><span><%= payment.driver_name %></span></div>
+  <div class="r-row"><span class="muted">Booking</span><span class="mono"><%= reservation.reference %></span></div>
+  <div class="r-row"><span class="muted">Slot</span><span><%= reservation.slot_code %> · <%= reservation.zone_name %></span></div>
+  <div class="r-row"><span class="muted">Vehicle</span><span class="mono"><%= reservation.plate_number %></span></div>
+  <div class="r-row"><span class="muted">Parking period</span><span class="text-end"><%= h.fmtRange(reservation.start_at, reservation.end_at) %></span></div>
+  <hr>
+  <div class="r-row"><span class="muted">Payment method</span><span><%= h.methodLabel[payment.method] %></span></div>
+  <% if (payment.reference) { %><div class="r-row"><span class="muted">Reference</span><span class="mono"><%= payment.reference %></span></div><% } %>
+  <div class="r-row r-total"><span>Amount received</span><span><%= h.pesos(payment.amount_centavos) %></span></div>
+  <hr>
+  <div class="r-row"><span class="muted"><%= bal.finalized ? 'Final fee' : 'Estimated fee' %></span><span><%= h.pesos(bal.assessed) %></span></div>
+  <div class="r-row"><span class="muted">Total paid (valid payments)</span><span><%= h.pesos(bal.paid) %></span></div>
+  <div class="r-row"><s trong>Balance</strong><strong><%= bal.balance < 0 ? 'Credit ' + h.pesos(-bal.balance) : h.pesos(bal.balance) %></strong></div>
+  <hr>
+  <p class="muted small mb-0">Received by <%= payment.recorded_by_name || 'parking staff' %>. No online payment was processed; this receipt records a payment made in person.</p>
+</article>

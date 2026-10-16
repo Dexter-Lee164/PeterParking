@@ -1,0 +1,72 @@
+<% const bal = r.bal; %>
+<% if (isNew) { %>
+  <div class="success-banner mb-3" role="status">
+    <%- h.icon('check', 22) %>
+    <div><strong>Your reservation is confirmed.</strong><div class="text-muted">Keep your booking reference. Show it to the parking office when you arrive.</div></div>
+  </div>
+<% } %>
+<div class="page-grid">
+  <section class="card-surface col-span-8" aria-labelledby="d-h">
+    <div class="hero-ref mb-3"><h2 id="d-h" class="visually-hidden">Booking details</h2><span class="ref mono"><%= r.reference %></span><%- h.statusBadge('reservation', r.status) %>
+      <% if (r.session_id && r.is_late) { %><%- h.statusBadge('session', 'late') %><% } %><% if (r.session_id && r.is_overstay) { %><%- h.statusBadge('session', 'overstay') %><% } %></div>
+    <dl class="kv">
+      <dt>Slot</dt><dd><strong><%= r.slot_code %></strong> · <%= r.zone_name %> (<%= h.typeLabel[r.slot_type] %>)</dd>
+      <dt>Date</dt><dd><%= h.fmtDate(r.start_at) %></dd>
+      <dt>Time</dt><dd><%= h.fmtTime(r.start_at) %> – <%= h.fmtTime(r.end_at) %> (<%= h.fmtDuration(h.minutesBetween(r.start_at, r.end_at)) %>)</dd>
+      <dt>Vehicle</dt><dd><span class="mono"><%= r.plate_number %></span><% if (r.make_model) { %> · <%= r.make_model %><% } %></dd>
+      <dt>Hourly rate</dt><dd><%= h.pesos(r.hourly_rate_centavos) %></dd>
+      <% if (r.checked_in_at) { %><dt>Checked in</dt><dd><%= h.fmtDateTime(r.checked_in_at) %><% if (r.is_late) { %> <span class="text-muted">(<%= h.fmtDuration(r.late_minutes) %> late)</span><% } %></dd><% } %>
+      <% if (r.checked_out_at) { %><dt>Checked out</dt><dd><%= h.fmtDateTime(r.checked_out_at) %><% if (r.is_overstay) { %> <span class="text-muted">(<%= h.fmtDuration(r.overstay_minutes) %> past the booked end)</span><% } %></dd><% } %>
+      <% if (r.status === 'cancelled') { %><dt>Cancelled</dt><dd><%= h.fmtDateTime(r.cancelled_at) %><% if (r.cancel_reason) { %> · <%= r.cancel_reason %><% } %></dd><% } %>
+      <dt>Booked on</dt><dd><%= h.fmtDateTime(r.created_at) %><% if (r.rescheduled_count) { %> · rescheduled <%= r.rescheduled_count %>×<% } %></dd>
+    </dl>
+    <% if (r.status === 'confirmed') { %>
+      <hr class="border-secondary-subtle my-4">
+      <div class="d-flex flex-wrap gap-2 align-items-center">
+        <% if (canChange) { %>
+          <button class="btn btn-outline-light" type="button" data-bs-toggle="modal" data-bs-target="#rescheduleModal"><%- h.icon('calendar', 16) %>Reschedule</button>
+          <button class="btn btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#confirmModal" data-confirm-action="/driver/reservations/<%= r.reference %>/cancel"
+            data-confirm-title="Cancel this reservation?" data-confirm-message="Slot <%= r.slot_code %> will be released for other drivers. The booking stays in your history." data-confirm-label="Cancel reservation" data-confirm-reason="optional" data-confirm-reason-label="Reason (optional)"><%- h.icon('x', 16) %>Cancel reservation</button>
+        <% } else { %>
+          <span class="text-muted">Free changes ended <%= h.fmtDateTime(cutoff) %>. Please contact the parking office.</span>
+        <% } %>
+      </div>
+      <p class="policy-note mt-3 mb-0">Cancellation policy: free cancellation or rescheduling until <%= h.fmtDuration(settings.cancellation_cutoff_minutes) %> before the start (<%= h.fmtDateTime(cutoff) %>).</p>
+    <% } %>
+  </section>
+  <aside class="col-span-4 d-grid gap-3 align-content-start">
+    <%- include('../partials/summary-card', { title: 'Fees and payment', tone: 'accent', rows: [
+      { label: bal.finalized ? 'Final fee' : 'Estimated fee', value: h.pesos(bal.assessed) }, { label: 'Paid so far', value: h.pesos(bal.paid) },
+      { label: bal.balance < 0 ? 'Credit due' : 'Balance', value: h.pesos(Math.abs(bal.balance)), strong: true }, { label: 'Payment status', html: h.statusBadge('payment', bal.status) } ],
+      footer: '<p class="policy-note mb-0">Pay the parking office in person. Staff record the payment here and you can print the receipt.</p>' }) %>
+  </aside>
+  <section class="card-surface col-span-12" aria-labelledby="p-h">
+    <div class="card-head"><h2 id="p-h">Payments on this booking</h2></div>
+    <%- include('../partials/data-table', { caption: 'Payments', rows: pays, empty: { icon: 'card', title: 'No payments recorded', text: 'Payments recorded by the parking office for this booking will appear here.' }, columns: [
+      { label: 'Receipt', render: function (p) { return h.link('/driver/payments/' + p.id + '/receipt', p.receipt_number, 'mono'); } },
+      { label: 'Date', render: function (p) { return h.esc(h.fmtDateTime(p.recorded_at)); } },
+      { label: 'Method', render: function (p) { return h.esc(h.methodLabel[p.method]); } },
+      { label: 'Amount', cls: 'num', render: function (p) { return h.esc(h.pesos(p.amount_centavos)); } },
+      { label: 'Status', render: function (p) { return h.statusBadge('payment', p.status); } } ] }) %>
+  </section>
+</div>
+
+<% if (canChange) { %>
+<div class="modal fade" id="rescheduleModal" tabindex="-1" aria-labelledby="resTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content" method="post" action="/driver/reservations/<%= r.reference %>/reschedule" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="modal-header"><h2 class="modal-title fs-5" id="resTitle">Reschedule <%= r.reference %></h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+      <div class="modal-body">
+        <p class="text-muted">You keep slot <strong><%= r.slot_code %></strong>. The new time must be free for this slot.</p>
+        <div class="form-grid">
+          <%- include('../partials/form-field', { name: 'date', label: 'Date', type: 'date', required: true, value: local.date, errs: {}, attrs: 'min="' + minDate + '" max="' + maxDate + '"' }) %>
+          <%- include('../partials/form-field', { name: 'start', label: 'Start', type: 'select', cls: 'span-6', value: local.time, options: options.start, errs: {} }) %>
+          <%- include('../partials/form-field', { name: 'end', label: 'End', type: 'select', cls: 'span-6', value: localEnd.time, options: options.end, errs: {} }) %>
+        </div>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Close</button><button type="submit" class="btn btn-primary">Save new time</button></div>
+    </form>
+  </div>
+</div>
+<% } %>

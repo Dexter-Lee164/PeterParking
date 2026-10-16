@@ -1,0 +1,20 @@
+<section class="card-surface">
+  <%- include('../partials/filter-toolbar', { action: '/admin/reservations', resetHref: '/admin/reservations', values: { q: f.q, status: f.status, zone: f.zoneId, from: f.dateFrom, to: f.dateTo }, fields: [
+    { name: 'q', label: 'Search', type: 'search', cls: 'grow-2', placeholder: 'Reference, driver, email or plate' },
+    { name: 'status', label: 'Status', type: 'select', options: [{ value: '', label: 'Any status' }, { value: 'confirmed', label: 'Upcoming' }, { value: 'active', label: 'Parked' }, { value: 'completed', label: 'Completed' }, { value: 'cancelled', label: 'Cancelled' }, { value: 'no_show', label: 'No-show' }] },
+    { name: 'zone', label: 'Zone', type: 'select', options: [{ value: '', label: 'All zones' }].concat(zones.map(function (z) { return { value: z.id, label: z.name }; })) },
+    { name: 'from', label: 'From date', type: 'date' }, { name: 'to', label: 'To date', type: 'date' } ] }) %>
+</section>
+<section class="card-surface">
+  <div class="card-head"><h2>Reservations</h2>
+    <% if (overdue > 0) { %><button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="modal" data-bs-target="#confirmModal" data-confirm-action="/admin/reservations/no-show/sweep"
+      data-confirm-title="Mark overdue bookings as no-show?" data-confirm-message="<%= overdue %> unclaimed reservation(s) are past the no-show delay. Each will be marked as no-show and its slot released." data-confirm-label="Mark <%= overdue %> as no-show" data-confirm-tone="primary"><%- h.icon('alert', 15) %>Mark <%= overdue %> overdue as no-show</button><% } %></div>
+  <%- include('../partials/data-table', { caption: 'Reservations', rows: rows, pg: pg, query: query, empty: { icon: 'calendar', title: 'No reservations found', text: 'Try different filters.' }, columns: [
+    { label: 'Reference', render: function (r) { return h.link('/admin/reservations/' + r.reference, r.reference, 'mono'); } },
+    { label: 'Driver', render: function (r) { return h.stack(h.esc(r.driver_name), r.plate_number); } },
+    { label: 'Slot', render: function (r) { return h.stack(h.esc(r.slot_code), r.zone_name); } },
+    { label: 'When', render: function (r) { return h.stack(h.esc(h.fmtDate(r.start_at)), h.fmtTime(r.start_at) + ' – ' + h.fmtTime(r.end_at)); } },
+    { label: 'Fee', cls: 'num', render: function (r) { return h.stack(h.esc(h.pesos(r.bal.assessed)), 'Paid ' + h.pesos(r.bal.paid)); } },
+    { label: 'Status', render: function (r) { return h.statusBadge('reservation', r.status); } },
+    { label: '', cls: 'text-end', render: function (r) { return h.link('/admin/reservations/' + r.reference, 'Open', 'btn btn-sm btn-outline-light'); } } ] }) %>
+</section>

@@ -1,0 +1,17 @@
+<section class="card-surface">
+  <%- include('../partials/filter-toolbar', { action: '/admin/drivers', resetHref: '/admin/drivers', values: { q: f.q, role: f.role, status: f.status }, fields: [
+    { name: 'q', label: 'Search', type: 'search', cls: 'grow-2', placeholder: 'Name, email, university ID or plate' },
+    { name: 'role', label: 'Role', type: 'select', options: [{ value: '', label: 'Drivers and admins' }, { value: 'driver', label: 'Drivers' }, { value: 'admin', label: 'Administrators' }] },
+    { name: 'status', label: 'Status', type: 'select', options: [{ value: '', label: 'Any status' }, { value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }] } ] }) %>
+</section>
+<section class="card-surface">
+  <div class="card-head"><h2>Accounts</h2><a class="btn btn-primary btn-sm" href="/admin/drivers/new"><%- h.icon('plus', 15) %>Add account</a></div>
+  <%- include('../partials/data-table', { caption: 'Accounts', rows: rows, pg: pg, query: query, empty: { icon: 'users', title: 'No accounts match', text: 'Try different filters.' }, columns: [
+    { label: 'Name', render: function (u) { return h.stack(h.link('/admin/drivers/' + u.id, u.name, 'fw-semibold'), u.email); } },
+    { label: 'Role', render: function (u) { return h.esc(u.role === 'admin' ? 'Administrator' : (u.driver_type || 'driver').replace(/^./, function (c) { return c.toUpperCase(); })); } },
+    { label: 'University ID', render: function (u) { return h.esc(u.university_id || '—'); } },
+    { label: 'Vehicles', cls: 'num', render: function (u) { return h.esc(u.vehicle_count); } },
+    { label: 'Bookings', cls: 'num', render: function (u) { return h.esc(u.reservation_count); } },
+    { label: 'Status', render: function (u) { return h.statusBadge('account', u.is_active ? 'active' : 'inactive'); } },
+    { label: '', cls: 'text-end', render: function (u) { return h.link('/admin/drivers/' + u.id, 'Open', 'btn btn-sm btn-outline-light'); } } ] }) %>
+</section>

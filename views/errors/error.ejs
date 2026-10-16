@@ -1,0 +1,3 @@
+<div class="card-surface">
+  <%- include('../partials/empty-state', { icon: 'alert', title: status + ' · ' + (status === 404 ? 'We could not find that page' : status === 403 ? 'Access denied' : 'Something went wrong'), text: message, action: { href: user ? (user.role === 'admin' ? '/admin/dashboard' : '/driver/dashboard') : '/login', label: user ? 'Back to dashboard' : 'Go to sign in' } }) %>
+</div>

@@ -1,0 +1,17 @@
+<section class="card-surface" style="max-width: 600px">
+  <form method="post" action="/admin/zones/<%= zone.id %>" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="form-grid">
+      <%- include('../partials/form-field', { name: 'name', label: 'Zone name', required: true }) %>
+      <%- include('../partials/form-field', { name: 'description', label: 'Description', type: 'textarea', attrs: 'maxlength="200"' }) %>
+      <%- include('../partials/form-field', { name: 'mapColumns', label: 'Map columns', type: 'number', cls: 'span-6' }) %>
+      <%- include('../partials/form-field', { name: 'isActive', label: 'Zone is open for booking', type: 'checkbox', cls: 'span-6' }) %>
+    </div>
+    <p class="policy-note mt-3 mb-0">Closing a zone is blocked while a vehicle is checked in or upcoming reservations exist. Cancel or move them first.</p>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">Save zone</button><a class="btn btn-outline-light" href="/admin/zones">Cancel</a>
+      <button class="btn btn-outline-danger ms-auto" type="button" data-bs-toggle="modal" data-bs-target="#confirmModal" data-confirm-action="/admin/zones/<%= zone.id %>/delete"
+        data-confirm-title="Delete zone <%= zone.name %>?" data-confirm-message="Only zones with no slots can be deleted. Otherwise close the zone to keep its history." data-confirm-label="Delete zone">Delete</button>
+    </div>
+  </form>
+</section>

@@ -1,0 +1,17 @@
+<% const tabs = [['upcoming', 'Upcoming'], ['active', 'Active'], ['completed', 'Completed'], ['cancelled', 'Cancelled'], ['no-show', 'No-show']]; %>
+<nav class="subnav" aria-label="Reservation status">
+  <% tabs.forEach(function (t) { %><a href="?tab=<%= t[0] %>" class="<%= tab === t[0] ? 'active' : '' %>" <%- tab === t[0] ? 'aria-current="page"' : '' %>><%= t[1] %><span class="count"><%= counts[t[0]] %></span></a><% }) %>
+</nav>
+<section class="card-surface">
+  <%- include('../partials/data-table', { caption: 'Reservations', rows: rows, pg: h.paginate(total, pageNo, 10), query: { tab: tab },
+    empty: { icon: 'calendar', title: 'No ' + (tab === 'no-show' ? 'no-show' : tab) + ' reservations', text: tab === 'upcoming' ? 'Find a slot and it will show up here.' : 'Nothing to show in this view.', action: tab === 'upcoming' ? { href: '/driver/find-parking', label: 'Find parking' } : null },
+    columns: [
+      { label: 'Reference', render: function (r) { return h.link('/driver/reservations/' + r.reference, r.reference, 'mono'); } },
+      { label: 'Slot', render: function (r) { return h.stack(h.esc(r.slot_code), r.zone_name); } },
+      { label: 'Date', render: function (r) { return h.esc(h.fmtDate(r.start_at)); } },
+      { label: 'Time', render: function (r) { return h.esc(h.fmtTime(r.start_at) + ' – ' + h.fmtTime(r.end_at)); } },
+      { label: 'Fee', cls: 'num', render: function (r) { return h.stack(h.esc(h.pesos(r.bal.assessed)), r.bal.finalized ? 'Final' : 'Estimated'); } },
+      { label: 'Status', render: function (r) { return h.statusBadge('reservation', r.status) + (r.bal.status !== 'none' && r.status !== 'cancelled' ? ' ' + h.statusBadge('payment', r.bal.status) : ''); } },
+      { label: '', cls: 'text-end', render: function (r) { return h.link('/driver/reservations/' + r.reference, 'Details', 'btn btn-sm btn-outline-light'); } } ] }) %>
+</section>
+<p class="policy-note mt-3">Cancellation policy: free cancellation or rescheduling until <%= h.fmtDuration(settings.cancellation_cutoff_minutes) %> before the start. Cancelled bookings stay in your history.</p>

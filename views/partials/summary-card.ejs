@@ -1,0 +1,13 @@
+<%# summary-card: title, rows [{label, value, strong?, html?}], footer? (raw html), tone? %>
+<section class="summary-card <%= typeof tone !== 'undefined' ? 'summary-' + tone : '' %>" <%- typeof id !== 'undefined' ? 'id="' + h.esc(id) + '"' : '' %>>
+  <% if (typeof title !== 'undefined' && title) { %><h2 class="summary-title"><%= title %></h2><% } %>
+  <dl class="summary-list">
+    <% rows.forEach(function (r) { %>
+      <div class="summary-row <%= r.strong ? 'is-total' : '' %>">
+        <dt><%= r.label %></dt>
+        <dd <%- r.id ? 'id="' + h.esc(r.id) + '"' : '' %>><% if (r.html) { %><%- r.html %><% } else { %><%= r.value %><% } %></dd>
+      </div>
+    <% }) %>
+  </dl>
+  <% if (typeof footer !== 'undefined' && footer) { %><div class="summary-footer"><%- footer %></div><% } %>
+</section>

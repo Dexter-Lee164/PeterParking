@@ -1,0 +1,38 @@
+<% const k = kpis; %>
+<% if (overdue > 0) { %>
+  <div class="alert alert-warning d-flex flex-wrap align-items-center justify-content-between gap-2" role="status">
+    <span><%- h.icon('alert', 16) %> <strong><%= overdue %></strong> unclaimed reservation<%= overdue > 1 ? 's are' : ' is' %> past the no-show delay.</span>
+    <a class="btn btn-sm btn-outline-light" href="/admin/reservations?status=confirmed">Review</a>
+  </div>
+<% } %>
+<div class="stat-grid">
+  <%- include('../partials/stat-card', { label: 'Operational slots', value: k.totalSlots, hint: k.unavailableNow ? k.unavailableNow + ' unavailable' : 'All in service', icon: 'grid', tone: 'primary', href: '/admin/slots' }) %>
+  <%- include('../partials/stat-card', { label: 'Available now', value: k.availableNow, hint: 'free for the current time', icon: 'check', tone: 'success', href: '/admin/slots' }) %>
+  <%- include('../partials/stat-card', { label: 'Reserved now', value: k.reservedNow, hint: 'booked, vehicle not yet in', icon: 'calendar', tone: 'info', href: '/admin/reservations?status=confirmed' }) %>
+  <%- include('../partials/stat-card', { label: 'Occupied now', value: k.occupiedNow, hint: 'vehicle checked in', icon: 'car', tone: 'danger', href: '/admin/operations' }) %>
+  <%- include('../partials/stat-card', { label: 'Today’s reservations', value: k.todayReservations, hint: 'excluding cancelled', icon: 'clock', tone: 'primary', href: '/admin/reservations' }) %>
+  <%- include('../partials/stat-card', { label: 'Outstanding balances', value: h.pesos(k.outstandingAmount), hint: k.outstandingCount + ' unpaid booking' + (k.outstandingCount === 1 ? '' : 's'), icon: 'card', tone: k.outstandingAmount ? 'warning' : 'success', href: '/admin/payments' }) %>
+</div>
+
+<div class="page-grid section-gap">
+  <section class="card-surface col-span-8" aria-labelledby="c1"><div class="card-head"><div><h2 id="c1">Reservations over time</h2><p>Last 14 days, by start date</p></div></div>
+    <div class="chart-box"><canvas id="chart-reservations" role="img" aria-label="Line chart of reservations per day for the last 14 days"></canvas></div></section>
+  <section class="card-surface col-span-4" aria-labelledby="c4"><div class="card-head"><div><h2 id="c4">Cancellations and no-shows</h2><p>Last 30 days</p></div></div>
+    <div class="chart-box"><canvas id="chart-outcomes" role="img" aria-label="Doughnut chart of reservation outcomes"></canvas></div>
+    <p class="text-muted small mt-2 mb-0">Cancelled <strong><%= charts.outcomes.cancelRate %>%</strong> · No-show <strong><%= charts.outcomes.noShowRate %>%</strong> of <%= charts.outcomes.total %> bookings</p></section>
+  <section class="card-surface col-span-6" aria-labelledby="c2"><div class="card-head"><div><h2 id="c2">Peak reservation hours</h2><p>Start times, last 30 days</p></div></div>
+    <div class="chart-box"><canvas id="chart-peak" role="img" aria-label="Bar chart of reservation start hours"></canvas></div></section>
+  <section class="card-surface col-span-6" aria-labelledby="c3"><div class="card-head"><div><h2 id="c3">Demand by zone</h2><p>Reservations, last 30 days</p></div></div>
+    <div class="chart-box"><canvas id="chart-zones" role="img" aria-label="Bar chart of reservations by parking zone"></canvas></div></section>
+  <section class="card-surface col-span-12" aria-labelledby="c5"><div class="card-head"><div><h2 id="c5">Manually recorded collections</h2><p>Payments entered by staff, last 14 days (valid payments only)</p></div></div>
+    <div class="chart-box"><canvas id="chart-collections" role="img" aria-label="Bar chart of recorded payment collections per day"></canvas></div></section>
+  <section class="card-surface col-span-12" aria-labelledby="ra">
+    <div class="card-head"><h2 id="ra">Recent activity</h2><a href="/admin/settings?tab=audit">Full audit log</a></div>
+    <%- include('../partials/data-table', { caption: 'Recent activity', rows: recent, empty: { icon: 'clock', title: 'No activity yet' }, columns: [
+      { label: 'When', render: function (a) { return h.esc(h.fmtDateTime(a.created_at)); } },
+      { label: 'By', render: function (a) { return h.esc(a.user_name || 'System'); } },
+      { label: 'Action', render: function (a) { return '<span class="mono">' + h.esc(a.action) + '</span>'; } },
+      { label: 'Record', render: function (a) { return h.esc((a.entity_type || '') + (a.entity_id ? ' #' + a.entity_id : '')) || '—'; } } ] }) %>
+  </section>
+</div>
+<script type="application/json" id="chart-data"><%- JSON.stringify(charts).replace(/</g, '\\u003c') %></script>

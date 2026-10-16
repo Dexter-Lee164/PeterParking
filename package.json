@@ -1,0 +1,32 @@
+{
+  "name": "university-parking-reservation-system",
+  "version": "1.0.0",
+  "description": "University Parking Slot Reservation System - Express, EJS, Bootstrap 5, SQLite",
+  "private": true,
+  "main": "server.js",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "setup": "node scripts/setup.js",
+    "db:init": "node src/db/init.js",
+    "db:seed": "node src/db/init.js --seed",
+    "db:reset": "node src/db/init.js --reset --seed",
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test \"tests/*.test.js\"",
+    "check": "node scripts/check-syntax.js"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^13.0.3",
+    "bootstrap": "^5.3.8",
+    "chart.js": "^4.5.1",
+    "ejs": "^7.0.1",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.1",
+    "express-session": "^1.19.0",
+    "helmet": "^8.3.0"
+  }
+}

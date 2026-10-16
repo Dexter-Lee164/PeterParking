@@ -1,0 +1,40 @@
+<% const t = rep.totals; const qsx = { period: q.period, date: q.date, zone: q.zoneId }; %>
+<section class="card-surface">
+  <%- include('../partials/filter-toolbar', { action: '/admin/reports', resetHref: '/admin/reports', submitLabel: 'Run report', values: { period: rep.period, date: rep.date, zone: rep.zoneId }, fields: [
+    { name: 'period', label: 'Report', type: 'select', cls: 'narrow', options: [{ value: 'daily', label: 'Daily' }, { value: 'weekly', label: 'Weekly' }, { value: 'monthly', label: 'Monthly' }] },
+    { name: 'date', label: 'Date in period', type: 'date' },
+    { name: 'zone', label: 'Zone', type: 'select', options: [{ value: '', label: 'All zones' }].concat(zones.map(function (z) { return { value: z.id, label: z.name }; })) } ] }) %>
+</section>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 my-3">
+  <div><h2 class="h5 mb-0"><%= rep.period.charAt(0).toUpperCase() + rep.period.slice(1) %> report</h2><span class="text-muted"><%= rep.rangeLabel %><%= rep.zoneId ? ' · ' + (zones.find(function (z) { return z.id === rep.zoneId; }) || {}).name : '' %></span></div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-outline-light btn-sm" href="/admin/reports/export.csv<%= h.qs(qsx, { dataset: 'summary' }) %>"><%- h.icon('download', 15) %>Export summary CSV</a>
+    <a class="btn btn-outline-light btn-sm" href="/admin/reports/export.csv<%= h.qs(qsx, { dataset: 'reservations' }) %>"><%- h.icon('download', 15) %>Export reservations CSV</a>
+  </div>
+</div>
+<div class="stat-grid">
+  <%- include('../partials/stat-card', { label: 'Reservations', value: t.reservations, hint: t.completed + ' completed · ' + t.sessions + ' sessions', icon: 'calendar', tone: 'primary' }) %>
+  <%- include('../partials/stat-card', { label: 'Cancelled / no-shows', value: t.cancelled + ' / ' + t.noShows, hint: 'in this period', icon: 'x', tone: 'warning' }) %>
+  <%- include('../partials/stat-card', { label: 'Slot utilization', value: t.utilization + '%', hint: 'booked hours vs. open hours', icon: 'grid', tone: 'info' }) %>
+  <%- include('../partials/stat-card', { label: 'Assessed fees', value: h.pesos(t.assessed), hint: 'finalized bookings', icon: 'card', tone: 'primary' }) %>
+  <%- include('../partials/stat-card', { label: 'Collections recorded', value: h.pesos(t.collected), hint: 'valid payments entered', icon: 'check', tone: 'success' }) %>
+  <%- include('../partials/stat-card', { label: 'Outstanding', value: h.pesos(t.outstanding), hint: 'finalized, not yet paid', icon: 'alert', tone: t.outstanding ? 'warning' : 'success' }) %>
+</div>
+<% if (rep.rows.length > 1) { %>
+<section class="card-surface section-gap" aria-labelledby="rc"><div class="card-head"><h2 id="rc">Reservations and utilization</h2></div>
+  <div class="chart-box tall"><canvas id="chart-report" role="img" aria-label="Chart of reservations and utilization for the selected period"></canvas></div></section>
+<% } %>
+<section class="card-surface section-gap" aria-labelledby="rt"><div class="card-head"><h2 id="rt">Breakdown by <%= rep.groupLabel.toLowerCase() %></h2></div>
+  <%- include('../partials/data-table', { caption: 'Report breakdown', rows: rep.rows, pg: null, empty: { icon: 'chart', title: 'No data for this period' }, columns: [
+    { label: rep.groupLabel, render: function (r) { return '<strong>' + h.esc(r.label) + '</strong>'; } },
+    { label: 'Reservations', cls: 'num', render: function (r) { return h.esc(r.reservations); } },
+    { label: 'Cancelled', cls: 'num', render: function (r) { return h.esc(r.cancelled); } },
+    { label: 'No-shows', cls: 'num', render: function (r) { return h.esc(r.noShows); } },
+    { label: 'Sessions', cls: 'num', render: function (r) { return h.esc(r.sessions); } },
+    { label: 'Utilization', render: function (r) { return '<div class="d-flex align-items-center gap-2"><div class="meter flex-grow-1" role="img" aria-label="' + r.utilization + ' percent"><span style="width:' + Math.min(100, r.utilization) + '%"></span></div><span class="tabular small">' + r.utilization + '%</span></div>'; } },
+    { label: 'Assessed', cls: 'num', render: function (r) { return h.esc(h.pesos(r.assessed)); } },
+    { label: 'Collected', cls: 'num', render: function (r) { return h.esc(h.pesos(r.collected)); } },
+    { label: 'Outstanding', cls: 'num', render: function (r) { return h.esc(h.pesos(r.outstanding)); } } ] }) %>
+  <p class="policy-note mt-3 mb-0">Reservations are counted by start date. Collections are valid payments recorded within the period, whichever day the booking was for. Voided payments are excluded. Outstanding is finalized fees minus valid payments.</p>
+</section>
+<% if (rep.rows.length > 1) { %><script type="application/json" id="chart-data"><%- JSON.stringify({ report: { labels: chart.labels, reservations: chart.reservations, utilization: chart.utilization } }).replace(/</g, '\\u003c') %></script><% } %>

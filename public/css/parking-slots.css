@@ -1,0 +1,70 @@
+/* Find Parking: filter toolbar, zone tabs, the lot map, list view and the reservation summary rail. */
+.find-layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 1.1rem; align-items: start; }
+@media (max-width: 1199.98px) { .find-layout { grid-template-columns: minmax(0, 1fr) 320px; } }
+@media (max-width: 991.98px) { .find-layout { grid-template-columns: 1fr; } }
+.search-card { margin-bottom: 1.1rem; }
+.duration-chip { display: flex; flex-direction: column; gap: .3rem; min-width: 110px; flex: 0 0 auto; }
+.duration-chip > span:first-child { color: var(--muted); font-size: .8rem; font-weight: 520; }
+.duration-chip output { display: inline-flex; align-items: center; gap: .4rem; height: 38px; padding: 0 .8rem; border-radius: var(--radius-sm); background: var(--primary-soft); border: 1px solid rgba(37, 99, 235, .45); color: #CFE0FF; font-weight: 650; font-variant-numeric: tabular-nums; }
+.duration-chip output.is-bad { background: var(--danger-soft); border-color: rgba(239, 68, 68, .5); color: #FCA5A5; }
+.field-hint { color: #FCA5A5; font-size: .8rem; min-height: 1.1rem; margin: .4rem 0 0; }
+.stale-banner { display: flex; align-items: center; gap: .6rem; background: var(--warning-soft); border: 1px solid rgba(245, 158, 11, .45); color: #FCD34D; border-radius: var(--radius-sm); padding: .55rem .8rem; margin-bottom: .9rem; font-size: .88rem; }
+.results-card { padding: 1rem 1.1rem 1.2rem; transition: opacity .15s; }
+.results-card.is-loading { opacity: .55; pointer-events: none; }
+.results-top { display: flex; align-items: center; justify-content: space-between; gap: .8rem; flex-wrap: wrap; margin-bottom: .8rem; }
+.zone-tabs { display: flex; gap: .4rem; overflow-x: auto; padding-bottom: 2px; max-width: 100%; }
+.zone-tab { display: inline-flex; flex-direction: column; gap: 0; padding: .45rem .9rem; border: 1px solid var(--border); border-radius: 10px; color: var(--muted); text-decoration: none; background: var(--surface-2); white-space: nowrap; line-height: 1.25; }
+.zone-tab:hover { color: #fff; border-color: var(--border-strong); }
+.zone-tab.active { color: #fff; border-color: var(--primary); background: var(--primary-soft); box-shadow: inset 0 -3px 0 var(--primary); }
+.zone-count { font-size: .76rem; color: #86EFAC; font-variant-numeric: tabular-nums; }
+.zone-count.is-zero { color: #FCA5A5; }
+.view-toggle { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 10px; overflow: hidden; }
+.view-toggle button { display: inline-flex; align-items: center; gap: .4rem; background: transparent; color: var(--muted); border: 0; padding: .42rem .85rem; font-weight: 550; }
+.view-toggle button.active { background: var(--primary); color: #fff; }
+.slot-legend { list-style: none; display: flex; flex-wrap: wrap; gap: .4rem 1.1rem; padding: 0; margin: 0 0 .9rem; color: var(--muted); font-size: .82rem; }
+.slot-legend li { display: inline-flex; align-items: center; gap: .4rem; }
+
+/* The lot: two rows of bays facing a driving lane, drawn like painted parking lines. */
+.lot { background: #0A1020; border: 1px solid var(--border); border-radius: 14px; padding: 1rem; display: grid; gap: .7rem; background-image: linear-gradient(rgba(255,255,255,.015) 1px, transparent 1px); background-size: 100% 6px; }
+.lot-row { display: grid; grid-template-columns: repeat(var(--cols, 6), minmax(0, 1fr)); gap: .55rem; }
+.lot-lane { display: flex; align-items: center; justify-content: center; height: 30px; color: #4b5a78; font-size: .74rem; position: relative; }
+.lot-lane::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 2px dashed #2a3858; }
+.lot-lane span { position: relative; background: #0A1020; padding: 0 .8rem; }
+.slot { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: .2rem; min-height: 98px; padding: .5rem .3rem .45rem; color: var(--text); background: rgba(255, 255, 255, .03); border: 1px solid rgba(255, 255, 255, .1);
+  border-left: 3px solid rgba(255, 255, 255, .45); border-right: 3px solid rgba(255, 255, 255, .45); border-radius: 6px; transition: transform .12s, box-shadow .12s, background .12s; cursor: pointer; }
+.slot-code { font-weight: 720; font-size: .9rem; letter-spacing: .02em; font-variant-numeric: tabular-nums; }
+.slot-glyph { opacity: .92; display: grid; place-items: center; }
+.slot-state { display: inline-flex; align-items: center; gap: .25rem; font-size: .7rem; font-weight: 650; white-space: nowrap; }
+.slot-available { background: rgba(22, 163, 74, .16); border-color: rgba(22, 163, 74, .65); } .slot-available .slot-glyph, .slot-available .slot-state { color: #4ADE80; }
+.slot-reserved { background: rgba(59, 130, 246, .15); border-color: rgba(59, 130, 246, .6); } .slot-reserved .slot-glyph, .slot-reserved .slot-state { color: #93C5FD; }
+.slot-occupied { background: repeating-linear-gradient(135deg, rgba(239, 68, 68, .2) 0 6px, rgba(239, 68, 68, .1) 6px 12px); border-color: rgba(239, 68, 68, .65); } .slot-occupied .slot-glyph, .slot-occupied .slot-state { color: #FCA5A5; }
+.slot-unavailable { background: rgba(107, 114, 128, .14); border-style: dashed; border-color: rgba(156, 163, 175, .5); } .slot-unavailable .slot-glyph, .slot-unavailable .slot-state { color: #AEB5C2; }
+.slot:disabled { cursor: not-allowed; opacity: .82; }
+.slot-available:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(22, 163, 74, .25); background: rgba(22, 163, 74, .24); }
+.slot.is-selected { outline: 3px solid var(--focus); outline-offset: 2px; background: rgba(37, 99, 235, .28); border-color: var(--focus); box-shadow: 0 0 0 6px rgba(96, 165, 250, .15); }
+.slot.is-selected .slot-glyph, .slot.is-selected .slot-state { color: #DBEAFE; }
+.slot.is-selected::after { content: ""; position: absolute; top: 5px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--focus); }
+
+/* map and list views are toggled with data-view on .slot-results */
+.slot-results[data-view="map"] .list-view { display: none; }
+.slot-results[data-view="list"] .map-view { display: none; }
+.list-view .data-table tr.is-selected { background: var(--primary-soft); box-shadow: inset 3px 0 0 var(--focus); }
+@media (max-width: 575.98px) {
+  .lot { padding: .6rem; } .lot-row { gap: .4rem; grid-template-columns: repeat(min(var(--cols, 6), 3), minmax(0, 1fr)); } .slot { min-height: 88px; }
+}
+
+/* right-hand rail: selected slot + reservation summary */
+.rail { display: grid; gap: 1rem; position: sticky; top: 84px; }
+@media (max-width: 991.98px) { .rail { position: static; } }
+.slot-detail-empty { color: var(--muted); display: flex; gap: .7rem; align-items: center; }
+.slot-detail-card { display: none; }
+.slot-detail-card.is-on { display: block; }
+.slot-detail-head { display: flex; align-items: center; gap: .85rem; margin-bottom: .6rem; }
+.slot-detail-badge { width: 54px; height: 54px; border-radius: 12px; background: var(--primary-soft); border: 1px solid rgba(96, 165, 250, .6); display: grid; place-items: center; font-weight: 750; font-size: 1rem; color: #DBEAFE; }
+.continue-wrap { display: grid; gap: .5rem; }
+.continue-wrap .btn { padding: .7rem 1rem; font-size: 1rem; }
+.continue-wrap .btn[aria-disabled="true"] { pointer-events: none; opacity: .55; }
+.availability-ok { display: inline-flex; align-items: center; gap: .35rem; color: #4ADE80; font-weight: 600; }
+@media (max-width: 991.98px) {
+  .continue-wrap.is-sticky { position: sticky; bottom: .75rem; z-index: 20; background: rgba(11, 18, 32, .92); padding: .6rem; border: 1px solid var(--border-strong); border-radius: var(--radius); backdrop-filter: blur(8px); }
+}

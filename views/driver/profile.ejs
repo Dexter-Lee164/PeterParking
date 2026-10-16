@@ -1,0 +1,27 @@
+<div class="page-grid">
+  <section class="card-surface col-span-6" aria-labelledby="pf-h">
+    <div class="card-head"><h2 id="pf-h">Your details</h2><span class="text-muted small"><%= profile.email %></span></div>
+    <form method="post" action="/driver/profile" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="form-grid">
+        <%- include('../partials/form-field', { name: 'name', label: 'Full name', required: true }) %>
+        <%- include('../partials/form-field', { name: 'universityId', label: 'University ID', cls: 'span-6' }) %>
+        <%- include('../partials/form-field', { name: 'phone', label: 'Mobile number', type: 'tel', cls: 'span-6' }) %>
+      </div>
+      <div class="form-actions"><button class="btn btn-primary" type="submit">Save profile</button></div>
+    </form>
+  </section>
+  <section class="card-surface col-span-6" aria-labelledby="pw-h">
+    <div class="card-head"><h2 id="pw-h">Change password</h2></div>
+    <form method="post" action="/driver/profile/password" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <% const pe = typeof pwErrors !== 'undefined' ? pwErrors : {}; %>
+      <div class="form-grid">
+        <%- include('../partials/form-field', { name: 'currentPassword', label: 'Current password', type: 'password', required: true, errs: pe, attrs: 'autocomplete="current-password"' }) %>
+        <%- include('../partials/form-field', { name: 'newPassword', label: 'New password', type: 'password', required: true, errs: pe, help: 'At least 8 characters with a letter and a number.', attrs: 'autocomplete="new-password"' }) %>
+        <%- include('../partials/form-field', { name: 'confirmPassword', label: 'Confirm new password', type: 'password', required: true, errs: pe, attrs: 'autocomplete="new-password"' }) %>
+      </div>
+      <div class="form-actions"><button class="btn btn-primary" type="submit">Change password</button></div>
+    </form>
+  </section>
+</div>

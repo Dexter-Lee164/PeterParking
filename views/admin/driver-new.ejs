@@ -1,0 +1,15 @@
+<section class="card-surface" style="max-width: 640px">
+  <form method="post" action="/admin/drivers" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="form-grid">
+      <%- include('../partials/form-field', { name: 'name', label: 'Full name', required: true }) %>
+      <%- include('../partials/form-field', { name: 'email', label: 'Email', type: 'email', required: true }) %>
+      <%- include('../partials/form-field', { name: 'role', label: 'Role', type: 'select', cls: 'span-6', options: [{ value: 'driver', label: 'Driver' }, { value: 'admin', label: 'Administrator' }] }) %>
+      <%- include('../partials/form-field', { name: 'driverType', label: 'Driver type', type: 'select', cls: 'span-6', options: driverTypes.map(function (t) { return { value: t, label: t.charAt(0).toUpperCase() + t.slice(1) }; }), help: 'Ignored for administrators.' }) %>
+      <%- include('../partials/form-field', { name: 'universityId', label: 'University ID', cls: 'span-6' }) %>
+      <%- include('../partials/form-field', { name: 'phone', label: 'Mobile number', cls: 'span-6', type: 'tel' }) %>
+      <%- include('../partials/form-field', { name: 'password', label: 'Temporary password', type: 'password', required: true, help: 'At least 8 characters with a letter and a number. Share it in person.', attrs: 'autocomplete="new-password"' }) %>
+    </div>
+    <div class="form-actions"><button class="btn btn-primary" type="submit">Create account</button><a class="btn btn-outline-light" href="/admin/drivers">Cancel</a></div>
+  </form>
+</section>

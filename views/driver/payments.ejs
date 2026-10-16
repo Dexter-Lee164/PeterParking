@@ -1,0 +1,38 @@
+<div class="stat-grid">
+  <%- include('../partials/stat-card', { label: 'Outstanding balance', value: h.pesos(outstanding.amount), hint: outstanding.count ? outstanding.count + ' completed booking' + (outstanding.count > 1 ? 's' : '') + ' unpaid' : 'You are all paid up', icon: 'card', tone: outstanding.amount ? 'warning' : 'success' }) %>
+  <%- include('../partials/stat-card', { label: 'Payments recorded', value: history.total, hint: 'on your account', icon: 'check', tone: 'info' }) %>
+</div>
+<div class="alert alert-info section-gap mb-0" role="note"><%- h.icon('info', 16) %> Payments are made <strong>in person</strong> at the parking office. Staff record what you paid here; the system never takes online payments.</div>
+
+<div class="page-grid section-gap">
+  <section class="card-surface col-span-7" aria-labelledby="ob-h">
+    <div class="card-head"><h2 id="ob-h">Balances to settle</h2></div>
+    <%- include('../partials/data-table', { caption: 'Unpaid bookings', rows: outstanding.rows, empty: { icon: 'check', title: 'Nothing to pay', text: 'Finished bookings with an unpaid fee will be listed here.' }, columns: [
+      { label: 'Booking', render: function (r) { return h.stack(h.link('/driver/reservations/' + r.reference, r.reference, 'mono'), h.fmtDate(r.start_at)); } },
+      { label: 'Final fee', cls: 'num', render: function (r) { return h.esc(h.pesos(r.bal.assessed)); } },
+      { label: 'Paid', cls: 'num', render: function (r) { return h.esc(h.pesos(r.bal.paid)); } },
+      { label: 'Balance', cls: 'num', render: function (r) { return '<strong>' + h.esc(h.pesos(r.bal.balance)) + '</strong>'; } } ] }) %>
+  </section>
+  <section class="card-surface col-span-5" aria-labelledby="pp-h">
+    <div class="card-head"><h2 id="pp-h">Open bookings</h2></div>
+    <% if (!prepay.length) { %><p class="text-muted mb-0">No open bookings with fees waiting.</p><% } else { %>
+      <ul class="list-plain">
+        <% prepay.forEach(function (r) { %>
+          <li class="list-row"><span class="meta"><a class="mono" href="/driver/reservations/<%= r.reference %>"><%= r.reference %></a><span class="text-muted small"><%= h.fmtDate(r.start_at) %> · est. <%= h.pesos(r.estimated_fee_centavos) %></span></span><%- h.statusBadge('payment', r.bal.status) %></li>
+        <% }) %>
+      </ul>
+      <p class="policy-note mt-3 mb-0">You can pay ahead at the office; otherwise pay after check-out.</p>
+    <% } %>
+  </section>
+  <section class="card-surface col-span-12" aria-labelledby="ph-h">
+    <div class="card-head"><h2 id="ph-h">Payment history</h2></div>
+    <%- include('../partials/data-table', { caption: 'Payment history', rows: history.rows, pg: h.paginate(history.total, pageNo, 10), query: {}, empty: { icon: 'card', title: 'No payments yet', text: 'Payments recorded for you will show here with a printable receipt.' }, columns: [
+      { label: 'Receipt', render: function (p) { return h.link('/driver/payments/' + p.id + '/receipt', p.receipt_number, 'mono'); } },
+      { label: 'Booking', render: function (p) { return h.link('/driver/reservations/' + p.reservation_reference, p.reservation_reference, 'mono'); } },
+      { label: 'Date', render: function (p) { return h.esc(h.fmtDateTime(p.recorded_at)); } },
+      { label: 'Method', render: function (p) { return h.esc(methodLabel[p.method]); } },
+      { label: 'Amount', cls: 'num', render: function (p) { return h.esc(h.pesos(p.amount_centavos)); } },
+      { label: 'Status', render: function (p) { return h.statusBadge('payment', p.status); } },
+      { label: '', cls: 'text-end', render: function (p) { return h.link('/driver/payments/' + p.id + '/receipt', 'Receipt', 'btn btn-sm btn-outline-light'); } } ] }) %>
+  </section>
+</div>

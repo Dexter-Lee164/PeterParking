@@ -1,0 +1,53 @@
+<%- include('./_subnav', { tab: tab }) %>
+<% const opts = function (list, all) { return [{ value: '', label: all }].concat(list.map(function (x) { return x; })); }; %>
+<section class="card-surface">
+  <%- include('../partials/filter-toolbar', { action: '/admin/slots', resetHref: '/admin/slots', values: { q: f.q, zone: f.zoneId, status: f.status, type: f.type }, fields: [
+    { name: 'q', label: 'Search', type: 'search', cls: 'grow-2', placeholder: 'Slot code or zone' },
+    { name: 'zone', label: 'Zone', type: 'select', options: opts(zones.map(function (z) { return { value: z.id, label: z.name }; }), 'All zones') },
+    { name: 'type', label: 'Type', type: 'select', options: opts(types.map(function (t) { return { value: t, label: typeLabel[t] }; }), 'All types') },
+    { name: 'status', label: 'Status', type: 'select', options: opts(statuses.map(function (s) { return { value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }; }), 'Any status') } ] }) %>
+</section>
+
+<section class="card-surface">
+  <div class="card-head"><h2>Slots</h2>
+    <span class="text-muted small">Rates: <% rates.forEach(function (r, i) { %><%= (i ? ' · ' : '') + typeLabel[r.slot_type] + ' ' + h.pesos(r.hourly_rate_centavos) %><% }) %> · <a href="/admin/settings?tab=rates">Edit rates</a></span></div>
+  <%- include('../partials/data-table', { caption: 'Parking slots', rows: rows, pg: pg, query: query, empty: { icon: 'grid', title: 'No slots match', text: 'Adjust the filters or add a slot below.' }, columns: [
+    { label: 'Slot', render: function (s) { return '<strong>' + h.esc(s.code) + '</strong>'; } },
+    { label: 'Zone', render: function (s) { return h.esc(s.zone_name) + (s.zone_active ? '' : ' <span class="text-muted small">(zone inactive)</span>'); } },
+    { label: 'Type', render: function (s) { return h.esc(typeLabel[s.slot_type]); } },
+    { label: 'Rate', cls: 'num', render: function (s) { return h.esc(h.pesos(s.hourly_rate_centavos)) + '/hr'; } },
+    { label: 'Status', render: function (s) { return h.statusBadge('slot', s.status); } },
+    { label: '', cls: 'text-end', render: function (s) { return '<a class="btn btn-sm btn-outline-light" href="/admin/slots/' + s.id + '/edit">Edit</a>'; } } ] }) %>
+</section>
+
+<div class="page-grid">
+  <details class="card-surface col-span-6" <%= (typeof openForm !== 'undefined' && openForm === 'single') ? 'open' : '' %>>
+    <summary class="fw-semibold">Add a slot</summary>
+    <form class="mt-3" method="post" action="/admin/slots" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <% const e1 = (typeof openForm !== 'undefined' && openForm === 'single') ? errors : {}; const o1 = (typeof openForm !== 'undefined' && openForm === 'single') ? old : {}; %>
+      <div class="form-grid">
+        <%- include('../partials/form-field', { name: 'zoneId', label: 'Zone', type: 'select', required: true, errs: e1, old: o1, options: zones.map(function (z) { return { value: z.id, label: z.name }; }) }) %>
+        <%- include('../partials/form-field', { name: 'code', label: 'Slot code', required: true, cls: 'span-6', errs: e1, old: o1, placeholder: 'MB-13' }) %>
+        <%- include('../partials/form-field', { name: 'slotType', label: 'Type', type: 'select', cls: 'span-6', errs: e1, old: o1, options: types.map(function (t) { return { value: t, label: typeLabel[t] }; }) }) %>
+        <%- include('../partials/form-field', { name: 'status', label: 'Status', type: 'select', errs: e1, old: o1, options: statuses.map(function (s) { return { value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }; }) }) %>
+      </div>
+      <div class="form-actions"><button class="btn btn-primary" type="submit"><%- h.icon('plus', 16) %>Add slot</button></div>
+    </form>
+  </details>
+  <details class="card-surface col-span-6" <%= (typeof openForm !== 'undefined' && openForm === 'bulk') ? 'open' : '' %>>
+    <summary class="fw-semibold">Add several slots at once</summary>
+    <form class="mt-3" method="post" action="/admin/slots/bulk" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <% const e2 = (typeof openForm !== 'undefined' && openForm === 'bulk') ? errors : {}; const o2 = (typeof openForm !== 'undefined' && openForm === 'bulk') ? old : {}; %>
+      <div class="form-grid">
+        <%- include('../partials/form-field', { name: 'zoneId', label: 'Zone', type: 'select', required: true, errs: e2, old: o2, options: zones.map(function (z) { return { value: z.id, label: z.name }; }) }) %>
+        <%- include('../partials/form-field', { name: 'prefix', label: 'Code prefix', cls: 'span-4', errs: e2, old: o2, placeholder: 'MB-' }) %>
+        <%- include('../partials/form-field', { name: 'startNumber', label: 'Start at', type: 'number', cls: 'span-4', errs: e2, old: o2, value: o2.startNumber || 1 }) %>
+        <%- include('../partials/form-field', { name: 'count', label: 'How many', type: 'number', cls: 'span-4', errs: e2, old: o2, value: o2.count || 6 }) %>
+        <%- include('../partials/form-field', { name: 'slotType', label: 'Type', type: 'select', errs: e2, old: o2, options: types.map(function (t) { return { value: t, label: typeLabel[t] }; }) }) %>
+      </div>
+      <div class="form-actions"><button class="btn btn-primary" type="submit">Create slots</button></div>
+    </form>
+  </details>
+</div>

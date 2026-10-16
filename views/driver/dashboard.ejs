@@ -1,0 +1,69 @@
+<% const first = user.name.split(' ')[0]; const hour = h.localParts(h.nowIso()).hour; const greet = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'; %>
+<section class="card-surface summary-accent d-flex flex-wrap align-items-center justify-content-between gap-3">
+  <div>
+    <h2 class="h4 mb-1"><%= greet %>, <%= first %></h2>
+    <p class="text-muted mb-0">Need a spot? See what is free for the hours you need.</p>
+  </div>
+  <a class="btn btn-primary btn-lg" href="/driver/find-parking"><%- h.icon('map', 18) %>Find parking</a>
+</section>
+
+<div class="stat-grid section-gap">
+  <%- include('../partials/stat-card', { label: 'Outstanding balance', value: h.pesos(outstanding.amount), hint: outstanding.count ? outstanding.count + ' unpaid booking' + (outstanding.count > 1 ? 's' : '') : 'Nothing to pay', icon: 'card', tone: outstanding.amount ? 'warning' : 'success', href: '/driver/payments' }) %>
+  <%- include('../partials/stat-card', { label: 'Upcoming', value: counts.upcoming, hint: 'reservations', icon: 'calendar', tone: 'info', href: '/driver/reservations' }) %>
+  <%- include('../partials/stat-card', { label: 'Parked now', value: active ? 1 : 0, hint: active ? 'Slot ' + active.slot_code : 'No active session', icon: 'car', tone: active ? 'success' : 'muted', href: '/driver/reservations?tab=active' }) %>
+  <%- include('../partials/stat-card', { label: 'Registered vehicles', value: vehicleCount, hint: vehicleCount ? 'Ready to book' : 'Add one to start', icon: 'moto', tone: 'primary', href: '/driver/vehicles' }) %>
+</div>
+
+<div class="page-grid section-gap">
+  <section class="card-surface col-span-6" aria-labelledby="up-h">
+    <div class="card-head"><h2 id="up-h">Upcoming reservation</h2><a href="/driver/reservations">All reservations</a></div>
+    <% if (upcoming) { %>
+      <div class="hero-ref mb-2"><span class="ref mono"><%= upcoming.reference %></span><%- h.statusBadge('reservation', upcoming.status) %></div>
+      <dl class="kv">
+        <dt>Slot</dt><dd><%= upcoming.slot_code %> · <%= upcoming.zone_name %></dd>
+        <dt>When</dt><dd><%= h.fmtRange(upcoming.start_at, upcoming.end_at) %></dd>
+        <dt>Vehicle</dt><dd class="mono"><%= upcoming.plate_number %></dd>
+        <dt>Estimated fee</dt><dd><%= h.pesos(upcoming.estimated_fee_centavos) %></dd>
+      </dl>
+      <a class="btn btn-outline-light btn-sm mt-3" href="/driver/reservations/<%= upcoming.reference %>">View details</a>
+    <% } else { %>
+      <%- include('../partials/empty-state', { icon: 'calendar', title: 'No upcoming reservations', text: 'Reserve a slot and it will show up here.', action: { href: '/driver/find-parking', label: 'Find parking' } }) %>
+    <% } %>
+  </section>
+  <section class="card-surface col-span-6" aria-labelledby="act-h">
+    <div class="card-head"><h2 id="act-h">Active parking session</h2></div>
+    <% if (active) { %>
+      <div class="hero-ref mb-2"><span class="ref mono"><%= active.slot_code %></span><%- h.statusBadge('session', 'active') %></div>
+      <dl class="kv">
+        <dt>Zone</dt><dd><%= active.zone_name %></dd>
+        <dt>Checked in</dt><dd><%= h.fmtDateTime(active.checked_in_at) %></dd>
+        <dt>Booked until</dt><dd><%= h.fmtTime(active.end_at) %></dd>
+        <dt>Booking</dt><dd><a class="mono" href="/driver/reservations/<%= active.reference %>"><%= active.reference %></a></dd>
+      </dl>
+      <p class="policy-note mt-3">Staying past the booked end time bills extra started hours once the grace period ends.</p>
+    <% } else { %>
+      <%- include('../partials/empty-state', { icon: 'car', title: 'Not parked right now', text: 'When the parking office checks you in, your session appears here.' }) %>
+    <% } %>
+  </section>
+
+  <section class="card-surface col-span-7" aria-labelledby="rec-h">
+    <div class="card-head"><h2 id="rec-h">Recent booking activity</h2></div>
+    <%- include('../partials/data-table', { caption: 'Recent bookings', rows: recent, empty: { icon: 'calendar', title: 'No bookings yet', text: 'Your reservations will be listed here.' }, columns: [
+      { label: 'Reference', render: function (r) { return h.link('/driver/reservations/' + r.reference, r.reference, 'mono'); } },
+      { label: 'Slot', render: function (r) { return h.stack(h.esc(r.slot_code), r.zone_name); } },
+      { label: 'When', render: function (r) { return h.stack(h.esc(h.fmtDate(r.start_at)), h.fmtTime(r.start_at) + ' – ' + h.fmtTime(r.end_at)); } },
+      { label: 'Status', render: function (r) { return h.statusBadge('reservation', r.status); } } ] }) %>
+  </section>
+  <section class="card-surface col-span-5" aria-labelledby="pay-h">
+    <div class="card-head"><h2 id="pay-h">Recent payments</h2><a href="/driver/payments">All payments</a></div>
+    <% if (!recentPayments.length) { %>
+      <%- include('../partials/empty-state', { icon: 'card', title: 'No payments yet', text: 'Payments the parking office records for you will appear here.' }) %>
+    <% } else { %>
+      <ul class="list-plain">
+        <% recentPayments.forEach(function (p) { %>
+          <li class="list-row"><span class="meta"><strong><%= h.pesos(p.amount_centavos) %></strong><span class="text-muted small"><%= h.fmtDate(p.recorded_at) %> · <%= h.methodLabel[p.method] %></span></span><span><%- h.statusBadge('payment', p.status) %></span></li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </section>
+</div>

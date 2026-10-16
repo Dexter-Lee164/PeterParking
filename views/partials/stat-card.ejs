@@ -1,0 +1,10 @@
+<%# stat-card: label, value, hint?, icon?, tone? (primary|success|info|danger|warning|muted), href? %>
+<% const _t = typeof tone !== 'undefined' ? tone : 'primary'; const _tag = typeof href !== 'undefined' && href ? 'a' : 'div'; %>
+<<%= _tag %> class="stat-card stat-<%= _t %>" <%- _tag === 'a' ? 'href="' + h.esc(href) + '"' : '' %>>
+  <span class="stat-icon"><%- h.icon(typeof icon !== 'undefined' ? icon : 'info', 20) %></span>
+  <span class="stat-body">
+    <span class="stat-label"><%= label %></span>
+    <span class="stat-value"><%= value %></span>
+    <% if (typeof hint !== 'undefined' && hint) { %><span class="stat-hint"><%= hint %></span><% } %>
+  </span>
+</<%= _tag %>>

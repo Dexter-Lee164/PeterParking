@@ -1,0 +1,12 @@
+<section class="card-surface" style="max-width: 560px">
+  <form method="post" action="/driver/vehicles/<%= vehicle.id %>" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="form-grid">
+      <%- include('../partials/form-field', { name: 'plateNumber', label: 'Plate number', required: true, attrs: 'maxlength="12"' }) %>
+      <%- include('../partials/form-field', { name: 'vehicleType', label: 'Vehicle type', type: 'select', required: true, options: [{ value: 'car', label: 'Car' }, { value: 'motorcycle', label: 'Motorcycle' }] }) %>
+      <%- include('../partials/form-field', { name: 'makeModel', label: 'Make and model', cls: 'span-6' }) %>
+      <%- include('../partials/form-field', { name: 'color', label: 'Colour', cls: 'span-6' }) %>
+    </div>
+    <div class="form-actions"><button class="btn btn-primary" type="submit">Save changes</button><a class="btn btn-outline-light" href="/driver/vehicles">Cancel</a></div>
+  </form>
+</section>

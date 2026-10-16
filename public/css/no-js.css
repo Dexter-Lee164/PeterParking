@@ -1,0 +1,4 @@
+/* Loaded only when JavaScript is off: show the list view (links go straight to the confirmation step). */
+.slot-results .map-view, .view-toggle { display: none !important; }
+.slot-results .list-view { display: block !important; }
+.zone-panel[hidden] { display: none !important; }

@@ -1,0 +1,54 @@
+<% const minutes = valid ? range.minutes : 0;
+   const durText = valid ? h.fmtDuration(range.minutes) : '—';
+   const zoneOptions = zones.length ? zones.map(function (z) { return { value: z.id, label: z.name }; }) : [{ value: '', label: '—' }];
+   const extra = '<div class="duration-chip"><span id="duration-label">Duration</span><output id="duration-out" for="flt-start flt-end" aria-labelledby="duration-label">' + h.esc(durText) + '</output></div>'; %>
+<section class="card-surface search-card" aria-label="Reservation filters">
+  <%- include('../partials/filter-toolbar', {
+    id: 'availability-form', action: '/driver/find-parking', submitLabel: 'Search availability', extra: extra,
+    values: Object.assign({}, form, { zone: activeZone ? activeZone.id : '' }),
+    fields: [
+      { name: 'date', label: 'Reservation date', type: 'date', attrs: 'required min="' + minDate + '" max="' + maxDate + '" data-days="' + settings.advance_booking_days + '"' },
+      { name: 'start', label: 'Start time', type: 'time', cls: 'narrow', options: options.start },
+      { name: 'end', label: 'End time', type: 'time', cls: 'narrow', options: options.end },
+      { name: 'zone', label: 'Parking zone', type: 'select', options: zoneOptions },
+      { name: 'vehicleType', label: 'Vehicle type', type: 'select', cls: 'narrow', options: [{ value: '', label: 'Any vehicle' }, { value: 'car', label: 'Car' }, { value: 'motorcycle', label: 'Motorcycle' }] }
+    ] }) %>
+  <p id="range-hint" class="field-hint" role="alert"><%= Object.values(errors || {}).join(' ') %></p>
+</section>
+
+<div class="find-layout">
+  <div>
+    <div id="stale-banner" class="stale-banner" hidden><%- h.icon('alert', 16) %><span>You changed the time or vehicle type. Press <strong>Search availability</strong> to refresh the map.</span></div>
+    <section class="card-surface results-card" aria-label="Parking availability">
+      <p id="results-status" class="visually-hidden" role="status" aria-live="polite"></p>
+      <div id="slot-results"><%- include('../partials/slot-results') %></div>
+    </section>
+    <% if (!vehicles.length) { %>
+      <div class="alert alert-info mt-3 mb-0"><strong>No vehicle on file.</strong> You can look at availability now, but you need a registered vehicle to book. <a href="/driver/vehicles">Add a vehicle</a>.</div>
+    <% } %>
+  </div>
+
+  <aside class="rail" aria-label="Selected slot and reservation summary">
+    <section class="summary-card" aria-labelledby="sel-title">
+      <h2 class="summary-title" id="sel-title">Selected slot</h2>
+      <p id="sel-empty" class="slot-detail-empty mb-0"><%- h.icon('map', 22) %><span>No slot selected yet. Choose a green slot on the map or from the list.</span></p>
+      <div id="sel-card" class="slot-detail-card">
+        <div class="slot-detail-head"><div class="slot-detail-badge" id="sel-code">—</div><div><strong id="sel-zone">—</strong><div class="text-muted" id="sel-type">—</div></div></div>
+        <dl class="kv">
+          <dt>Status</dt><dd id="sel-status">—</dd>
+          <dt>Hourly rate</dt><dd id="sel-rate">—</dd>
+          <dt>Period</dt><dd id="sel-period">—</dd>
+        </dl>
+        <p id="sel-ok" class="availability-ok mt-2 mb-0"><%- h.icon('check', 16) %>Available for your selected time</p>
+      </div>
+    </section>
+    <%- include('../partials/summary-card', { title: 'Reservation summary', tone: 'accent', id: 'summary-card', rows: [
+      { label: 'Slot', id: 'sum-slot', value: 'None selected' }, { label: 'Zone', id: 'sum-zone', value: '—' }, { label: 'Date', id: 'sum-date', value: '—' },
+      { label: 'Start', id: 'sum-start', value: '—' }, { label: 'End', id: 'sum-end', value: '—' }, { label: 'Duration', id: 'sum-duration', value: durText },
+      { label: 'Hourly rate', id: 'sum-rate', value: '—' }, { label: 'Estimated fee', id: 'sum-fee', value: '—', strong: true } ],
+      footer: '<form id="continue-form" class="continue-wrap is-sticky" method="get" action="/driver/reserve"><input type="hidden" name="slot"><input type="hidden" name="date"><input type="hidden" name="start"><input type="hidden" name="end">' +
+        '<button id="continue-btn" class="btn btn-primary" type="submit" aria-disabled="true" aria-describedby="continue-help">Continue to reservation ' + h.icon('arrow', 18) + '</button>' +
+        '<p id="continue-help" class="policy-note mb-0">Select an available slot to continue.</p></form>' }) %>
+    <p class="policy-note">Fees are billed per started hour. Pay the parking office in person; no online payment is taken.</p>
+  </aside>
+</div>

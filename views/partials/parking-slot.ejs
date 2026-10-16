@@ -1,0 +1,15 @@
+<%#
+  parking-slot: s (slot row from availability), selectedId? — one accessible slot button.
+  State is shown with colour AND an icon AND text. Non-available slots are disabled.
+%>
+<% const _icon = { available: 'check', reserved: 'calendar', occupied: 'car', unavailable: 'wrench' }[s.state];
+   const _type = s.slot_type === 'motorcycle' ? 'bike' : s.slot_type === 'accessible' ? 'accessible' : 'car';
+   const _label = 'Slot ' + s.code + ', ' + s.zone_name + ', ' + h.typeLabel[s.slot_type] + ', ' + s.stateText.toLowerCase() + ', ' + h.pesos(s.rate) + ' per hour';
+   const _why = s.state === 'reserved' ? 'Booked for part of this time' : s.state === 'occupied' ? 'A vehicle is parked here' : s.state === 'unavailable' ? 'Closed for maintenance' : 'Select this slot'; %>
+<button type="button" class="slot slot-<%= s.state %>" data-slot-id="<%= s.id %>" data-code="<%= s.code %>" data-zone="<%= s.zone_name %>"
+  data-type="<%= h.typeLabel[s.slot_type] %>" data-rate="<%= s.rate %>" data-state="<%= s.state %>" data-state-text="<%= s.stateText %>"
+  aria-pressed="false" aria-label="<%= _label %>" title="<%= _why %>" <%= s.selectable ? '' : 'disabled aria-disabled="true"' %>>
+  <span class="slot-code"><%= s.code %></span>
+  <span class="slot-glyph"><%- h.icon(s.selectable || s.state === 'occupied' ? _type : _icon, 22) %></span>
+  <span class="slot-state"><%- h.icon(_icon, 12) %><%= s.stateText %></span>
+</button>

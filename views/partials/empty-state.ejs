@@ -1,0 +1,7 @@
+<%# empty-state: title, text?, icon?, action? {href,label} %>
+<div class="empty-state">
+  <span class="empty-icon"><%- h.icon(typeof icon !== 'undefined' ? icon : 'info', 28) %></span>
+  <h3><%= title %></h3>
+  <% if (typeof text !== 'undefined' && text) { %><p><%= text %></p><% } %>
+  <% if (typeof action !== 'undefined' && action) { %><a class="btn btn-primary btn-sm" href="<%= action.href %>"><%= action.label %></a><% } %>
+</div>

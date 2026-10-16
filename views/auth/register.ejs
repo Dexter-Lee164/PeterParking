@@ -1,0 +1,16 @@
+<h2>Create a driver account</h2>
+<p class="text-muted mb-4">Students, faculty and personnel can reserve parking by the hour.</p>
+<form method="post" action="/register" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="form-grid">
+    <%- include('../partials/form-field', { name: 'name', label: 'Full name', required: true, attrs: 'autocomplete="name" autofocus' }) %>
+    <%- include('../partials/form-field', { name: 'email', label: 'Email', type: 'email', required: true, attrs: 'autocomplete="email"' }) %>
+    <%- include('../partials/form-field', { name: 'driverType', label: 'I am a', type: 'select', cls: 'span-6', required: true, options: driverTypes.map(function (t) { return { value: t, label: t.charAt(0).toUpperCase() + t.slice(1) }; }), value: (old.driverType || 'student') }) %>
+    <%- include('../partials/form-field', { name: 'universityId', label: 'University ID', cls: 'span-6', help: 'Optional' }) %>
+    <%- include('../partials/form-field', { name: 'phone', label: 'Mobile number', type: 'tel', help: 'Optional', attrs: 'autocomplete="tel"' }) %>
+    <%- include('../partials/form-field', { name: 'password', label: 'Password', type: 'password', required: true, help: 'At least 8 characters with a letter and a number.', attrs: 'autocomplete="new-password"' }) %>
+    <%- include('../partials/form-field', { name: 'confirmPassword', label: 'Confirm password', type: 'password', required: true, attrs: 'autocomplete="new-password"' }) %>
+  </div>
+  <div class="form-actions"><button class="btn btn-primary w-100" type="submit">Create account</button></div>
+</form>
+<p class="mt-4 mb-0 text-muted">Already registered? <a href="/login">Sign in</a></p>

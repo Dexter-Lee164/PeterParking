@@ -1,0 +1,47 @@
+<%
+  const items = user && user.role === 'admin' ? [
+    ['Dashboard', '/admin/dashboard', 'dashboard'],
+    ['Parking Slots', '/admin/slots', 'grid', ['/admin/slots', '/admin/zones']],
+    ['Reservations', '/admin/reservations', 'calendar'],
+    ['Check-in / Check-out', '/admin/operations', 'swap'],
+    ['Payments', '/admin/payments', 'card'],
+    ['Drivers', '/admin/drivers', 'users'],
+    ['Reports', '/admin/reports', 'chart'],
+    ['Settings', '/admin/settings', 'settings'],
+  ] : [
+    ['Dashboard', '/driver/dashboard', 'dashboard'],
+    ['Find Parking', '/driver/find-parking', 'map', ['/driver/find-parking', '/driver/reserve']],
+    ['My Reservations', '/driver/reservations', 'calendar'],
+    ['Payments', '/driver/payments', 'card'],
+    ['My Vehicles', '/driver/vehicles', 'car'],
+    ['Profile', '/driver/profile', 'user'],
+  ];
+%>
+<aside class="app-sidebar offcanvas-lg offcanvas-start" tabindex="-1" id="sidebar" aria-label="Main navigation">
+  <div class="sidebar-head">
+    <a class="brand" href="/">
+      <span class="brand-mark" aria-hidden="true">P</span>
+      <span class="brand-text"><strong>University Parking</strong><small>Reserve. Park. Go.</small></span>
+    </a>
+    <button type="button" class="btn-close d-lg-none" data-bs-dismiss="offcanvas" data-bs-target="#sidebar" aria-label="Close menu"></button>
+  </div>
+  <nav class="sidebar-nav">
+    <p class="sidebar-role"><%= user && user.role === 'admin' ? 'Administrator' : 'Driver' %></p>
+    <ul class="nav flex-column">
+      <% items.forEach(function (it) {
+           const prefixes = it[3] || [it[1]];
+           const active = prefixes.some(function (p) { return path === p || path.indexOf(p + '/') === 0; }); %>
+        <li>
+          <a class="nav-link-item <%= active ? 'active' : '' %>" href="<%= it[1] %>" <%- active ? 'aria-current="page"' : '' %>>
+            <%- h.icon(it[2], 18) %><span><%= it[0] %></span>
+          </a>
+        </li>
+      <% }) %>
+    </ul>
+  </nav>
+  <div class="sidebar-foot">
+    <div class="legend-mini" aria-label="Slot colour key">
+      <span><i class="dot dot-available"></i>Free</span><span><i class="dot dot-reserved"></i>Reserved</span><span><i class="dot dot-occupied"></i>Occupied</span>
+    </div>
+  </div>
+</aside>

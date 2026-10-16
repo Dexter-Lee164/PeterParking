@@ -1,0 +1,44 @@
+<div class="page-grid">
+  <section class="card-surface col-span-5">
+    <div class="hero-ref mb-3"><span class="avatar" style="width:46px;height:46px;font-size:1rem"><%= h.initials(u.name) %></span><div><div class="fw-bold fs-5"><%= u.name %></div><div class="text-muted"><%= u.email %></div></div>
+      <%- h.statusBadge('account', u.is_active ? 'active' : 'inactive') %></div>
+    <dl class="kv">
+      <dt>Role</dt><dd><%= u.role === 'admin' ? 'Administrator' : (u.driver_type || 'driver') %></dd>
+      <dt>University ID</dt><dd><%= u.university_id || '—' %></dd>
+      <dt>Mobile</dt><dd><%= u.phone || '—' %></dd>
+      <dt>Joined</dt><dd><%= h.fmtDate(u.created_at) %></dd>
+      <dt>Last sign-in</dt><dd><%= u.last_login_at ? h.fmtDateTime(u.last_login_at) : 'Never' %></dd>
+      <dt>Outstanding</dt><dd><%= h.pesos(outstanding.amount) %> (<%= outstanding.count %>)</dd>
+    </dl>
+    <div class="d-flex flex-wrap gap-2 mt-4">
+      <% if (u.id !== user.id) { %>
+        <button class="btn <%= u.is_active ? 'btn-outline-danger' : 'btn-success' %>" type="button" data-bs-toggle="modal" data-bs-target="#confirmModal" data-confirm-action="/admin/drivers/<%= u.id %>/status" data-confirm-fields='{"active":"<%= u.is_active ? '0' : '1' %>"}'
+          data-confirm-title="<%= u.is_active ? 'Deactivate' : 'Reactivate' %> this account?" data-confirm-message="<%= u.is_active ? 'They will no longer be able to sign in. Existing bookings stay on record.' : 'They will be able to sign in again.' %>" data-confirm-label="<%= u.is_active ? 'Deactivate' : 'Reactivate' %>" data-confirm-tone="<%= u.is_active ? 'danger' : 'primary' %>"><%= u.is_active ? 'Deactivate account' : 'Reactivate account' %></button>
+      <% } %>
+    </div>
+    <details class="mt-4"><summary class="fw-semibold">Reset password</summary>
+      <form class="mt-3" method="post" action="/admin/drivers/<%= u.id %>/password" novalidate>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <%- include('../partials/form-field', { name: 'password', label: 'New temporary password', type: 'password', required: true, errs: {}, attrs: 'autocomplete="new-password"' }) %>
+        <div class="form-actions"><button class="btn btn-outline-light" type="submit">Reset password</button></div>
+      </form>
+    </details>
+  </section>
+  <section class="card-surface col-span-7">
+    <div class="card-head"><h2>Vehicles</h2></div>
+    <% if (!vehicles.length) { %><p class="text-muted mb-0">No vehicles registered.</p><% } else { %>
+      <ul class="list-plain"><% vehicles.forEach(function (v) { %>
+        <li class="list-row"><span class="meta"><strong class="mono"><%= v.plate_number %></strong><span class="text-muted small"><%= v.vehicle_type %><% if (v.make_model) { %> · <%= v.make_model %><% } %><% if (v.color) { %> · <%= v.color %><% } %></span></span><%- h.statusBadge('account', v.is_active ? 'active' : 'inactive') %></li>
+      <% }) %></ul>
+    <% } %>
+  </section>
+  <section class="card-surface col-span-12">
+    <div class="card-head"><h2>Recent reservations</h2><a href="/admin/reservations?q=<%= encodeURIComponent(u.email) %>">All for this driver</a></div>
+    <%- include('../partials/data-table', { caption: 'Recent reservations', rows: recent, pg: null, empty: { icon: 'calendar', title: 'No reservations yet' }, columns: [
+      { label: 'Reference', render: function (r) { return h.link('/admin/reservations/' + r.reference, r.reference, 'mono'); } },
+      { label: 'Slot', render: function (r) { return h.stack(h.esc(r.slot_code), r.zone_name); } },
+      { label: 'When', render: function (r) { return h.esc(h.fmtRange(r.start_at, r.end_at)); } },
+      { label: 'Fee', cls: 'num', render: function (r) { return h.esc(h.pesos(r.bal.assessed)); } },
+      { label: 'Status', render: function (r) { return h.statusBadge('reservation', r.status); } } ] }) %>
+  </section>
+</div>

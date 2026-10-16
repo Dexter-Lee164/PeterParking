@@ -1,0 +1,13 @@
+<h2>Sign in</h2>
+<p class="text-muted mb-4">Use your university parking account.</p>
+<% if (typeof error !== 'undefined' && error) { %><div class="alert alert-danger" role="alert"><%= error %></div><% } %>
+<% (flash || []).forEach(function (f) { %><div class="alert alert-<%= f.type === 'danger' ? 'danger' : f.type === 'warning' ? 'warning' : 'success' %>" role="status"><%= f.message %></div><% }) %>
+<form method="post" action="/login" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="form-grid">
+    <%- include('../partials/form-field', { name: 'email', label: 'Email', type: 'email', required: true, attrs: 'autocomplete="username" autofocus' }) %>
+    <%- include('../partials/form-field', { name: 'password', label: 'Password', type: 'password', required: true, attrs: 'autocomplete="current-password"' }) %>
+  </div>
+  <div class="form-actions"><button class="btn btn-primary w-100" type="submit">Sign in</button></div>
+</form>
+<p class="mt-4 mb-0 text-muted">New driver? <a href="/register">Create an account</a></p>

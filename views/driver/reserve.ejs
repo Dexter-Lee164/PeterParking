@@ -1,0 +1,34 @@
+<div class="find-layout">
+  <section class="card-surface" aria-labelledby="rv-h">
+    <div class="card-head"><h2 id="rv-h">Review your booking</h2></div>
+    <dl class="kv mb-4">
+      <dt>Slot</dt><dd><strong><%= slot.code %></strong> · <%= slot.zone_name %></dd>
+      <dt>Slot type</dt><dd><%= typeLabel[slot.slot_type] %></dd>
+      <dt>Status</dt><dd><%- h.statusBadge('slot', 'available') %> <span class="text-muted small ms-1">for your selected time</span></dd>
+      <dt>Date</dt><dd><%= h.fmtDate(range.startAt) %></dd>
+      <dt>Time</dt><dd><%= h.fmtTime(range.startAt) %> – <%= h.fmtTime(range.endAt) %> (<%= h.fmtDuration(range.minutes) %>)</dd>
+    </dl>
+    <form method="post" action="/driver/reservations" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="slotId" value="<%= slot.id %>"><input type="hidden" name="date" value="<%= form.date %>">
+      <input type="hidden" name="start" value="<%= form.start %>"><input type="hidden" name="end" value="<%= form.end %>">
+      <% if (vehicles.length) { %>
+        <%- include('../partials/form-field', { name: 'vehicleId', label: 'Vehicle', type: 'select', required: true, value: vehicles[0].id,
+              options: vehicles.map(function (v) { return { value: v.id, label: v.plate_number + ' · ' + (v.make_model || v.vehicle_type) }; }),
+              help: hasOtherVehicles ? 'Only vehicles that fit a ' + typeLabel[slot.slot_type].toLowerCase() + ' slot are listed.' : '' }) %>
+      <% } else { %>
+        <div class="alert alert-warning" role="alert"><strong>No suitable vehicle.</strong> A <%= typeLabel[slot.slot_type].toLowerCase() %> slot needs a registered <%= slot.slot_type === 'motorcycle' ? 'motorcycle' : 'car' %>. <a href="/driver/vehicles">Add a vehicle</a> and come back.</div>
+      <% } %>
+      <p class="policy-note mt-3">Cancellation policy: you can cancel or reschedule free of charge until <%= h.fmtDuration(settings.cancellation_cutoff_minutes) %> before the start. After that, contact the parking office. If you do not arrive within <%= settings.no_show_after_minutes %> minutes of the start, the booking may be marked as a no-show.</p>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit" <%= vehicles.length ? '' : 'disabled' %>><%- h.icon('check', 18) %>Confirm reservation</button>
+        <a class="btn btn-outline-light" href="<%= back %>">Back to map</a>
+      </div>
+    </form>
+  </section>
+  <aside class="rail">
+    <%- include('../partials/summary-card', { title: 'Fee estimate', tone: 'accent', rows: [
+      { label: 'Hourly rate', value: h.pesos(slot.rate) }, { label: 'Billed hours', value: range.hours + ' h' }, { label: 'Estimated fee', value: h.pesos(fee), strong: true } ],
+      footer: '<p class="policy-note mb-0">Billed per started hour. Paid in person at the parking office after your visit. Staying past your end time adds extra hours once the ' + settings.overstay_grace_minutes + '-minute grace period ends.</p>' }) %>
+  </aside>
+</div>

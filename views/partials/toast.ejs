@@ -1,0 +1,12 @@
+<div class="toast-stack" aria-live="polite" aria-atomic="false">
+  <% (flash || []).forEach(function (f) {
+       const tone = f.type === 'danger' ? 'danger' : f.type === 'warning' ? 'warning' : 'success'; %>
+    <div class="toast app-toast toast-<%= tone %> show" role="<%= tone === 'danger' ? 'alert' : 'status' %>" data-autohide="<%= tone === 'success' ? '6000' : '0' %>">
+      <div class="toast-body">
+        <%- h.icon(tone === 'success' ? 'check' : 'alert', 18) %>
+        <span><%= f.message %></span>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="toast" aria-label="Dismiss"></button>
+      </div>
+    </div>
+  <% }) %>
+</div>

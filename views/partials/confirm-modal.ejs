@@ -1,0 +1,24 @@
+<%# One shared dialog. Buttons opt in with data-confirm-* attributes (see public/js/app.js). %>
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content" method="post" action="" id="confirmForm">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="modal-header">
+        <h2 class="modal-title fs-5" id="confirmTitle">Are you sure?</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmMessage" class="mb-0"></p>
+        <div id="confirmReasonWrap" class="mt-3" hidden>
+          <label for="confirmReason" class="form-label" id="confirmReasonLabel">Reason</label>
+          <textarea id="confirmReason" name="reason" class="form-control" rows="3" maxlength="300"></textarea>
+        </div>
+        <div id="confirmExtra"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Keep as is</button>
+        <button type="submit" class="btn btn-danger" id="confirmSubmit">Confirm</button>
+      </div>
+    </form>
+  </div>
+</div>

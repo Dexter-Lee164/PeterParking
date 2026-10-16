@@ -1,0 +1,47 @@
+<nav class="subnav" aria-label="Settings sections">
+  <a href="/admin/settings" class="<%= tab === 'rules' ? 'active' : '' %>">Booking rules</a>
+  <a href="/admin/settings?tab=rates" class="<%= tab === 'rates' ? 'active' : '' %>">Hourly rates</a>
+  <a href="/admin/settings?tab=audit" class="<%= tab === 'audit' ? 'active' : '' %>">Audit log</a>
+</nav>
+<% if (tab === 'rules') { %>
+<section class="card-surface" style="max-width: 880px">
+  <div class="card-head"><div><h2>Booking and billing rules</h2><p>Applied on the server to every reservation, check-in and check-out.</p></div></div>
+  <form method="post" action="/admin/settings" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="form-grid">
+      <% fields.forEach(function (f) { %>
+        <%- include('../partials/form-field', { name: f.key, label: f.label, type: f.type === 'time' ? 'time' : f.type === 'int' ? 'number' : 'text', cls: f.type === 'text' ? '' : 'span-6', help: f.help || '', required: true, attrs: f.type === 'int' ? 'min="' + f.min + '" max="' + f.max + '"' : '' }) %>
+      <% }) %>
+    </div>
+    <p class="policy-note mt-3 mb-0">Billing: the fee is the hourly rate × started hours. Leaving later than the booked end plus the overstay grace bills every started extra hour. Arriving late or leaving early does not reduce the fee.</p>
+    <div class="form-actions"><button class="btn btn-primary" type="submit">Save rules</button></div>
+  </form>
+</section>
+<% } else if (tab === 'rates') { %>
+<section class="card-surface" style="max-width: 640px">
+  <div class="card-head"><div><h2>Hourly rates</h2><p>One rate per slot type. New bookings use the current rate; existing bookings keep the rate they were made at.</p></div></div>
+  <form method="post" action="/admin/settings/rates" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="form-grid">
+      <% types.forEach(function (t2) { %><%- include('../partials/form-field', { name: t2, label: typeLabel[t2] + ' slot (PHP per hour)', cls: 'span-6', required: true, attrs: 'inputmode="decimal"' }) %><% }) %>
+    </div>
+    <div class="form-actions"><button class="btn btn-primary" type="submit">Save rates</button></div>
+  </form>
+</section>
+<% } else { %>
+<section class="card-surface">
+  <%- include('../partials/filter-toolbar', { action: '/admin/settings', resetHref: '/admin/settings?tab=audit', values: { q: f.q, action: f.action, tab: 'audit' }, fields: [
+    { name: 'tab', label: '', type: 'hidden', cls: 'd-none' },
+    { name: 'q', label: 'Search', type: 'search', cls: 'grow-2', placeholder: 'Action, record or details' },
+    { name: 'action', label: 'Action', type: 'select', options: [{ value: '', label: 'All actions' }].concat(actions.map(function (a) { return { value: a, label: a }; })) } ] }) %>
+</section>
+<section class="card-surface">
+  <div class="card-head"><h2>Audit log</h2></div>
+  <%- include('../partials/data-table', { caption: 'Audit log', rows: rows, pg: pg, query: query, empty: { icon: 'clock', title: 'No entries match' }, columns: [
+    { label: 'When', render: function (a) { return h.esc(h.fmtDateTime(a.created_at)); } },
+    { label: 'By', render: function (a) { return h.stack(h.esc(a.user_name || 'System'), a.ip_address || ''); } },
+    { label: 'Action', render: function (a) { return '<span class="mono">' + h.esc(a.action) + '</span>'; } },
+    { label: 'Record', render: function (a) { return h.esc((a.entity_type || '—') + (a.entity_id ? ' #' + a.entity_id : '')); } },
+    { label: 'Details', render: function (a) { return '<span class="small text-muted">' + h.esc((a.details || '').slice(0, 140)) + '</span>'; } } ] }) %>
+</section>
+<% } %>

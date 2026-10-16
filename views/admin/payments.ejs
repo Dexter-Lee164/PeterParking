@@ -1,0 +1,47 @@
+<div class="page-grid">
+  <section class="card-surface col-span-5" aria-labelledby="rp-h">
+    <div class="card-head"><div><h2 id="rp-h">Record a payment</h2><p>Enter what the driver paid in person. No money moves through this system.</p></div></div>
+    <% if (target) { %>
+      <div class="alert alert-info py-2"><strong class="mono"><%= target.reference %></strong> · <%= target.driver_name %><br>
+        <%= target.bal.finalized ? 'Final fee' : 'Estimated fee' %> <strong><%= h.pesos(target.bal.assessed) %></strong> · paid <%= h.pesos(target.bal.paid) %> · balance <strong><%= h.pesos(Math.max(0, target.bal.balance)) %></strong></div>
+    <% } %>
+    <form method="post" action="/admin/payments" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="form-grid">
+        <%- include('../partials/form-field', { name: 'reservationRef', label: 'Booking reference', required: true, placeholder: 'UP-20261016-AB3CD', attrs: 'autocapitalize="characters"' }) %>
+        <%- include('../partials/form-field', { name: 'amount', label: 'Amount (PHP)', cls: 'span-6', required: true, attrs: 'inputmode="decimal"', value: (old.amount != null ? old.amount : (target && target.bal.balance > 0 ? (target.bal.balance / 100).toFixed(2) : '')) }) %>
+        <%- include('../partials/form-field', { name: 'method', label: 'Payment method', type: 'select', cls: 'span-6', required: true, value: (old.method || 'cash'), options: methods.map(function (m) { return { value: m, label: methodLabel[m] }; }) }) %>
+        <%- include('../partials/form-field', { name: 'reference', label: 'Receipt or transaction reference', help: 'Required for GCash, bank transfer and other non-cash payments.' }) %>
+        <%- include('../partials/form-field', { name: 'notes', label: 'Notes', type: 'textarea', attrs: 'maxlength="200"' }) %>
+      </div>
+      <div class="form-actions"><button class="btn btn-primary" type="submit"><%- h.icon('check', 16) %>Record payment</button></div>
+    </form>
+  </section>
+  <section class="card-surface col-span-7" aria-labelledby="ub-h">
+    <div class="card-head"><div><h2 id="ub-h">Unpaid balances</h2><p><%= outstanding.count %> booking<%= outstanding.count === 1 ? '' : 's' %> · <%= h.pesos(outstanding.amount) %> outstanding (finalized fees only)</p></div></div>
+    <%- include('../partials/data-table', { caption: 'Unpaid balances', rows: outstanding.rows, pg: null, empty: { icon: 'check', title: 'No unpaid balances', text: 'Every finalized fee is paid.' }, columns: [
+      { label: 'Booking', render: function (r) { return h.stack(h.link('/admin/reservations/' + r.reference, r.reference, 'mono'), r.driver_name); } },
+      { label: 'Final fee', cls: 'num', render: function (r) { return h.esc(h.pesos(r.bal.assessed)); } },
+      { label: 'Paid', cls: 'num', render: function (r) { return h.esc(h.pesos(r.bal.paid)); } },
+      { label: 'Balance', cls: 'num', render: function (r) { return '<strong>' + h.esc(h.pesos(r.bal.balance)) + '</strong>'; } },
+      { label: '', cls: 'text-end', render: function (r) { return h.link('/admin/payments?ref=' + r.reference, 'Record', 'btn btn-sm btn-outline-light'); } } ] }) %>
+  </section>
+</div>
+
+<section class="card-surface">
+  <div class="card-head"><h2>Payment history</h2></div>
+  <%- include('../partials/filter-toolbar', { action: '/admin/payments', resetHref: '/admin/payments', values: { q: f.q, status: f.status, method: f.method, from: f.dateFrom, to: f.dateTo }, fields: [
+    { name: 'q', label: 'Search', type: 'search', cls: 'grow-2', placeholder: 'Receipt, booking, driver or reference' },
+    { name: 'status', label: 'Status', type: 'select', options: [{ value: '', label: 'Valid and voided' }, { value: 'valid', label: 'Valid' }, { value: 'voided', label: 'Voided' }] },
+    { name: 'method', label: 'Method', type: 'select', options: [{ value: '', label: 'Any method' }].concat(methods.map(function (m) { return { value: m, label: methodLabel[m] }; })) },
+    { name: 'from', label: 'From', type: 'date' }, { name: 'to', label: 'To', type: 'date' } ] }) %>
+  <div class="mt-3">
+  <%- include('../partials/data-table', { caption: 'Payments', rows: rows, pg: pg, query: query, empty: { icon: 'card', title: 'No payments found', text: 'Recorded payments appear here.' }, columns: [
+    { label: 'Receipt', render: function (p) { return h.stack(h.link('/admin/payments/' + p.id + '/receipt', p.receipt_number, 'mono'), h.fmtDateTime(p.recorded_at)); } },
+    { label: 'Booking', render: function (p) { return h.stack(h.link('/admin/reservations/' + p.reservation_reference, p.reservation_reference, 'mono'), p.driver_name); } },
+    { label: 'Method', render: function (p) { return h.stack(h.esc(h.methodLabel[p.method]), p.reference || ''); } },
+    { label: 'Amount', cls: 'num', render: function (p) { return h.esc(h.pesos(p.amount_centavos)); } },
+    { label: 'Status', render: function (p) { return h.statusBadge('payment', p.status) + (p.status === 'voided' ? '<span class="cell-sub">' + h.esc(p.void_reason || '') + '</span>' : ''); } },
+    { label: '', cls: 'text-end', render: function (p) { return h.link('/admin/payments/' + p.id + '/receipt', 'Receipt', 'btn btn-sm btn-outline-light') + (p.status === 'valid' ? ' <button class="btn btn-sm btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#confirmModal" data-confirm-action="/admin/payments/' + p.id + '/void" data-confirm-title="Void ' + h.esc(p.receipt_number) + '?" data-confirm-message="This removes ' + h.esc(h.pesos(p.amount_centavos)) + ' from the booking\'s paid total. The record stays for the audit trail." data-confirm-label="Void payment" data-confirm-reason="required" data-confirm-reason-label="Reason for voiding (required)">Void</button>' : ''); } } ] }) %>
+  </div>
+</section>
