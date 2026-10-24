@@ -61,37 +61,7 @@ function adminDashboard() {
   );
   const reservationsOverTime = { labels: days14.map(time.fmtDateShort), values: days14.map((d) => perDay.get(d) || 0) };
 
-  // Peak hours (last 30 days, operating hours only).
   const from30 = time.addDays(`${today} 00:00:00`, -29).slice(0, 10);
-  const hours = new Map(
-    db
-      .prepare(
-        `SELECT CAST(substr(start_at, 12, 2) AS INTEGER) AS h, COUNT(*) AS n FROM reservations
-         WHERE start_at >= ? AND start_at <= ? AND status IN ('completed','checked_in','confirmed','no_show') GROUP BY h`,
-      )
-      .all(`${from30} 00:00:00`, `${today} 23:59:59`)
-      .map((r) => [r.h, r.n]),
-  );
-  const openH = parseInt(settings.open_time.slice(0, 2), 10);
-  const closeH = Math.ceil(time.minutesOfDay(settings.close_time) / 60);
-  const peakLabels = [];
-  const peakValues = [];
-  for (let h = openH; h < closeH; h += 1) {
-    peakLabels.push(time.fmtTime(`2000-01-01 ${String(h).padStart(2, '0')}:00:00`));
-    peakValues.push(hours.get(h) || 0);
-  }
-
-  // Demand by zone (30 days).
-  const zoneRows = db
-    .prepare(
-      `SELECT z.name, COUNT(r.id) AS n, COALESCE(SUM(r.duration_minutes), 0) AS minutes
-       FROM parking_zones z
-       LEFT JOIN parking_slots s ON s.zone_id = z.id
-       LEFT JOIN reservations r ON r.slot_id = s.id AND r.start_at >= ? AND r.start_at <= ? AND r.status IN ('completed','checked_in','confirmed')
-       WHERE z.is_active = 1 GROUP BY z.id ORDER BY z.sort_order, z.name`,
-    )
-    .all(`${from30} 00:00:00`, `${today} 23:59:59`);
-  const demandByZone = { labels: zoneRows.map((r) => r.name), values: zoneRows.map((r) => r.n), hours: zoneRows.map((r) => Math.round(r.minutes / 6) / 10) };
 
   // Outcome rates (30 days, bookings whose window has been resolved or are otherwise in the period).
   const statusRows = db
@@ -142,7 +112,7 @@ function adminDashboard() {
       todaysReservations,
       outstandingCentavos: payments.totalOutstanding(),
     },
-    charts: { reservationsOverTime, peakHours: { labels: peakLabels, values: peakValues }, demandByZone, outcomes, collections },
+    charts: { reservationsOverTime, outcomes, collections },
     recentActivity,
     lateArrivals: db
       .prepare(

@@ -117,8 +117,10 @@ test('the real server boots, seeds demo data on first run, and keeps data + sess
   assert.equal(dash.status, 200);
   assert.match(dash.text, /Operations overview/);
   const list1 = await admin.get('/admin/reservations');
-  const total1 = /of (\d+) reservations/.exec(list1.text);
-  assert.ok(total1 && Number(total1[1]) > 50, 'demo history was seeded');
+  // The list is split into today / upcoming / past panels, each with its own total.
+  const totalOf = (html) => [...html.matchAll(/of (\d+) reservations/g)].reduce((n, m) => n + Number(m[1]), 0);
+  const total1 = totalOf(list1.text);
+  assert.ok(total1 > 50, 'demo history was seeded');
 
   // Make a change that must survive: a note and a rate on a slot (the layout itself is fixed).
   const made = await admin.post('/admin/slots/1', { status: 'active', notes: 'Persistence check', hourly_rate_override: '42' });
@@ -134,7 +136,7 @@ test('the real server boots, seeds demo data on first run, and keeps data + sess
     assert.match(dash2.text, /Persistence check/);
     assert.match(dash2.text, /₱42.00/);
     const list2 = await admin.get('/admin/reservations');
-    assert.equal(/of (\d+) reservations/.exec(list2.text)[1], total1[1], 'no data lost or re-seeded');
+    assert.equal(totalOf(list2.text), total1, 'no data lost or re-seeded');
     assert.doesNotMatch(server.output(), /demo data loaded/, 'seed runs on first start only');
   } finally {
     await server.stop();

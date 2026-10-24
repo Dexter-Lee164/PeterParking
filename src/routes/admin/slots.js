@@ -23,7 +23,9 @@ const STATUS_OPTIONS = [
 
 router.get('/', (req, res) => {
   const zones = parking.listZones();
-  const zoneId = toInt(req.query.zone);
+  // There is no all-zones view: an unknown or missing zone falls back to the first one.
+  const requested = toInt(req.query.zone);
+  const zoneId = zones.some((z) => z.id === requested) ? requested : (zones[0] && zones[0].id) || null;
   const status = clean(req.query.status);
   const slotType = clean(req.query.type);
   const q = clean(req.query.q);

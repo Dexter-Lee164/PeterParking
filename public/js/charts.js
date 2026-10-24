@@ -61,20 +61,6 @@
       options: { cutout: '62%', plugins: { legend: { position: 'bottom' } } },
     });
   }
-  if (ch.peakHours) {
-    mount('chartPeak', {
-      type: 'bar',
-      data: { labels: ch.peakHours.labels, datasets: [{ label: 'Bookings', data: ch.peakHours.values, backgroundColor: C.teal, borderRadius: 4 }] },
-      options: { scales: scales(), plugins: { legend: { display: false } } },
-    });
-  }
-  if (ch.demandByZone) {
-    mount('chartZones', {
-      type: 'bar',
-      data: { labels: ch.demandByZone.labels, datasets: [{ label: 'Bookings', data: ch.demandByZone.values, backgroundColor: C.blue, borderRadius: 4 }] },
-      options: { indexAxis: 'y', scales: { x: { beginAtZero: true, grid: { color: C.grid }, ticks: { precision: 0 } }, y: { grid: { display: false } } }, plugins: { legend: { display: false } } },
-    });
-  }
   if (ch.collections) {
     mount('chartCollections', {
       type: 'bar',

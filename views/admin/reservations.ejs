@@ -1,7 +1,7 @@
 <div class="page-intro">
   <div>
     <h2>Reservations</h2>
-    <p>Today's bookings come first, then upcoming ones (soonest first), then past ones (most recent first). Every booking stays on record.</p>
+    <p>Bookings are split into today, upcoming and past. Today and past show the most recent first; upcoming shows the soonest first. Every booking stays on record.</p>
   </div>
 </div>
 
@@ -10,25 +10,37 @@
 <%- include('partials/filter-toolbar', {
   formId: 'resFilter',
   action: '/admin/reservations',
-  submitLabel: 'Filter',
+  hideSubmit: true,
   resetHref: '/admin/reservations',
+  toolbarClass: 'filter-bar mb-3',
   fields: [
-    { type: 'search', name: 'q', label: 'Search', value: filters.q, placeholder: 'Booking ref, driver, plate, slot', col: 'col-12 col-md-4' },
-    { type: 'select', name: 'status', label: 'Status', value: filters.status, options: statusOptions, col: 'col-6 col-md-2' },
-    { type: 'select', name: 'zone', label: 'Zone', value: filters.zone, options: zoneOptions, col: 'col-6 col-md-2' },
-    { type: 'select', name: 'payment', label: 'Payment', value: filters.payment, options: paymentOptions, col: 'col-6 col-md-2' },
-    { type: 'date', name: 'from', label: 'From date', value: filters.from, col: 'col-6 col-md-2' },
-    { type: 'date', name: 'to', label: 'To date', value: filters.to, col: 'col-6 col-md-2' }
+    { type: 'search', name: 'q', label: 'Search', value: filters.q, placeholder: 'Ref, driver, plate, slot', col: 'col-12 col-md-3 col-xl-2', attrs: { 'data-autosubmit': '' } },
+    { type: 'select', name: 'status', label: 'Status', value: filters.status, options: statusOptions, col: 'col-6 col-md-2', attrs: { 'data-autosubmit': '' } },
+    { type: 'select', name: 'zone', label: 'Zone', value: filters.zone, options: zoneOptions, col: 'col-6 col-md-2', attrs: { 'data-autosubmit': '' } },
+    { type: 'select', name: 'payment', label: 'Payment', value: filters.payment, options: paymentOptions, col: 'col-6 col-md-2', attrs: { 'data-autosubmit': '' } },
+    { type: 'date', name: 'from', label: 'From date', value: filters.from, col: 'col-6 col-md-2', attrs: { 'data-autosubmit': '' } },
+    { type: 'date', name: 'to', label: 'To date', value: filters.to, col: 'col-6 col-md-2', attrs: { 'data-autosubmit': '' } }
   ]
 }) %>
 
-<%- include('partials/data-table', {
-  caption: 'All reservations',
-  columns: [{ label: 'Reference' }, { label: 'Driver' }, { label: 'Vehicle' }, { label: 'Slot' }, { label: 'When' }, { label: 'Fee', align: 'end' }, { label: 'Payment' }, { label: 'Status' }, { label: '' }],
-  rows: rows,
-  rowPartial: 'partials/rows/admin-reservation-row',
-  pager: pager,
-  baseQuery: baseQuery,
-  noun: 'reservations',
-  empty: { icon: 'bi-calendar2-x', title: 'No reservations found', text: 'Adjust the filters, or clear them to see every booking.' }
-}) %>
+<% const panelInfo = {
+  today: { title: 'Today', caption: 'Reservations today', icon: 'bi-calendar-day', empty: 'No reservations today.' },
+  upcoming: { title: 'Upcoming', caption: 'Upcoming reservations', icon: 'bi-calendar2-week', empty: 'No upcoming reservations.' },
+  past: { title: 'Past', caption: 'Past reservations', icon: 'bi-clock-history', empty: 'No past reservations.' }
+}; %>
+<% panels.forEach(function (p) { const info = panelInfo[p.period]; %>
+  <section class="mb-4" aria-labelledby="panel-<%= p.period %>">
+    <h3 class="h5 mb-2" id="panel-<%= p.period %>"><%= info.title %> <span class="chip ms-1"><%= p.pager.total %></span></h3>
+    <%- include('partials/data-table', {
+      caption: info.caption,
+      columns: [{ label: 'Reference' }, { label: 'Driver' }, { label: 'Vehicle' }, { label: 'Slot' }, { label: 'When' }, { label: 'Fee', align: 'end' }, { label: 'Payment' }, { label: 'Status' }, { label: '' }],
+      rows: p.rows,
+      rowPartial: 'partials/rows/admin-reservation-row',
+      pager: p.pager,
+      pageParam: p.pageParam,
+      baseQuery: baseQuery,
+      noun: 'reservations',
+      empty: { icon: info.icon, title: info.empty, text: 'Adjust the filters, or clear them to see every booking.' }
+    }) %>
+  </section>
+<% }) %>

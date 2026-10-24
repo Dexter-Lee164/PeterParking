@@ -290,7 +290,6 @@ describe('dashboard and settings (deterministic data)', () => {
     assert.equal(data.charts.collections.totalCentavos, 10000);
     assert.equal(data.charts.reservationsOverTime.values.at(-1), 3);
     assert.equal(data.charts.reservationsOverTime.values.reduce((a, b) => a + b, 0), 3);
-    assert.equal(data.charts.demandByZone.values.reduce((a, b) => a + b, 0), 2, 'zone demand counts completed + active + upcoming only');
     assert.equal(data.recentActivity.length > 0, true);
   });
 

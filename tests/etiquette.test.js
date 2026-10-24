@@ -225,6 +225,15 @@ describe('penalties on a plate are stored, enforced and audited', () => {
     assert.match(detail.text, /this report/);
     assert.match(detail.text, /Penalties/);
   });
+
+  test('the driver page lists the etiquette reports on their plates, and only when they have some', async () => {
+    const bob = await adminC.get(`/admin/drivers/${d.bob.id}`);
+    assert.match(bob.text, /id="driver-etiquette"/);
+    assert.match(bob.text, new RegExp(`href="/admin/reports/${reportId}"`));
+    assert.match(bob.text, /Blocking another vehicle/);
+    const alice = await adminC.get(`/admin/drivers/${d.alice.id}`);
+    assert.doesNotMatch(alice.text, /id="driver-etiquette"/, 'no section for a driver without violations');
+  });
 });
 
 describe('migration 008 on an older database', () => {

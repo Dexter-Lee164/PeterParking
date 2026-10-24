@@ -15,18 +15,17 @@ function isDate(v) {
 }
 
 router.get('/', (req, res) => {
+  // Only paid bookings with a valid receipt are listed; voided receipts stay on their booking's record.
   const filters = {
     q: clean(req.query.q),
-    status: oneOf(clean(req.query.status), ['valid', 'voided'], ''),
     method: oneOf(clean(req.query.method), payments.ALL_METHODS, ''),
     from: isDate(clean(req.query.from)) ? clean(req.query.from) : '',
     to: isDate(clean(req.query.to)) ? clean(req.query.to) : '',
   };
   const { rows, pager } = payments.listPayments(
-    { q: filters.q, status: filters.status, method: filters.method, dateFrom: filters.from, dateTo: filters.to },
+    { q: filters.q, status: 'valid', method: filters.method, dateFrom: filters.from, dateTo: filters.to },
     { page: req.query.page, perPage: 15 },
   );
-  const outstanding = payments.outstandingBalances();
   const today = time.todayLocal();
   const todayTotal = payments.listPayments({ status: 'valid', dateFrom: today, dateTo: today }, { all: true }).rows.reduce((a, p) => a + p.amount_centavos, 0);
   res.view('admin/payments', {
@@ -35,10 +34,6 @@ router.get('/', (req, res) => {
     rows, pager, filters, baseQuery: filters,
     // Older non-cash records can still be found; the filter only offers methods that actually appear.
     methodOptions: [{ value: '', label: 'Any method' }].concat(payments.methodsInUse().map((m) => ({ value: m, label: payments.methodLabel(m) }))),
-    statusOptions: [{ value: '', label: 'Any status' }, { value: 'valid', label: 'Valid' }, { value: 'voided', label: 'Voided' }],
-    outstanding: outstanding.slice(0, 8),
-    outstandingTotal: outstanding.reduce((a, r) => a + r.balance_centavos, 0),
-    outstandingCount: outstanding.length,
     todayTotal,
   });
 });

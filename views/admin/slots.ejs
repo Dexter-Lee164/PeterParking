@@ -5,8 +5,21 @@
   </div>
 </div>
 
+<%- include('partials/filter-toolbar', {
+  formId: 'slotFilter',
+  action: '/admin/slots',
+  hideSubmit: true,
+  resetHref: '/admin/slots?zone=' + filters.zone,
+  toolbarClass: 'filter-bar mb-3',
+  fields: [
+    { type: 'hidden', name: 'zone', value: filters.zone },
+    { type: 'search', name: 'q', label: 'Search slot code or note', value: filters.q, placeholder: 'e.g. A-05', col: 'col-12 col-md-4', attrs: { 'data-autosubmit': '' } },
+    { type: 'select', name: 'status', label: 'Status', value: filters.status, col: 'col-6 col-md-3', attrs: { 'data-autosubmit': '' }, options: [{ value: '', label: 'Any status' }].concat(statusOptions) },
+    { type: 'select', name: 'type', label: 'Slot type', value: filters.type, col: 'col-6 col-md-3', attrs: { 'data-autosubmit': '' }, options: [{ value: '', label: 'Any type' }].concat(slotTypes.map(function (t) { return { value: t.code, label: t.label }; })) }
+  ]
+}) %>
+
 <nav class="nav-pills-tabs mb-3" aria-label="Filter by zone">
-  <a href="/admin/slots" class="<%= !filters.zone ? 'active' : '' %>" <%- !filters.zone ? 'aria-current="page"' : '' %>>All zones</a>
   <% zones.forEach(function (z) { %>
     <a href="/admin/slots?zone=<%= z.id %>" class="<%= filters.zone === z.id ? 'active' : '' %>" <%- filters.zone === z.id ? 'aria-current="page"' : '' %>>
       <%= z.name %> <span class="count"><%= z.slot_count %></span><% if (!z.is_active) { %> <span class="small">(inactive)</span><% } %>
@@ -22,8 +35,7 @@
       <span class="small text-muted"><i class="bi bi-lock me-1" aria-hidden="true"></i>Fixed layout</span>
     </div>
     <div class="p-3 small text-muted">
-      <%= activeZone.description || 'No description.' %>
-      · <%= activeZone.active_slot_count %> of <%= activeZone.slot_count %> slots in service
+      <%= activeZone.active_slot_count %> of <%= activeZone.slot_count %> slots in service
       · <%= activeZone.is_active ? 'Visible to drivers' : 'Hidden from drivers' %>
     </div>
   </section>
@@ -51,19 +63,6 @@
   <span class="badge-status tone-red" role="listitem"><i class="bi bi-car-front-fill" aria-hidden="true"></i><%= counts.occupied %> occupied</span>
   <span class="badge-status tone-gray" role="listitem"><i class="bi bi-slash-circle-fill" aria-hidden="true"></i><%= counts.unavailable %> unavailable</span>
 </div>
-
-<%- include('partials/filter-toolbar', {
-  formId: 'slotFilter',
-  action: '/admin/slots',
-  submitLabel: 'Filter',
-  resetHref: '/admin/slots',
-  fields: [
-    { type: 'hidden', name: 'zone', value: filters.zone },
-    { type: 'search', name: 'q', label: 'Search slot code or note', value: filters.q, placeholder: 'e.g. A-05', col: 'col-12 col-md-4' },
-    { type: 'select', name: 'status', label: 'Status', value: filters.status, col: 'col-6 col-md-3', options: [{ value: '', label: 'Any status' }].concat(statusOptions) },
-    { type: 'select', name: 'type', label: 'Slot type', value: filters.type, col: 'col-6 col-md-3', options: [{ value: '', label: 'Any type' }].concat(slotTypes.map(function (t) { return { value: t.code, label: t.label }; })) }
-  ]
-}) %>
 
 <%- include('partials/data-table', {
   caption: 'Parking slots',

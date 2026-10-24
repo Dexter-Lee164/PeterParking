@@ -353,12 +353,13 @@ describe('6. reservation priority order', () => {
     assert.deepEqual(filtered, expected(), 'the in-memory filter path keeps the same order');
   });
 
-  test('the administrator table uses that order and keeps search', async () => {
+  test('the administrator page splits today (latest first), upcoming (soonest first) and past (latest first), and keeps search', async () => {
     const c = env.client();
     await c.login('admin@test.local');
     const page = await c.get('/admin/reservations');
     const order = [...page.text.matchAll(/font-mono fw-semibold" href="\/admin\/reservations\/\d+">([A-Z0-9-]+)</g)].map((m) => m[1]);
-    assert.deepEqual(order, expected());
+    assert.deepEqual(order, [refs.today2, refs.today1, refs.future1, refs.future2, refs.past2, refs.past1]);
+    assert.match(page.text, /id="panel-today"[\s\S]*id="panel-upcoming"[\s\S]*id="panel-past"/);
     assert.match(page.text, /day-tier tier-today/);
     const search = await c.get(`/admin/reservations?q=${refs.future1}`);
     assert.match(search.text, new RegExp(refs.future1));

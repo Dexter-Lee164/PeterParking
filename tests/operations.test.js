@@ -377,6 +377,7 @@ describe('admin and driver workflows over HTTP', () => {
 
     setNow(`${DAY} 12:30`);
     post = await adminC.post(`/admin/operations/${res.id}/check-out`, {});
+    assert.equal(post.location, `/admin/payments/new?reservation_id=${res.id}`, 'a fee owed goes straight to payment');
     page = await follow(adminC, post);
     assert.match(page.text, /Overstayed by 30m/);
     assert.match(page.text, /Final fee: ₱105\.00/);
@@ -434,8 +435,8 @@ describe('admin and driver workflows over HTTP', () => {
     const page = await follow(adminC, ok);
     assert.match(page.text, /VOIDED/);
     assert.equal(reservations.getReservation(res.id).balance_centavos, 10500);
-    const list = await adminC.get('/admin/payments?status=voided');
-    assert.match(list.text, /RCT-20260310-0001/);
+    const list = await adminC.get('/admin/payments');
+    assert.doesNotMatch(list.text, /RCT-20260310-0001/, 'the payments list shows paid bookings only');
   });
 
   test('admin cancels a driver booking with a required reason; a no-show can be marked', async () => {

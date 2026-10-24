@@ -331,9 +331,14 @@ function sweepNoShows() {
 
 // ----------------------------------------------------------------- queries
 
-function buildFilters({ userId, q, status, zoneId, dateFrom, dateTo, tab, paymentStatus }) {
+function buildFilters({ userId, q, status, zoneId, dateFrom, dateTo, tab, period, paymentStatus }) {
   const where = [];
   const params = [];
+  // period: today / upcoming / past by the campus calendar day of the start (APP_TIMEZONE).
+  if (period === 'today' || period === 'upcoming' || period === 'past') {
+    where.push(`substr(r.start_at, 1, 10) ${{ today: '=', upcoming: '>', past: '<' }[period]} ?`);
+    params.push(time.todayLocal());
+  }
   if (userId) {
     where.push('r.user_id = ?');
     params.push(userId);
@@ -371,6 +376,7 @@ function buildFilters({ userId, q, status, zoneId, dateFrom, dateTo, tab, paymen
 /**
  * `sort: 'priority'` (the administrator's list): today's bookings first, then future ones, then past ones, using the
  * campus calendar day (APP_TIMEZONE). Today and future run soonest first; past runs most recent first.
+ * `sort: 'start_asc'` / `'start_desc'`: by start time, soonest / most recent first.
  * Otherwise: upcoming / active tabs soonest first, everything else most recent first.
  */
 function orderClause(filters) {
@@ -382,6 +388,8 @@ function orderClause(filters) {
       params: [today, today, today],
     };
   }
+  if (filters.sort === 'start_asc') return { sql: 'r.start_at ASC', params: [] };
+  if (filters.sort === 'start_desc') return { sql: 'r.start_at DESC', params: [] };
   return { sql: filters.tab === 'upcoming' || filters.tab === 'active' ? 'r.start_at ASC' : 'r.start_at DESC', params: [] };
 }
 

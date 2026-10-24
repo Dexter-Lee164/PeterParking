@@ -43,15 +43,21 @@ router.get('/', (req, res) => {
     from: isDate(clean(req.query.from)) ? clean(req.query.from) : '',
     to: isDate(clean(req.query.to)) ? clean(req.query.to) : '',
   };
-  const { rows, pager } = reservations.listReservations(
-    { q: filters.q, status: filters.status, zoneId: filters.zone || null, dateFrom: filters.from, dateTo: filters.to, paymentStatus: filters.payment, sort: 'priority' },
-    { page: req.query.page, perPage: 15 },
-  );
+  const base = { q: filters.q, status: filters.status, zoneId: filters.zone || null, dateFrom: filters.from, dateTo: filters.to, paymentStatus: filters.payment };
+  // Three panels, each paged on its own: today and past run most recent first, upcoming runs soonest first.
+  const pages = { today: 'tpage', upcoming: 'upage', past: 'ppage' };
+  const sorts = { today: 'start_desc', upcoming: 'start_asc', past: 'start_desc' };
+  const panels = Object.keys(pages).map((period) => Object.assign(
+    { period, pageParam: pages[period] },
+    reservations.listReservations(Object.assign({ period, sort: sorts[period] }, base), { page: req.query[pages[period]], perPage: 10 }),
+  ));
+  const baseQuery = Object.assign({}, filters);
+  for (const p of panels) baseQuery[p.pageParam] = p.pager.page;
   const zones = parking.listZones();
   res.view('admin/reservations', {
     title: 'Reservations',
     nav: 'reservations',
-    rows, pager, filters, baseQuery: filters,
+    panels, filters, baseQuery,
     statusOptions: STATUS_OPTIONS,
     paymentOptions: PAYMENT_OPTIONS,
     zoneOptions: [{ value: '', label: 'All zones' }].concat(zones.map((z) => ({ value: z.id, label: z.name }))),

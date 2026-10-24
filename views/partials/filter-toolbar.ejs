@@ -1,6 +1,6 @@
 <%# Reusable GET filter bar: search, date, time, select (zone, status…) controls.
     Params: formId, action, fields [{ type: search|text|date|time|select, name, label, value, options, placeholder, col, attrs }],
-            submitLabel, submitIcon, resetHref, durationPill (bool), showErrors (bool), toolbarClass %>
+            submitLabel, submitIcon, hideSubmit (bool), resetHref, durationPill (bool), showErrors (bool), toolbarClass %>
 <%
   const tFields = locals.fields || [];
   const tFormId = locals.formId || 'filterForm';
@@ -34,9 +34,11 @@
       </div>
     <% } %>
     <div class="col-12 col-md-auto ms-md-auto d-flex gap-2 pt-1">
+      <% if (!locals.hideSubmit) { %>
       <button class="btn btn-primary flex-grow-1" type="submit" id="<%= tFormId %>-submit">
         <i class="bi <%= locals.submitIcon || 'bi-search' %>" aria-hidden="true"></i> <%= locals.submitLabel || 'Apply filters' %>
       </button>
+      <% } %>
       <% if (locals.resetHref) { %><a class="btn btn-outline-secondary" href="<%= resetHref %>">Reset</a><% } %>
     </div>
   </div>

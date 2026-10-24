@@ -99,7 +99,6 @@ test('admin dashboard embeds real chart data and no inline scripts', async () =>
   const data = JSON.parse(m[1]);
   assert.equal(data.reservationsOverTime.labels.length, 14);
   assert.ok(data.reservationsOverTime.values.some((n) => n > 0), 'reservation counts come from seeded bookings');
-  assert.ok(data.demandByZone.labels.length >= 4);
   assert.doesNotMatch(res.text.replace(/<script type="application\/json"[\s\S]*?<\/script>/, ''), /<script(?![^>]*\bsrc=)[^>]*>/, 'no inline executable scripts');
 });
 

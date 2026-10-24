@@ -60,6 +60,8 @@ router.post('/:id/check-out', (req, res) => {
         ? `${base} Overstayed by ${time.fmtDuration(out.overstayMinutes)} (+${formatPeso(out.overstayFee)}). Final fee: ${formatPeso(out.finalFee)}.`
         : `${base} Final fee: ${formatPeso(out.finalFee)}.`,
     );
+    // A check-out with a fee owed goes straight to payment, so a booking is not left unpaid.
+    if (reservations.getReservation(id).balance_centavos > 0) return res.redirect(`/admin/payments/new?reservation_id=${id}`);
   } catch (err) {
     if (!(err instanceof AppError)) throw err;
     req.flash('error', err.message);

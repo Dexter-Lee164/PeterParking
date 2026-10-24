@@ -329,6 +329,18 @@ function penaltiesForDriver(userId) {
     .map((p) => decoratePenalty(p, now));
 }
 
+/** Reports that still count against a driver (any status but dismissed) on the plates of their registered vehicles, newest first. */
+function reportsForDriver(userId) {
+  return ctx.get()
+    .prepare(
+      `${REPORT_SELECT} WHERE r.status <> 'dismissed'
+       AND r.plate_key IN (SELECT replace(plate_number, ' ', '') FROM vehicles WHERE user_id = ? AND is_active = 1)
+       ORDER BY r.created_at DESC, r.id DESC`,
+    )
+    .all(userId)
+    .map(decorate);
+}
+
 /** A plate as it is usually written (its registered or reported spelling, e.g. "BBB 3333" for "bbb3333"). */
 function displayPlate(plate) {
   const key = plateKey(plate);
@@ -376,6 +388,7 @@ module.exports = {
   getPenalty,
   penaltiesForPlate,
   penaltiesForDriver,
+  reportsForDriver,
   activeBan,
   activeSurcharge,
   banMessage,

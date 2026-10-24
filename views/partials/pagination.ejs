@@ -1,5 +1,5 @@
-<%# Params: pager { page, pages, total, perPage }, baseQuery (object of current filters), noun (optional) %>
-<% const base = locals.baseQuery || {}; const noun = locals.noun || 'results'; %>
+<%# Params: pager { page, pages, total, perPage }, baseQuery (object of current filters), noun (optional), pageParam (optional, default 'page') %>
+<% const base = locals.baseQuery || {}; const noun = locals.noun || 'results'; const pp = locals.pageParam || 'page'; %>
 <div class="pager">
   <span>
     <% if (pager.total === 0) { %>0 <%= noun %>
@@ -11,17 +11,17 @@
     <nav aria-label="Pagination">
       <ul class="pagination pagination-sm">
         <li class="page-item <%= pager.hasPrev ? '' : 'disabled' %>">
-          <a class="page-link" href="<%= qs(base, { page: pager.page - 1 }) %>" aria-label="Previous page" <%- pager.hasPrev ? '' : 'tabindex="-1" aria-disabled="true"' %>>
+          <a class="page-link" href="<%= qs(base, { [pp]: pager.page - 1 }) %>" aria-label="Previous page" <%- pager.hasPrev ? '' : 'tabindex="-1" aria-disabled="true"' %>>
             <i class="bi bi-chevron-left" aria-hidden="true"></i>
           </a>
         </li>
         <% for (let p = Math.max(1, pager.page - 2); p <= Math.min(pager.pages, pager.page + 2); p++) { %>
           <li class="page-item <%= p === pager.page ? 'active' : '' %>">
-            <a class="page-link" href="<%= qs(base, { page: p }) %>" <%- p === pager.page ? 'aria-current="page"' : '' %>><%= p %></a>
+            <a class="page-link" href="<%= qs(base, { [pp]: p }) %>" <%- p === pager.page ? 'aria-current="page"' : '' %>><%= p %></a>
           </li>
         <% } %>
         <li class="page-item <%= pager.hasNext ? '' : 'disabled' %>">
-          <a class="page-link" href="<%= qs(base, { page: pager.page + 1 }) %>" aria-label="Next page" <%- pager.hasNext ? '' : 'tabindex="-1" aria-disabled="true"' %>>
+          <a class="page-link" href="<%= qs(base, { [pp]: pager.page + 1 }) %>" aria-label="Next page" <%- pager.hasNext ? '' : 'tabindex="-1" aria-disabled="true"' %>>
             <i class="bi bi-chevron-right" aria-hidden="true"></i>
           </a>
         </li>

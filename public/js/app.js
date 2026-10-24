@@ -219,6 +219,22 @@
   // Auto-submit selects marked data-autosubmit (used by simple filters).
   document.addEventListener('change', function (event) {
     var el = event.target;
-    if (el.matches && el.matches('select[data-autosubmit]') && el.form) el.form.submit();
+    if (el.matches && el.matches('select[data-autosubmit], input[type="date"][data-autosubmit]') && el.form) el.form.submit();
   });
+
+  // Text/search inputs marked data-autosubmit submit after a short pause in typing.
+  var typingTimer;
+  document.addEventListener('input', function (event) {
+    var el = event.target;
+    if (!(el.matches && el.matches('input[type="search"][data-autosubmit], input[type="text"][data-autosubmit]') && el.form)) return;
+    clearTimeout(typingTimer);
+    typingTimer = setTimeout(function () { el.form.submit(); }, 500);
+  });
+
+  // After such a reload, put the cursor back at the end of the search the user was typing.
+  var typed = document.querySelector('input[type="search"][data-autosubmit], input[type="text"][data-autosubmit]');
+  if (typed && typed.value && new URLSearchParams(window.location.search).has(typed.name)) {
+    typed.focus();
+    typed.setSelectionRange(typed.value.length, typed.value.length);
+  }
 })();

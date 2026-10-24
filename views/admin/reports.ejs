@@ -19,11 +19,12 @@
 <%- include('partials/filter-toolbar', {
   formId: 'reportFilter',
   action: '/admin/reports',
-  submitLabel: 'Filter',
+  hideSubmit: true,
+  toolbarClass: 'filter-bar mb-3',
   resetHref: '/admin/reports',
   fields: [
-    { type: 'search', name: 'q', label: 'Search', value: filters.q, placeholder: 'Plate, reporter or description', col: 'col-12 col-md-6' },
-    { type: 'select', name: 'status', label: 'Status', value: filters.status, options: statusOptions, col: 'col-12 col-md-3' }
+    { type: 'search', name: 'q', label: 'Search', value: filters.q, placeholder: 'Plate, reporter or description', col: 'col-12 col-md-6', attrs: { 'data-autosubmit': '' } },
+    { type: 'select', name: 'status', label: 'Status', value: filters.status, options: statusOptions, col: 'col-12 col-md-3', attrs: { 'data-autosubmit': '' } }
   ]
 }) %>
 

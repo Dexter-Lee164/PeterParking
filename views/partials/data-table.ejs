@@ -3,7 +3,7 @@
       rows      array of records
       rowPartial  EJS path for ONE <tr> (receives `row` plus anything in rowData)
       rowData   (optional) extra variables for the row partial
-      pager / baseQuery / noun  (optional) pagination
+      pager / baseQuery / noun / pageParam  (optional) pagination
       empty     { icon, title, text, actionHref, actionLabel } shown when there are no rows
       caption   accessible table caption
     On phones the table becomes stacked cards (row partials supply data-label attributes). %>
@@ -26,7 +26,7 @@
         </tbody>
       </table>
     </div>
-    <% if (locals.pager) { %><%- include('pagination', { pager: pager, baseQuery: locals.baseQuery || {}, noun: locals.noun || 'results' }) %><% } %>
+    <% if (locals.pager) { %><%- include('pagination', { pager: pager, baseQuery: locals.baseQuery || {}, noun: locals.noun || 'results', pageParam: locals.pageParam }) %><% } %>
   <% } else { %>
     <%- include('empty-state', locals.empty || {}) %>
   <% } %>
