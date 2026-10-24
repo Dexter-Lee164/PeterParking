@@ -417,3 +417,5 @@ public/js/auth.js                         progressive enhancement: history, iner
 | No verification e-mail arrives; the terminal shows `[mail] ... was not sent: EAUTH` | Gmail refused the login: `SMTP_PASS` must be a current 16-character App Password (no spaces), not your Google password. |
 | `EADDRINUSE` | Another process uses the port — change `PORT`. |
 | Start again from scratch | Stop the server and run `npm run db:reset`. |
+#   P e t e r P a r k i n g  
+ 
