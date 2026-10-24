@@ -12,9 +12,9 @@
   toolbarClass: 'filter-bar mb-3',
   fields: [
     { type: 'hidden', name: 'zone', value: filters.zone },
-    { type: 'search', name: 'q', label: 'Search slot code or note', value: filters.q, placeholder: 'e.g. ' + (mapSlots[0] ? mapSlots[0].code : 'MB-05'), col: 'col-12 col-md-4' },
-    { type: 'select', name: 'status', label: 'Status', value: filters.status, col: 'col-6 col-md-3', options: [{ value: '', label: 'Any status' }].concat(statusOptions) },
-    { type: 'select', name: 'type', label: 'Slot type', value: filters.type, col: 'col-6 col-md-3', options: [{ value: '', label: 'Any type' }].concat(slotTypes.map(function (t) { return { value: t.code, label: t.label }; })) }
+    { type: 'search', name: 'q', label: 'Search slot code or note', value: filters.q, placeholder: 'e.g. ' + (mapSlots[0] ? mapSlots[0].code : 'MB-05') },
+    { type: 'select', name: 'status', label: 'Status', value: filters.status, options: [{ value: '', label: 'Any status' }].concat(statusOptions) },
+    { type: 'select', name: 'type', label: 'Slot type', value: filters.type, options: [{ value: '', label: 'Any type' }].concat(slotTypes.map(function (t) { return { value: t.code, label: t.label }; })) }
   ]
 }) %>
 

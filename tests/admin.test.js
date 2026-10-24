@@ -282,7 +282,7 @@ describe('dashboard and settings (deterministic data)', () => {
   test('admin dashboard KPIs and chart series come from the database', () => {
     const data = dashboard.adminDashboard();
     assert.equal(data.kpis.todaysReservations, 3, 'today excluding the cancelled booking');
-    assert.equal(data.kpis.outstandingCentavos, 6500);
+    assert.equal(data.kpis.maintenance, 0);
     assert.equal(data.kpis.totalSlots, 6);
     assert.equal(data.kpis.occupied, 0);
     assert.equal(data.charts.outcomes.values.join(','), '1,1,1,1');

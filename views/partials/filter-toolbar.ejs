@@ -1,6 +1,7 @@
 <%# Reusable GET filter bar: search, date, time, select (zone, status…) controls.
     Params: formId, action, fields [{ type: search|text|date|time|select, name, label, value, options, placeholder, col, attrs }],
-            submitLabel, submitIcon, hideSubmit (bool), durationPill (bool), showErrors (bool), toolbarClass %>
+            submitLabel, submitIcon, hideSubmit (bool), durationPill (bool), showErrors (bool), toolbarClass
+    Without a submit button (filters that apply themselves) the fields share the bar's full width; `col` is then ignored. %>
 <%
   const tFields = locals.fields || [];
   const tFormId = locals.formId || 'filterForm';
@@ -11,7 +12,7 @@
       <input type="hidden" name="<%= f.name %>" value="<%= f.value === undefined || f.value === null ? '' : f.value %>">
     <% }) %>
     <% tFields.filter(function (f) { return f.type !== 'hidden'; }).forEach(function (f) { const fid = tFormId + '-' + f.name; %>
-      <div class="<%= f.col || 'col-6 col-md-3' %>">
+      <div class="<%= locals.hideSubmit ? 'col-12 col-sm-6 col-lg' : (f.col || 'col-6 col-md-3') %>">
         <label class="form-label" for="<%= fid %>"><%= f.label %></label>
         <% if (f.type === 'select') { %>
           <select class="form-select" id="<%= fid %>" name="<%= f.name %>" <% Object.keys(f.attrs || {}).forEach(function (k) { %> <%= k %>="<%= f.attrs[k] %>"<% }) %>>

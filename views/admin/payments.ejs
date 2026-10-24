@@ -10,6 +10,8 @@
 
 <div class="row g-3 mb-4">
   <div class="col-md-4"><%- include('partials/stat-card', { label: 'Collected today', value: peso(todayTotal), hint: 'Valid payments recorded today', icon: 'bi-cash-coin', tone: 'green' }) %></div>
+  <div class="col-md-4"><%- include('partials/stat-card', { label: 'Collected this month', value: peso(monthTotal), hint: 'Since the 1st of the month', icon: 'bi-calendar-check', tone: 'blue' }) %></div>
+  <div class="col-md-4"><%- include('partials/stat-card', { label: 'Receipts today', value: receiptsToday, hint: receiptsToday === 1 ? '1 receipt issued' : receiptsToday + ' receipts issued', icon: 'bi-receipt', tone: 'teal' }) %></div>
 </div>
 
 <%- include('partials/filter-toolbar', {
@@ -18,10 +20,10 @@
   hideSubmit: true,
   toolbarClass: 'filter-bar mb-3',
   fields: [
-    { type: 'search', name: 'q', label: 'Search', value: filters.q, placeholder: 'Receipt, reference, booking, driver, plate', col: 'col-12 col-md-4', attrs: { 'data-autosubmit': '' } },
-    { type: 'select', name: 'method', label: 'Method', value: filters.method, options: methodOptions, col: 'col-6 col-md-2', attrs: { 'data-autosubmit': '' } },
-    { type: 'date', name: 'from', label: 'From date', value: filters.from, col: 'col-6 col-md-2', attrs: { 'data-autosubmit': '' } },
-    { type: 'date', name: 'to', label: 'To date', value: filters.to, col: 'col-6 col-md-2', attrs: { 'data-autosubmit': '' } }
+    { type: 'search', name: 'q', label: 'Search', value: filters.q, placeholder: 'Receipt, booking, driver, plate', attrs: { 'data-autosubmit': '' } },
+    { type: 'select', name: 'method', label: 'Method', value: filters.method, options: methodOptions, attrs: { 'data-autosubmit': '' } },
+    { type: 'date', name: 'from', label: 'From date', value: filters.from, attrs: { 'data-autosubmit': '' } },
+    { type: 'date', name: 'to', label: 'To date', value: filters.to, attrs: { 'data-autosubmit': '' } }
   ]
 }) %>
 

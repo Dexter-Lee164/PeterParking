@@ -27,7 +27,9 @@ router.get('/', (req, res) => {
     { page: req.query.page, perPage: 15 },
   );
   const today = time.todayLocal();
-  const todayTotal = payments.listPayments({ status: 'valid', dateFrom: today, dateTo: today }, { all: true }).rows.reduce((a, p) => a + p.amount_centavos, 0);
+  const todayRows = payments.listPayments({ status: 'valid', dateFrom: today, dateTo: today }, { all: true }).rows;
+  const todayTotal = todayRows.reduce((a, p) => a + p.amount_centavos, 0);
+  const monthTotal = payments.listPayments({ status: 'valid', dateFrom: `${today.slice(0, 8)}01`, dateTo: today }, { all: true }).rows.reduce((a, p) => a + p.amount_centavos, 0);
   res.view('admin/payments', {
     title: 'Payments',
     nav: 'payments',
@@ -35,6 +37,8 @@ router.get('/', (req, res) => {
     // Older non-cash records can still be found; the filter only offers methods that actually appear.
     methodOptions: [{ value: '', label: 'Any method' }].concat(payments.methodsInUse().map((m) => ({ value: m, label: payments.methodLabel(m) }))),
     todayTotal,
+    monthTotal,
+    receiptsToday: todayRows.length,
   });
 });
 

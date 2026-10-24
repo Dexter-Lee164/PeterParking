@@ -272,8 +272,9 @@ describe('page wiring', () => {
 
   test('the shared rules file is served and loads before auth.js (script-src self, no inline script)', async () => {
     const res = await env.client().get('/register');
-    const rules = res.text.indexOf('<script src="/js/email-rules.js"></script>');
-    const auth = res.text.indexOf('<script src="/js/auth.js"></script>');
+    // Local assets carry a ?v=<modified time> stamp (cache-busting).
+    const rules = res.text.search(/<script src="\/js\/email-rules\.js(\?v=\w+)?"><\/script>/);
+    const auth = res.text.search(/<script src="\/js\/auth\.js(\?v=\w+)?"><\/script>/);
     assert.ok(rules > 0 && auth > rules);
     const js = await env.client().get('/js/email-rules.js');
     assert.equal(js.status, 200);

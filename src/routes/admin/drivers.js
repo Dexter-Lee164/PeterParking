@@ -3,7 +3,6 @@
 const express = require('express');
 const users = require('../../services/users');
 const reservations = require('../../services/reservations');
-const payments = require('../../services/payments');
 const etiquette = require('../../services/etiquette');
 const ctx = require('../../db/context');
 const { AppError } = require('../../utils/errors');
@@ -84,7 +83,6 @@ function detailPage(person, extra = {}) {
     vehicles: users.listVehicles(person.id, { includeInactive: true }),
     history: history.rows,
     totals,
-    outstanding: payments.totalOutstanding({ userId: person.id }),
     // Etiquette violations on the driver's plates: reports not dismissed, and penalties in force right now.
     violationReports: etiquette.reportsForDriver(person.id),
     activePenalties: etiquette.penaltiesForDriver(person.id).filter((p) => p.state === 'active'),

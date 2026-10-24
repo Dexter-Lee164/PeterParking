@@ -22,10 +22,9 @@
 <% if (formError) { %><div class="alert alert-danger" role="alert"><i class="bi bi-exclamation-octagon me-2" aria-hidden="true"></i><%= formError %></div><% } %>
 
 <div class="row g-3 mb-4">
-  <div class="col-6 col-lg-3"><%- include('partials/stat-card', { label: 'Bookings', value: totals.bookings, icon: 'bi-calendar2-week', tone: 'blue' }) %></div>
-  <div class="col-6 col-lg-3"><%- include('partials/stat-card', { label: 'Completed', value: totals.completed || 0, icon: 'bi-check2-circle', tone: 'green' }) %></div>
-  <div class="col-6 col-lg-3"><%- include('partials/stat-card', { label: 'Cancelled / no-show', value: (totals.cancelled || 0) + ' / ' + (totals.no_shows || 0), icon: 'bi-x-circle', tone: 'gray' }) %></div>
-  <div class="col-6 col-lg-3"><%- include('partials/stat-card', { label: 'Outstanding', value: peso(outstanding), icon: 'bi-wallet2', tone: outstanding > 0 ? 'amber' : 'green' }) %></div>
+  <div class="col-6 col-lg-4"><%- include('partials/stat-card', { label: 'Bookings', value: totals.bookings, icon: 'bi-calendar2-week', tone: 'blue' }) %></div>
+  <div class="col-6 col-lg-4"><%- include('partials/stat-card', { label: 'Completed', value: totals.completed || 0, icon: 'bi-check2-circle', tone: 'green' }) %></div>
+  <div class="col-12 col-lg-4"><%- include('partials/stat-card', { label: 'Cancelled / no-show', value: (totals.cancelled || 0) + ' / ' + (totals.no_shows || 0), icon: 'bi-x-circle', tone: 'gray' }) %></div>
 </div>
 
 <div class="row g-3">

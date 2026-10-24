@@ -165,8 +165,8 @@ describe('unified auth screen', () => {
       const res = await env.client().get(url);
       assert.doesNotMatch(res.text, /<script(?![^>]*\ssrc=)[^>]*>/i, `${url}: inline <script>`);
       assert.doesNotMatch(res.text, /\son[a-z]+="/i, `${url}: inline handler`);
-      assert.match(res.text, /<link rel="stylesheet" href="\/css\/auth\.css">/);
-      assert.match(res.text, /<script src="\/js\/auth\.js"><\/script>/);
+      assert.match(res.text, /<link rel="stylesheet" href="\/css\/auth\.css\?v=\w+">/);
+      assert.match(res.text, /<script src="\/js\/auth\.js\?v=\w+"><\/script>/);
     }
   });
 

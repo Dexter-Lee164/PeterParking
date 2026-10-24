@@ -5,6 +5,8 @@ const { formatPeso, toPesoString } = require('../utils/money');
 const { badge } = require('../utils/badges');
 const { navFor } = require('../utils/navigation');
 const lotLayout = require('../utils/lotLayout');
+const fs = require('fs');
+const path = require('path');
 const config = require('../config');
 const emailRules = require('../../public/js/email-rules');
 const { methodLabel } = require('../services/payments');
@@ -12,8 +14,23 @@ const { methodLabel } = require('../services/payments');
 const APP_NAME = 'University Parking';
 const TAGLINE = 'Reserve. Park. Go.';
 
+/** `/js/app.js` → `/js/app.js?v=<modified time>`: a changed file gets a new address, so no browser serves a stale copy. */
+const assetVersions = new Map();
+function asset(href) {
+  if (config.isProduction && assetVersions.has(href)) return assetVersions.get(href);
+  let out = href;
+  try {
+    out = `${href}?v=${Math.floor(fs.statSync(path.join(config.rootDir, 'public', href)).mtimeMs).toString(36)}`;
+  } catch (err) {
+    // Not a file under public/ (e.g. a vendor path): leave it as it is.
+  }
+  assetVersions.set(href, out);
+  return out;
+}
+
 /** Template helpers available in every EJS view. */
 const helpers = {
+  asset,
   appName: APP_NAME,
   tagline: TAGLINE,
   fmtDate: time.fmtDate,
