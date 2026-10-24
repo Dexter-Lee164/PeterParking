@@ -1,0 +1,5 @@
+<nav class="nav-pills-tabs mb-3" aria-label="Settings sections">
+  <% tabs.forEach(function (t) { %>
+    <a href="/admin/settings/<%= t.key %>" class="<%= tab === t.key ? 'active' : '' %>" <%- tab === t.key ? 'aria-current="page"' : '' %>><i class="bi <%= t.icon %>" aria-hidden="true"></i> <%= t.label %></a>
+  <% }) %>
+</nav>

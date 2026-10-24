@@ -1,0 +1,10 @@
+<%# KPI card. Params: label, value, hint, icon, tone (blue|green|red|gray|amber|teal), href (optional) %>
+<% const tag = locals.href ? 'a' : 'div'; %>
+<<%= tag %> class="stat-card" <%- locals.href ? 'href="' + href + '" style="color:inherit;text-decoration:none"' : '' %>>
+  <span class="stat-icon tone-<%= locals.tone || 'blue' %>" aria-hidden="true"><i class="bi <%= locals.icon || 'bi-graph-up' %>"></i></span>
+  <span class="stat-body">
+    <span class="stat-label d-block"><%= label %></span>
+    <span class="stat-value d-block"><%= value %></span>
+    <% if (locals.hint) { %><span class="stat-hint d-block"><%= hint %></span><% } %>
+  </span>
+</<%= tag %>>

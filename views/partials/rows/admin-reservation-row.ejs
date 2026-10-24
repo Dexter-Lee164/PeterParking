@@ -1,0 +1,13 @@
+<% const fresh = isUnread('reservation', row.id); %>
+<tr class="<%= fresh ? 'is-unread' : '' %>">
+  <td data-label="Reference"><a class="font-mono fw-semibold" href="/admin/reservations/<%= row.id %>"><%= row.booking_ref %></a><% if (fresh) { %><span class="new-pill">New</span><% } %></td>
+  <td data-label="Driver"><%= row.driver_name %><span class="sub"><%= row.driver_email %></span></td>
+  <td data-label="Vehicle"><span class="plate"><%= row.plate_number %></span></td>
+  <td data-label="Slot"><strong><%= row.slot_code %></strong><span class="sub"><%= row.zone_name %></span></td>
+  <% const tier = dayTier(row.start_at); %>
+  <td data-label="When"><span class="day-tier tier-<%= tier %>"><%= { today: 'Today', future: 'Upcoming', past: 'Past' }[tier] %></span> <%= fmtDate(row.start_at) %><span class="sub"><%= fmtTime(row.start_at) %> – <%= fmtTime(row.end_at) %></span></td>
+  <td data-label="Fee" class="text-end"><%= peso(row.due_centavos) %><span class="sub"><%= row.fee_is_final ? 'final' : 'estimated' %></span></td>
+  <td data-label="Payment"><%- include('partials/status-badge', { kind: 'balance', status: row.payment_status }) %></td>
+  <td data-label="Status"><%- include('partials/status-badge', { kind: 'reservation', status: row.status }) %></td>
+  <td data-label="" class="text-end"><a class="btn btn-sm btn-outline-secondary" href="/admin/reservations/<%= row.id %>" aria-label="Open reservation <%= row.booking_ref %>">Open</a></td>
+</tr>

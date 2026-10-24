@@ -1,0 +1,2 @@
+<%# Params: kind (reservation | slot | availability | payment | balance | session | user), status %>
+<% const b = badge(kind, status); %><span class="badge-status tone-<%= b.tone %>"><i class="bi <%= b.icon %>" aria-hidden="true"></i><%= locals.badgeLabel || b.label %></span>

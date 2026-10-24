@@ -1,0 +1,34 @@
+<div class="page-intro">
+  <div>
+    <h2>Payments</h2>
+    <p>Parking fees are paid at the parking office and recorded by staff. There is no online payment.</p>
+  </div>
+</div>
+
+<%- include('partials/unread-banner') %>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4"><%- include('partials/stat-card', { label: 'Outstanding balance', value: peso(totalOutstanding), hint: 'From completed, cancelled or missed bookings', icon: 'bi-exclamation-circle', tone: totalOutstanding > 0 ? 'amber' : 'green' }) %></div>
+  <div class="col-md-4"><%- include('partials/stat-card', { label: 'Estimated for upcoming', value: peso(pendingEstimates), hint: 'Finalized after your stay', icon: 'bi-hourglass-split', tone: 'blue' }) %></div>
+  <div class="col-md-4"><%- include('partials/stat-card', { label: 'Total paid', value: peso(totalPaid), hint: 'Valid recorded payments', icon: 'bi-cash-coin', tone: 'green' }) %></div>
+</div>
+
+<div class="section-title"><h3>Balances to settle</h3></div>
+<%- include('partials/data-table', {
+  caption: 'Reservations with an unpaid balance',
+  columns: [{ label: 'Booking' }, { label: 'Slot' }, { label: 'Date' }, { label: 'Fee', align: 'end' }, { label: 'Paid', align: 'end' }, { label: 'Balance', align: 'end' }, { label: 'Status' }],
+  rows: outstanding,
+  rowPartial: 'partials/rows/driver-balance-row',
+  empty: { icon: 'bi-emoji-smile', title: 'Nothing to pay', text: 'You have no outstanding balances. Fees for future stays are finalized after check-out.' }
+}) %>
+
+<div class="section-title mt-4"><h3>Payment history</h3></div>
+<%- include('partials/data-table', {
+  caption: 'Recorded payments',
+  columns: [{ label: 'Receipt' }, { label: 'Booking' }, { label: 'Paid on' }, { label: 'Method' }, { label: 'Amount', align: 'end' }, { label: 'Status' }, { label: '' }],
+  rows: rows,
+  rowPartial: 'partials/rows/driver-payment-row',
+  pager: pager,
+  noun: 'payments',
+  empty: { icon: 'bi-receipt', title: 'No payments recorded', text: 'When staff record a payment for your parking, the receipt will appear here.' }
+}) %>

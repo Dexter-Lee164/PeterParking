@@ -1,0 +1,32 @@
+<div class="page-intro">
+  <div>
+    <h2>Add user</h2>
+    <p>Create a driver or administrator account. Share the temporary password securely; the user can change it from their profile.</p>
+  </div>
+</div>
+
+<% if (formError) { %><div class="alert alert-danger" role="alert"><i class="bi bi-exclamation-octagon me-2" aria-hidden="true"></i><%= formError %></div><% } %>
+
+<div class="row">
+  <div class="col-lg-7">
+    <section class="summary-card">
+      <div class="p-3">
+        <form method="post" action="/admin/drivers" novalidate>
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="row g-3">
+            <%- include('partials/form-field', { name: 'full_name', label: 'Full name', value: values.full_name, errors: errors, required: true, autocomplete: 'off', maxlength: 80, attrs: { 'data-name-rule': '' } }) %>
+            <%- include('partials/form-field', { name: 'email', label: 'Email address', type: 'email', value: values.email, errors: errors, required: true, autocomplete: 'off' }) %>
+            <%- include('partials/form-field', { name: 'university_id', label: 'University ID', value: values.university_id, errors: errors, col: 'col-sm-6' }) %>
+            <%- include('partials/form-field', { name: 'phone', label: 'Mobile number', type: 'tel', value: values.phone, errors: errors, col: 'col-sm-6' }) %>
+            <%- include('partials/form-field', { name: 'role', label: 'Role', type: 'select', value: values.role, errors: errors, required: true, col: 'col-sm-6', options: roleOptions }) %>
+            <%- include('partials/form-field', { name: 'password', label: 'Temporary password', type: 'password', errors: errors, required: true, col: 'col-sm-6', autocomplete: 'new-password', help: 'At least 8 characters, with a letter and a number.' }) %>
+            <div class="col-12 d-flex gap-2">
+              <button class="btn btn-primary" type="submit"><i class="bi bi-person-plus" aria-hidden="true"></i> Create account</button>
+              <a class="btn btn-outline-secondary" href="/admin/drivers">Cancel</a>
+            </div>
+          </div>
+        </form>
+      </div>
+    </section>
+  </div>
+</div>

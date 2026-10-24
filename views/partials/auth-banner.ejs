@@ -1,0 +1,10 @@
+<%# Status banner at the top of an auth step ("Password updated...", "This link has expired").
+    Params: notice ({ tone: 'success' | 'danger' | 'info', text }). Text is fixed server-side; it is still escaped. %>
+<% if (locals.notice && locals.notice.text) {
+     const tone = ['success', 'danger', 'info'].includes(locals.notice.tone) ? locals.notice.tone : 'info';
+     const icon = { success: 'bi-check-circle-fill', danger: 'bi-exclamation-octagon-fill', info: 'bi-info-circle-fill' }[tone];
+%>
+  <div class="auth-banner auth-banner--<%= tone %>" role="status" tabindex="-1" data-auth-banner>
+    <i class="bi <%= icon %>" aria-hidden="true"></i><div><%= locals.notice.text %></div>
+  </div>
+<% } %>

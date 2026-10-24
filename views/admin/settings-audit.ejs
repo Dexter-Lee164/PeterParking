@@ -1,0 +1,47 @@
+<div class="page-intro">
+  <div>
+    <h2>Settings</h2>
+    <p>A record of consequential actions: bookings, check-ins, payments, voids, and changes to slots, rates, users and settings.</p>
+  </div>
+</div>
+<%- include('partials/settings-tabs') %>
+
+<%- include('partials/filter-toolbar', {
+  formId: 'auditFilter',
+  action: '/admin/settings/audit',
+  submitLabel: 'Filter',
+  resetHref: '/admin/settings/audit',
+  fields: [
+    { type: 'select', name: 'action', label: 'Action', value: filters.action, options: actionOptions, col: 'col-12 col-md-3' },
+    { type: 'search', name: 'user', label: 'Person', value: filters.user, placeholder: 'Name or email', col: 'col-6 col-md-3' },
+    { type: 'date', name: 'from', label: 'From', value: filters.from, col: 'col-6 col-md-2' },
+    { type: 'date', name: 'to', label: 'To', value: filters.to, col: 'col-6 col-md-2' }
+  ]
+}) %>
+
+<div class="table-wrap">
+  <% if (!rows.length) { %>
+    <%- include('partials/empty-state', { icon: 'bi-journal-text', title: 'No log entries', text: 'Nothing matches those filters.' }) %>
+  <% } else { %>
+    <div class="table-responsive">
+      <table class="table table-hover table-stack">
+        <caption class="visually-hidden">Audit log</caption>
+        <thead><tr><th scope="col">When</th><th scope="col">Who</th><th scope="col">Action</th><th scope="col">Subject</th><th scope="col">Details</th></tr></thead>
+        <tbody>
+          <% rows.forEach(function (a) { %>
+            <tr>
+              <td data-label="When"><%= fmtDateTime(a.created_at) %></td>
+              <td data-label="Who"><%= a.user_name || 'System' %><% if (a.ip_address) { %><span class="sub"><%= a.ip_address %></span><% } %></td>
+              <td data-label="Action"><strong class="audit-title"><%= a.view.title %></strong><span class="sub font-mono"><%= a.action %></span></td>
+              <td data-label="Subject"><%= a.entity_type ? titleCase(a.entity_type) : '—' %><%= a.entity_id ? ' #' + a.entity_id : '' %></td>
+              <td data-label="Details" class="audit-cell">
+                <% if (a.view.items.length) { %><%- include('partials/audit-items', { items: a.view.items }) %><% } else { %><span class="text-muted small">No extra details</span><% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <%- include('partials/pagination', { pager: pager, baseQuery: baseQuery, noun: 'log entries' }) %>
+  <% } %>
+</div>

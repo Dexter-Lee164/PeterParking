@@ -1,0 +1,334 @@
+<%# Unified auth screen: ONE card that holds both panes and a brand overlay that slides between them.
+    Included by auth/login.ejs (mode = 'login') and auth/register.ejs (mode = 'register').
+
+    Each pane is a stack of steps sharing one grid cell, so the card keeps its height whatever step is showing:
+      login pane     signin | forgot | sent (reset link e-mailed) | reset | reset-invalid
+      register pane  form | verify (6-digit code)
+    Locals (all optional, read through `locals.`): mode, step, values, errors, formError (for the step's main form),
+    notice ({ tone, text } banner), emailTaken, forgot ({ email, error }), verify ({ email, cooldown, error, state }),
+    reset ({ email, errors }), enter ('forward' | 'back': play the step's entrance after a server round trip).
+
+    Markup contract used by public/css/auth.css and public/js/auth.js:
+      [data-auth-card][data-mode][data-flow]   the card; the server sets both, so first paint needs no animation
+      [data-auth-overlay]                      brand panel that slides (desktop, >= 900px)
+      [data-auth-pane="login|register"]        a pane; the inactive one is `inert`
+      [data-auth-steps] > [data-auth-step]     the steps of a pane; the current one has .is-current, the rest are inert
+      a[data-auth-switch] / a[data-auth-goto]  real links (pane switch / step change), upgraded by JS
+      .auth-r                                  reveal children (staggered in by --i)  %>
+<%
+  const mode = locals.mode === 'register' ? 'register' : 'login';
+  const isLogin = mode === 'login';
+  const LOGIN_STEPS = ['signin', 'forgot', 'sent', 'reset', 'reset-invalid'];
+  const verify = locals.verify || null;
+  const step = isLogin
+    ? (LOGIN_STEPS.includes(locals.step) ? locals.step : 'signin')
+    : (locals.step === 'verify' && verify ? 'verify' : 'form');
+  const loginStep = isLogin ? step : 'signin';
+  const registerStep = isLogin ? 'form' : step;
+
+  const FLOW = { forgot: 'forgot', sent: 'forgot', reset: 'reset', 'reset-invalid': 'reset', verify: 'verify' };
+  const flow = FLOW[step] || '';
+  const BACK = { forgot: '/login', verify: '/register/edit', reset: '/login' };
+  const PATH = { signin: '/login', forgot: '/forgot-password', sent: '/forgot-password', reset: '/reset-password', 'reset-invalid': '/reset-password', form: '/register', verify: '/register/verify' };
+  const TITLE = { signin: 'Sign in', forgot: 'Reset your password', sent: 'Check your email', reset: 'Choose a new password', 'reset-invalid': 'Link expired', form: 'Create account', verify: 'Check your email' };
+  const HEADING_ID = { signin: 'login-title', forgot: 'forgot-title', sent: 'sent-title', reset: 'reset-title', 'reset-invalid': 'reset-invalid-title', form: 'register-title', verify: 'verify-title' };
+
+  const given = { values: locals.values || {}, errors: locals.errors || {}, formError: locals.formError || '' };
+  const blank = { values: {}, errors: {}, formError: '' };
+  const data = {
+    login: isLogin && loginStep === 'signin' ? given : blank,
+    register: isLogin ? blank : { values: given.values, errors: registerStep === 'form' ? given.errors : {}, formError: registerStep === 'form' ? given.formError : '' },
+  };
+  const notice = locals.notice || null;
+  const forgot = locals.forgot || { email: '', error: '' };
+  const reset = locals.reset || { email: '', errors: {} };
+  const resetErrors = reset.errors || {};
+  const enter = ['forward', 'back'].includes(locals.enter) ? locals.enter : '';
+  const token = locals.csrfToken || '';
+
+  const stepAttrs = (current, name) =>
+    `class="auth-step${current === name ? ' is-current' : ''}" data-auth-step="${name}" data-path="${PATH[name]}" data-title="${TITLE[name]} · ${appName}" data-heading="${HEADING_ID[name]}"${current === name ? '' : ' inert'}`;
+  const showNotice = (pane, name) => (isLogin ? pane === 'login' && loginStep === name : pane === 'register' && registerStep === name);
+%>
+<section class="auth-card" data-auth-card data-mode="<%= mode %>" data-flow="<%= flow %>">
+
+  <%# ---- compact header, below 900px only (the overlay takes over above that) %>
+  <header class="auth-mobile-head">
+    <%# The logo is a label, not a control: a plain div (no link, no button, not focusable, not draggable). %>
+    <div class="brand auth-brand px-0">
+      <span class="brand-mark" aria-hidden="true">P</span>
+      <span class="brand-text"><span class="brand-name"><%= appName %></span><span class="brand-tag"><%= tagline %></span></span>
+    </div>
+    <nav class="auth-switch" aria-label="Sign in or create an account">
+      <span class="auth-switch-pill" aria-hidden="true"></span>
+      <a href="/login" data-auth-switch="login"<%- isLogin ? ' aria-current="page"' : '' %>>Sign in</a>
+      <a href="/register" data-auth-switch="register"<%- isLogin ? '' : ' aria-current="page"' %>>Create account</a>
+    </nav>
+    <%# Replaces the two-segment control during verify / forgot / reset (CSS shows it only then). %>
+    <a class="auth-back" href="<%= BACK[flow] || '/login' %>" data-auth-back><i class="bi bi-arrow-left" aria-hidden="true"></i> Back</a>
+  </header>
+
+  <%# ================================================================ login pane (right half in login mode) %>
+  <section class="auth-pane auth-pane--login" data-auth-pane="login" aria-labelledby="<%= HEADING_ID[loginStep] %>" tabindex="-1"<%- isLogin ? '' : ' inert' %>>
+    <div class="auth-steps" data-auth-steps="login"<% if (isLogin && enter) { %> data-step-enter="<%= enter %>"<% } %>>
+
+      <%# ---- sign in %>
+      <div <%- stepAttrs(loginStep, 'signin') %>>
+        <div class="auth-pane-inner">
+          <div class="auth-head auth-r" style="--i:0">
+            <h1 class="auth-title" id="login-title" tabindex="-1">Welcome back</h1>
+            <p class="auth-sub">Sign in to reserve or manage parking.</p>
+          </div>
+
+          <% if (showNotice('login', 'signin')) { %><%- include('auth-banner', { notice }) %><% } %>
+          <% if (data.login.formError) { %>
+            <div class="alert alert-danger auth-alert auth-r" role="alert" tabindex="-1" style="--i:1">
+              <i class="bi bi-exclamation-octagon-fill" aria-hidden="true"></i><div><%= data.login.formError %></div>
+            </div>
+          <% } %>
+
+          <form id="login-form" method="post" action="/login" novalidate data-auth-form="login" data-loading-label="Signing in...">
+            <input type="hidden" name="_csrf" value="<%= token %>">
+            <div class="auth-fields">
+              <%- include('auth-field', { id: 'login-email', name: 'email', label: 'Email address', type: 'email', value: data.login.values.email, error: data.login.errors.email, required: true, autocomplete: 'username', span: 'auth-span-2', index: 1 }) %>
+              <%- include('auth-field', { id: 'login-password', name: 'password', label: 'Password', type: 'password', error: data.login.errors.password, required: true, autocomplete: 'current-password', toggle: true, span: 'auth-span-2', index: 2 }) %>
+              <div class="auth-span-2 auth-r" style="--i:3">
+                <button class="btn btn-primary btn-lg w-100 auth-submit" type="submit" data-auth-submit>
+                  <span class="auth-submit-icon" aria-hidden="true"><i class="bi bi-box-arrow-in-right"></i><span class="auth-spinner"></span></span>
+                  <span class="auth-submit-label">Sign in</span>
+                </button>
+              </div>
+            </div>
+          </form>
+          <p class="auth-foot auth-r" style="--i:4"><a class="auth-text-link" href="/forgot-password" data-auth-goto="forgot">Forgot password?</a></p>
+        </div>
+      </div>
+
+      <%# ---- forgot password: ask for the address %>
+      <div <%- stepAttrs(loginStep, 'forgot') %>>
+        <div class="auth-pane-inner">
+          <div class="auth-head auth-r" style="--i:0">
+            <h1 class="auth-title" id="forgot-title" tabindex="-1">Reset your password</h1>
+            <p class="auth-sub">Enter the email you use for <%= appName %> and we'll send you a link to choose a new password.</p>
+          </div>
+          <form id="forgot-form" method="post" action="/forgot-password" novalidate data-auth-form="forgot" data-loading-label="Sending link...">
+            <input type="hidden" name="_csrf" value="<%= token %>">
+            <div class="auth-fields">
+              <%- include('auth-field', { id: 'forgot-email', name: 'email', label: 'Email address', type: 'email', value: forgot.email, error: forgot.error, required: true, autocomplete: 'username', span: 'auth-span-2', index: 1 }) %>
+              <div class="auth-span-2 auth-r" style="--i:2">
+                <button class="btn btn-primary btn-lg w-100 auth-submit" type="submit" data-auth-submit>
+                  <span class="auth-submit-icon" aria-hidden="true"><i class="bi bi-envelope"></i><span class="auth-spinner"></span></span>
+                  <span class="auth-submit-label">Send reset link</span>
+                </button>
+              </div>
+            </div>
+          </form>
+          <p class="auth-foot auth-r" style="--i:3"><a class="auth-text-link" href="/login" data-auth-goto="signin"><i class="bi bi-arrow-left" aria-hidden="true"></i> Back to sign in</a></p>
+        </div>
+      </div>
+
+      <% if (loginStep === 'sent') { %>
+      <%# ---- forgot password: the same answer whether or not the account exists %>
+      <div <%- stepAttrs(loginStep, 'sent') %>>
+        <div class="auth-pane-inner">
+          <div class="auth-head auth-r" style="--i:0">
+            <h1 class="auth-title" id="sent-title" tabindex="-1">Check your email</h1>
+          </div>
+          <div class="auth-banner auth-banner--info auth-r" role="status" style="--i:1">
+            <i class="bi bi-envelope-check" aria-hidden="true"></i>
+            <div>If an account exists for <strong class="auth-email"><%= forgot.email %></strong>, we've sent a reset link. It expires in 30 minutes.</div>
+          </div>
+          <p class="auth-hint auth-r" style="--i:2">Can't find it? Check your spam or junk folder. Only the newest link works.</p>
+          <p class="auth-foot auth-r" style="--i:3">Wrong email? <a class="auth-text-link" href="/forgot-password" data-auth-goto="forgot">Edit</a></p>
+          <p class="auth-foot auth-foot--tight auth-r" style="--i:3"><a class="auth-text-link" href="/login" data-auth-goto="signin"><i class="bi bi-arrow-left" aria-hidden="true"></i> Back to sign in</a></p>
+        </div>
+      </div>
+      <% } %>
+
+      <% if (loginStep === 'reset') { %>
+      <%# ---- reset password: the link was valid %>
+      <div <%- stepAttrs(loginStep, 'reset') %>>
+        <div class="auth-pane-inner">
+          <div class="auth-head auth-r" style="--i:0">
+            <h1 class="auth-title" id="reset-title" tabindex="-1">Choose a new password</h1>
+            <p class="auth-sub"><% if (reset.email) { %>For <strong class="auth-email"><%= reset.email %></strong>. <% } %>You'll sign in again afterwards.</p>
+          </div>
+          <% if (given.formError) { %>
+            <div class="alert alert-danger auth-alert auth-r" role="alert" tabindex="-1" style="--i:1">
+              <i class="bi bi-exclamation-octagon-fill" aria-hidden="true"></i><div><%= given.formError %></div>
+            </div>
+          <% } %>
+          <form id="reset-form" method="post" action="/reset-password" novalidate data-auth-form="reset" data-loading-label="Updating password...">
+            <input type="hidden" name="_csrf" value="<%= token %>">
+            <%# Lets password managers file the new password under the right account. %>
+            <input class="visually-hidden" type="text" name="username" value="<%= reset.email %>" autocomplete="username" tabindex="-1" aria-hidden="true" readonly>
+            <div class="auth-fields">
+              <%- include('auth-field', { id: 'reset-password', name: 'password', label: 'New password', type: 'password', error: resetErrors.password, required: true, autocomplete: 'new-password', toggle: true, span: 'auth-span-2', describedBy: 'reset-password-hint', index: 1 }) %>
+              <%- include('auth-field', { id: 'reset-confirm_password', name: 'confirm_password', label: 'Confirm new password', type: 'password', error: resetErrors.confirm_password, required: true, autocomplete: 'new-password', toggle: true, span: 'auth-span-2', index: 2 }) %>
+              <p class="auth-hint auth-span-2 auth-r" id="reset-password-hint" style="--i:3">At least 8 characters, with a letter and a number.</p>
+              <div class="auth-span-2 auth-r" style="--i:3">
+                <button class="btn btn-primary btn-lg w-100 auth-submit" type="submit" data-auth-submit>
+                  <span class="auth-submit-icon" aria-hidden="true"><i class="bi bi-shield-lock"></i><span class="auth-spinner"></span></span>
+                  <span class="auth-submit-label">Update password</span>
+                </button>
+              </div>
+            </div>
+          </form>
+          <p class="auth-foot auth-r" style="--i:4"><a class="auth-text-link" href="/login" data-auth-goto="signin"><i class="bi bi-arrow-left" aria-hidden="true"></i> Back to sign in</a></p>
+        </div>
+      </div>
+      <% } %>
+
+      <% if (loginStep === 'reset-invalid') { %>
+      <%# ---- reset password: invalid, expired or already used %>
+      <div <%- stepAttrs(loginStep, 'reset-invalid') %>>
+        <div class="auth-pane-inner">
+          <div class="auth-head auth-r" style="--i:0">
+            <h1 class="auth-title" id="reset-invalid-title" tabindex="-1">This link has expired</h1>
+          </div>
+          <div class="auth-banner auth-banner--danger auth-r" role="status" style="--i:1">
+            <i class="bi bi-hourglass-bottom" aria-hidden="true"></i>
+            <div>Reset links work once and expire after 30 minutes. If you asked more than once, only the newest link works.</div>
+          </div>
+          <div class="auth-r" style="--i:2">
+            <a class="btn btn-primary btn-lg w-100 auth-submit" href="/forgot-password">
+              <span class="auth-submit-icon" aria-hidden="true"><i class="bi bi-envelope"></i></span>
+              <span class="auth-submit-label">Request a new link</span>
+            </a>
+          </div>
+          <p class="auth-foot auth-r" style="--i:3"><a class="auth-text-link" href="/login" data-auth-goto="signin"><i class="bi bi-arrow-left" aria-hidden="true"></i> Back to sign in</a></p>
+        </div>
+      </div>
+      <% } %>
+    </div>
+  </section>
+
+  <%# ================================================================ register pane (left half in register mode) %>
+  <section class="auth-pane auth-pane--register" data-auth-pane="register" aria-labelledby="<%= HEADING_ID[registerStep] %>" tabindex="-1"<%- isLogin ? ' inert' : '' %>>
+    <div class="auth-steps" data-auth-steps="register"<% if (!isLogin && enter) { %> data-step-enter="<%= enter %>"<% } %>>
+
+      <%# ---- sign-up form %>
+      <div <%- stepAttrs(registerStep, 'form') %>>
+        <div class="auth-pane-inner">
+          <div class="auth-head auth-r" style="--i:0">
+            <h1 class="auth-title" id="register-title" tabindex="-1">Create your account</h1>
+            <p class="auth-sub">Drivers register once, then add their vehicle. We'll email you a code to confirm your address.</p>
+          </div>
+
+          <% if (showNotice('register', 'form')) { %><%- include('auth-banner', { notice }) %><% } %>
+          <% if (data.register.formError) { %>
+            <div class="alert alert-danger auth-alert auth-r" role="alert" tabindex="-1" style="--i:1">
+              <i class="bi bi-exclamation-octagon-fill" aria-hidden="true"></i><div><%= data.register.formError %></div>
+            </div>
+          <% } %>
+
+          <form id="register-form" method="post" action="/register" novalidate data-auth-form="register" data-loading-label="Sending code...">
+            <input type="hidden" name="_csrf" value="<%= token %>">
+            <div class="auth-fields">
+              <%- include('auth-field', { id: 'register-full_name', name: 'full_name', label: 'Full name', value: data.register.values.full_name, error: data.register.errors.full_name, required: true, autocomplete: 'name', span: 'auth-span-2', index: 1 }) %>
+              <%- include('auth-field', { id: 'register-email', name: 'email', label: 'Email address', type: 'email', value: data.register.values.email, error: data.register.errors.email, required: true, autocomplete: 'email', suggest: true, span: 'auth-span-2', index: 2, errorActions: locals.emailTaken ? [{ href: '/login', text: 'Sign in' }, { href: '/forgot-password', text: 'Forgot password?' }] : null }) %>
+              <%- include('auth-field', { id: 'register-university_id', name: 'university_id', label: 'University ID (optional)', value: data.register.values.university_id, error: data.register.errors.university_id, autocomplete: 'off', index: 3 }) %>
+              <%- include('auth-field', { id: 'register-phone', name: 'phone', label: 'Mobile number (optional)', type: 'tel', value: data.register.values.phone, error: data.register.errors.phone, autocomplete: 'tel', inputmode: 'tel', index: 3 }) %>
+              <%- include('auth-field', { id: 'register-password', name: 'password', label: 'Password', type: 'password', error: data.register.errors.password, required: true, autocomplete: 'new-password', toggle: true, describedBy: 'register-password-hint', index: 4 }) %>
+              <%- include('auth-field', { id: 'register-confirm_password', name: 'confirm_password', label: 'Confirm password', type: 'password', error: data.register.errors.confirm_password, required: true, autocomplete: 'new-password', toggle: true, index: 4 }) %>
+              <p class="auth-hint auth-span-2 auth-r" id="register-password-hint" style="--i:5">At least 8 characters, with a letter and a number.</p>
+              <div class="auth-span-2 auth-r" style="--i:5">
+                <button class="btn btn-primary btn-lg w-100 auth-submit" type="submit" data-auth-submit>
+                  <span class="auth-submit-icon" aria-hidden="true"><i class="bi bi-person-plus"></i><span class="auth-spinner"></span></span>
+                  <span class="auth-submit-label">Create account</span>
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <% if (registerStep === 'verify') {
+           const vErr = verify.error || '';
+           const resendFirst = ['expired', 'locked'].includes(verify.state);
+      %>
+      <%# ---- 6-digit code %>
+      <div <%- stepAttrs(registerStep, 'verify') %>>
+        <div class="auth-pane-inner">
+          <div class="auth-head auth-r" style="--i:0">
+            <h1 class="auth-title" id="verify-title" tabindex="-1">Check your email</h1>
+            <p class="auth-sub">We sent a 6-digit code to <strong class="auth-email"><%= verify.email %></strong>. It expires in 10 minutes.</p>
+          </div>
+
+          <% if (showNotice('register', 'verify')) { %><%- include('auth-banner', { notice }) %><% } %>
+
+          <form id="verify-form" method="post" action="/register/verify" novalidate data-auth-form="verify" data-loading-label="Checking code...">
+            <input type="hidden" name="_csrf" value="<%= token %>">
+            <div class="auth-field auth-r<%= vErr ? ' is-invalid' : '' %>" style="--i:1" data-field="code">
+              <label class="form-label" for="verify-code">Verification code</label>
+              <%# ONE input (so autofill, paste and screen readers see a single field), drawn as six boxes by auth.js. %>
+              <div class="auth-code" data-auth-code>
+                <input class="form-control auth-code-input<%= vErr ? ' is-invalid' : '' %>" id="verify-code" name="code" type="text"
+                       autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*" maxlength="6" required
+                       autocapitalize="none" spellcheck="false" aria-describedby="verify-code-error verify-code-hint"<% if (vErr) { %> aria-invalid="true"<% } %>>
+                <span class="auth-code-cells" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></span>
+                <span class="auth-code-check" aria-hidden="true"><i class="bi bi-check-lg"></i></span>
+              </div>
+              <p class="auth-error" id="verify-code-error" aria-live="polite"><%= vErr %></p>
+            </div>
+            <p class="auth-hint auth-hint--after auth-r" id="verify-code-hint" style="--i:2">Can't find it? Check your spam or junk folder.</p>
+            <div class="auth-r" style="--i:2">
+              <button class="btn btn-primary btn-lg w-100 auth-submit" type="submit" data-auth-submit>
+                <span class="auth-submit-icon" aria-hidden="true"><i class="bi bi-shield-check"></i><span class="auth-spinner"></span></span>
+                <span class="auth-submit-label">Verify email</span>
+              </button>
+            </div>
+          </form>
+
+          <div class="auth-verify-actions auth-r" style="--i:3">
+            <form method="post" action="/register/resend">
+              <input type="hidden" name="_csrf" value="<%= token %>">
+              <button type="submit" class="auth-link-btn<%= resendFirst ? ' is-emphasis' : '' %>" data-auth-resend data-cooldown="<%= Math.max(0, verify.cooldown || 0) %>">Resend code</button>
+            </form>
+            <p class="auth-foot auth-foot--inline">Wrong email? <a class="auth-text-link" href="/register/edit">Edit</a></p>
+          </div>
+          <p class="auth-hint auth-r" data-auth-nojs style="--i:3">You can ask for a new code 60 seconds after the last one.</p>
+        </div>
+      </div>
+      <% } %>
+    </div>
+  </section>
+
+  <%# The overlay comes AFTER both panes in the source on purpose: keyboard and screen-reader users reach the form they
+      came for first, then the "switch" prompt. Its position on screen is set by the grid, not by source order. %>
+  <%# ---- brand overlay (desktop): logo, headline, static slot grid, bullets, switch prompt %>
+  <aside class="auth-overlay" data-auth-overlay>
+    <div class="auth-overlay-top">
+      <div class="brand auth-brand px-0">
+        <span class="brand-mark" aria-hidden="true">P</span>
+        <span class="brand-text"><span class="brand-name"><%= appName %></span><span class="brand-tag"><%= tagline %></span></span>
+      </div>
+      <p class="auth-headline">Find a spot.<br>Reserve it by the hour.</p>
+      <p class="auth-lede">See live availability across campus zones, book the slot you want, and arrive knowing it is yours.</p>
+    </div>
+    <div class="auth-overlay-bottom">
+      <div class="auth-mini-map mb-4" aria-hidden="true">
+        <span class="a"></span><span class="a"></span><span class="r"></span><span class="o"></span><span class="a"></span><span class="u"></span>
+        <span class="r"></span><span class="a"></span><span class="a"></span><span class="a"></span><span class="o"></span><span class="a"></span>
+      </div>
+      <ul class="auth-points">
+        <li><i class="bi bi-geo-alt" aria-hidden="true"></i>Live slot map for every campus zone</li>
+        <li><i class="bi bi-clock-history" aria-hidden="true"></i>Hourly bookings with a clear fee estimate</li>
+        <li><i class="bi bi-shield-check" aria-hidden="true"></i>Staff-verified check-in and check-out</li>
+      </ul>
+      <%# Both prompts are stacked in one grid cell and cross-fade, so the text never reflows. Hidden on the reset screen. %>
+      <div class="auth-prompts">
+        <p class="auth-prompt auth-prompt--login" data-auth-prompt="login"<%- isLogin ? '' : ' inert' %>>
+          <span>New driver?</span>
+          <a class="auth-switch-btn" href="/register" data-auth-switch="register">Create an account <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+        </p>
+        <p class="auth-prompt auth-prompt--register" data-auth-prompt="register"<%- isLogin ? ' inert' : '' %>>
+          <span>Already registered?</span>
+          <a class="auth-switch-btn" href="/login" data-auth-switch="login"><i class="bi bi-arrow-left" aria-hidden="true"></i> Sign in</a>
+        </p>
+      </div>
+    </div>
+  </aside>
+
+  <div class="visually-hidden" role="status" aria-live="polite" data-auth-live></div>
+</section>

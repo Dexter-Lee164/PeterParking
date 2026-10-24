@@ -1,0 +1,100 @@
+<%
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  const firstName = currentUser.full_name.split(' ')[0];
+%>
+<section class="hero-card mb-4" aria-labelledby="heroTitle">
+  <div>
+    <h2 id="heroTitle"><%= greeting %>, <%= firstName %></h2>
+    <p>Need a spot? Check live availability and reserve it by the hour.</p>
+  </div>
+  <a class="btn btn-primary btn-lg" href="/driver/find-parking"><i class="bi bi-geo-alt" aria-hidden="true"></i> Find Parking</a>
+</section>
+
+<% if (!vehicles.length) { %>
+  <div class="alert alert-info d-flex flex-wrap align-items-center justify-content-between gap-2" role="status">
+    <span><i class="bi bi-car-front me-2" aria-hidden="true"></i>Add your vehicle so you can book a slot.</span>
+    <a class="btn btn-sm btn-primary" href="/driver/vehicles">Add vehicle</a>
+  </div>
+<% } %>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3"><%- include('partials/stat-card', { label: 'Upcoming', value: data.counts.upcoming, hint: 'Reservations ahead', icon: 'bi-calendar-check', tone: 'blue', href: '/driver/reservations?tab=upcoming' }) %></div>
+  <div class="col-6 col-xl-3"><%- include('partials/stat-card', { label: 'Parked now', value: data.counts.active, hint: 'Active sessions', icon: 'bi-car-front-fill', tone: 'teal', href: '/driver/reservations?tab=active' }) %></div>
+  <div class="col-6 col-xl-3"><%- include('partials/stat-card', { label: 'Completed', value: data.counts.completed, hint: 'Past stays', icon: 'bi-check2-circle', tone: 'green', href: '/driver/reservations?tab=completed' }) %></div>
+  <div class="col-6 col-xl-3"><%- include('partials/stat-card', { label: 'Outstanding balance', value: peso(data.outstandingCentavos), hint: data.outstandingCentavos > 0 ? 'Payable at the parking office' : 'You are all settled', icon: 'bi-wallet2', tone: data.outstandingCentavos > 0 ? 'amber' : 'green', href: '/driver/payments' }) %></div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-lg-7">
+    <% if (data.active) { %>
+      <div class="mb-3">
+        <%- include('partials/summary-card', {
+          title: 'Active parking session',
+          badgeHtml: '<span class="badge-status tone-teal"><i class="bi bi-p-circle" aria-hidden="true"></i>Parked</span>',
+          items: [
+            { label: 'Slot', value: data.active.slot_code + ' · ' + data.active.zone_name },
+            { label: 'Vehicle', value: data.active.plate_number },
+            { label: 'Checked in', value: fmtTime(data.active.check_in_at) },
+            { label: 'Reserved until', value: fmtTime(data.active.end_at) }
+          ]
+        }) %>
+      </div>
+    <% } %>
+
+    <% if (data.upcoming) { %>
+      <%- include('partials/summary-card', {
+        title: 'Next reservation',
+        badgeHtml: '<span class="badge-status tone-blue"><i class="bi bi-calendar-check" aria-hidden="true"></i>Confirmed</span>',
+        items: [
+          { label: 'Booking reference', value: data.upcoming.booking_ref },
+          { label: 'Slot', value: data.upcoming.slot_code + ' · ' + data.upcoming.zone_name },
+          { label: 'When', value: fmtDate(data.upcoming.start_at) + ', ' + fmtTime(data.upcoming.start_at) + ' – ' + fmtTime(data.upcoming.end_at) },
+          { label: 'Vehicle', value: data.upcoming.plate_number }
+        ],
+        total: { label: 'Estimated fee', value: peso(data.upcoming.fee_estimated_centavos) },
+        footerHtml: '<a class="btn btn-outline-primary w-100 mt-2" href="/driver/reservations/' + data.upcoming.id + '">View reservation</a>'
+      }) %>
+    <% } else if (!data.active) { %>
+      <div class="table-wrap">
+        <%- include('partials/empty-state', { icon: 'bi-calendar-plus', title: 'No upcoming reservations', text: 'Reserve a slot for your next trip to campus. It takes less than a minute.', actionHref: '/driver/find-parking', actionLabel: 'Find parking' }) %>
+      </div>
+    <% } %>
+  </div>
+
+  <div class="col-lg-5">
+    <section class="summary-card mb-3">
+      <div class="summary-head"><h3>Reservation history</h3></div>
+      <div class="p-3 d-grid gap-2">
+        <a class="btn btn-ghost justify-content-between" href="/driver/reservations?tab=all"><span><i class="bi bi-clock-history me-2" aria-hidden="true"></i>All reservations</span><span class="chip"><%= data.counts.all %></span></a>
+        <a class="btn btn-ghost justify-content-between" href="/driver/reservations?tab=completed"><span><i class="bi bi-check2-circle me-2" aria-hidden="true"></i>Completed</span><span class="chip"><%= data.counts.completed %></span></a>
+        <a class="btn btn-ghost justify-content-between" href="/driver/reservations?tab=cancelled"><span><i class="bi bi-x-circle me-2" aria-hidden="true"></i>Cancelled</span><span class="chip"><%= data.counts.cancelled %></span></a>
+      </div>
+    </section>
+
+    <section class="summary-card">
+      <div class="summary-head"><h3>Recent payments</h3><a class="small" href="/driver/payments">View all</a></div>
+      <div class="summary-body">
+        <% if (!data.recentPayments.length) { %>
+          <p class="text-muted small my-3">No payments recorded yet. Payments are recorded by parking staff.</p>
+        <% } else { data.recentPayments.forEach(function (p) { %>
+          <div class="summary-row">
+            <span class="k"><a href="/driver/payments/<%= p.id %>/receipt" class="font-mono"><%= p.receipt_no %></a><span class="d-block small text-faint"><%= fmtDateTime(p.paid_at) %></span></span>
+            <span class="v"><%= peso(p.amount_centavos) %><span class="d-block"><%- include('partials/status-badge', { kind: 'payment', status: p.status }) %></span></span>
+          </div>
+        <% }) } %>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="section-title">
+  <h3>Recent booking activity</h3>
+  <a class="small" href="/driver/reservations?tab=all">See all</a>
+</div>
+<%- include('partials/data-table', {
+  caption: 'Your most recently updated reservations',
+  columns: [{ label: 'Reference' }, { label: 'Slot' }, { label: 'Date' }, { label: 'Time' }, { label: 'Fee', align: 'end' }, { label: 'Status' }, { label: '' }],
+  rows: data.recent,
+  rowPartial: 'partials/rows/driver-reservation-row',
+  empty: { icon: 'bi-journal-text', title: 'No bookings yet', text: 'Your reservations will appear here once you make your first booking.', actionHref: '/driver/find-parking', actionLabel: 'Find parking' }
+}) %>

@@ -1,0 +1,229 @@
+<div class="page-intro">
+  <div>
+    <h2>Find a Parking Slot</h2>
+    <p>Select a date, time, zone and vehicle. Available slots update automatically.</p>
+  </div>
+</div>
+
+<noscript>
+  <div class="alert alert-warning">JavaScript is required to select a slot on the map. Please enable it and reload this page.</div>
+</noscript>
+
+<%- include('partials/lot-defs') %>
+
+<%# ------------------------------------------------ reservation filter toolbar
+    Same field names as before (date, start, end, vehicle_type, zone_id); with vehicles on file the driver picks one of
+    them and its type fills the hidden vehicle_type. %>
+<form id="searchForm" class="reserve-toolbar mb-3" method="get" action="/driver/find-parking" novalidate>
+  <div class="toolbar-grid">
+    <div class="tb-field tb-date">
+      <label class="form-label" for="searchForm-date">Date</label>
+      <div class="tb-input"><i class="bi bi-calendar3" aria-hidden="true"></i>
+        <input class="form-control" id="searchForm-date" name="date" type="date" value="<%= search.date %>" min="<%= minDate %>" max="<%= maxDate %>" required autocomplete="off">
+      </div>
+    </div>
+    <div class="tb-field">
+      <label class="form-label" for="searchForm-start">Start Time</label>
+      <div class="tb-input"><i class="bi bi-clock" aria-hidden="true"></i>
+        <select class="form-select" id="searchForm-start" name="start">
+          <% options.start.forEach(function (o) { %><option value="<%= o.value %>"<%= String(o.value) === String(search.start) ? ' selected' : '' %>><%= o.label %></option><% }) %>
+        </select>
+      </div>
+    </div>
+    <div class="tb-field">
+      <label class="form-label" for="searchForm-end">End Time</label>
+      <div class="tb-input"><i class="bi bi-clock" aria-hidden="true"></i>
+        <select class="form-select" id="searchForm-end" name="end">
+          <% options.end.forEach(function (o) { %><option value="<%= o.value %>"<%= String(o.value) === String(search.end) ? ' selected' : '' %>><%= o.label %></option><% }) %>
+        </select>
+      </div>
+    </div>
+    <div class="tb-field tb-duration">
+      <span class="form-label d-block" id="searchForm-duration-label">Duration</span>
+      <div class="duration-pill" id="durationPill" role="status" aria-labelledby="searchForm-duration-label"><span id="durationText">—</span></div>
+    </div>
+    <div class="tb-field">
+      <label class="form-label" for="searchForm-zone_id">Parking Zone</label>
+      <div class="tb-input"><i class="bi bi-geo-alt" aria-hidden="true"></i>
+        <select class="form-select" id="searchForm-zone_id" name="zone_id">
+          <% zones.forEach(function (z) { %><option value="<%= z.id %>"<%= zone && z.id === zone.id ? ' selected' : '' %>><%= z.name %><%= z.code ? ' (' + z.code + ')' : '' %></option><% }) %>
+        </select>
+      </div>
+    </div>
+    <div class="tb-field">
+      <%# The icon in front of the dropdown follows the chosen vehicle (car or motorcycle); options carry the same glyph. %>
+      <% if (vehicles.length) { %>
+        <label class="form-label" for="vehiclePicker">Vehicle</label>
+        <div class="tb-input"><i class="<%= vehicleIcon(vehicle ? vehicle.vehicle_type : search.vehicleType) %>" id="vehiclePickerIcon" aria-hidden="true"></i>
+          <select class="form-select" id="vehiclePicker" name="vehicle_id">
+            <% vehicles.forEach(function (v) { %><option value="<%= v.id %>"<%= vehicle && vehicle.id === v.id ? ' selected' : '' %>><%= vehicleGlyph(v.vehicle_type) %> <%= v.plate_number %></option><% }) %>
+          </select>
+        </div>
+        <input type="hidden" name="vehicle_type" value="<%= search.vehicleType %>">
+      <% } else { %>
+        <label class="form-label" for="searchForm-vehicle_type">Vehicle type</label>
+        <div class="tb-input"><i class="<%= vehicleIcon(search.vehicleType) %>" id="vehiclePickerIcon" aria-hidden="true"></i>
+          <select class="form-select" id="searchForm-vehicle_type" name="vehicle_type">
+            <% vehicleTypeOptions.forEach(function (o) { %><option value="<%= o.value %>"<%= String(o.value) === String(search.vehicleType) ? ' selected' : '' %>><%= o.value ? vehicleGlyph(o.value) + ' ' : '' %><%= o.label %></option><% }) %>
+          </select>
+        </div>
+      <% } %>
+    </div>
+    <%# Availability refreshes by itself (parking-slots.js); the button exists only for browsers without JavaScript. %>
+    <noscript>
+      <div class="tb-field tb-submit">
+        <button class="btn btn-primary w-100" type="submit"><i class="bi bi-search" aria-hidden="true"></i> Search Availability</button>
+      </div>
+    </noscript>
+  </div>
+  <div class="d-flex flex-wrap align-items-start gap-2">
+    <div class="toolbar-errors" id="searchForm-errors" role="alert" aria-live="assertive"></div>
+    <%# Availability refreshes by itself whenever a filter changes; this says when it is working. %>
+    <span class="search-status" id="searchStatus" role="status" aria-live="polite"></span>
+  </div>
+</form>
+
+<% if (!range.ok) { %>
+  <div class="alert alert-warning" role="alert">
+    <strong>Check your time range.</strong> <%= range.errors.join(' ') %>
+  </div>
+<% } %>
+
+<% if (!zones.length) { %>
+  <%- include('partials/empty-state', { icon: 'bi-p-square', title: 'No parking zones yet', text: 'Parking administration has not set up any zones. Please check back soon.' }) %>
+<% } else { %>
+
+<div class="row g-3">
+  <div class="col-xl-8 col-xxl-9">
+    <%# ------------------------------------------------ zone selector %>
+    <div class="zone-tabs mb-3" id="zoneTabs" role="tablist" aria-label="Parking zones">
+      <% zones.forEach(function (z) { %>
+        <button type="button" class="zone-tab" role="tab" data-zone-id="<%= z.id %>" aria-selected="<%= zone && z.id === zone.id %>">
+          <span><%= z.name %><%= z.code ? ' (' + z.code + ')' : '' %></span>
+          <% if (z.available !== null) { %><span class="zone-count<%= z.available === 0 ? ' none' : '' %>"><%= z.available %></span><% } %>
+        </button>
+      <% }) %>
+    </div>
+
+    <div class="alert alert-warning py-2 small" id="staleNotice" role="status" hidden>
+      <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>The slot status could not be refreshed for your latest changes.
+      <button type="button" class="btn btn-sm btn-outline-warning ms-1 py-0" id="retrySearch">Try again</button>
+    </div>
+
+    <div class="alert alert-danger py-2 small" id="banNotice" role="alert"<%= vehicle && config.vehicles.find(function (v) { return v.id === vehicle.id && v.ban; }) ? '' : ' hidden' %>>
+      <i class="bi bi-shield-exclamation me-1" aria-hidden="true"></i><span id="banText"><%= vehicle ? ((config.vehicles.find(function (v) { return v.id === vehicle.id; }) || {}).ban || {}).message || '' : '' %></span>
+      <a href="/driver/reports#penalties">Details</a>
+    </div>
+
+    <%# The map is the only way to pick a slot: every bay of the zone is drawn with its state, whatever the vehicle filter. %>
+    <section class="map-card" aria-label="Parking map">
+      <div id="mapContainer">
+        <% if (range.ok && zone) { %>
+          <%- include('partials/parking-map', { zone: zone, slots: slots, selectedSlotId: selectedSlotId }) %>
+        <% } else { %>
+          <div class="p-3"><%- include('partials/empty-state', { icon: 'bi-clock', title: 'Choose a valid time range', text: 'Pick a start and end time within operating hours, then press Search Availability.' }) %></div>
+        <% } %>
+      </div>
+
+      <div class="map-legend" id="mapLegend" aria-label="Slot status legend">
+        <span class="lg"><span class="swatch s-available"></span> Available</span>
+        <span class="lg"><span class="swatch s-reserved"></span> Reserved</span>
+        <span class="lg"><span class="swatch s-occupied"></span> Occupied</span>
+        <span class="lg"><span class="swatch s-unavailable"></span> Unavailable</span>
+        <span class="lg"><span class="swatch s-maintenance"></span> Maintenance</span>
+        <span class="lg"><span class="swatch s-selected"></span> Selected</span>
+        <span id="slotCounts" class="map-counts" aria-live="polite">
+          <% if (range.ok) { %><%= counts.available %> available · <%= counts.reserved %> reserved · <%= counts.occupied %> occupied · <%= counts.unavailable %> unavailable<% } else { %>Set a valid time range to see availability.<% } %>
+        </span>
+      </div>
+    </section>
+  </div>
+
+  <div class="col-xl-4 col-xxl-3">
+    <aside class="reserve-side side-card" aria-labelledby="slotDetailHeading">
+      <%# ------------------------------------------------ selected slot %>
+      <h3 class="side-title" id="slotDetailHeading">Selected Slot</h3>
+      <%# Zoomed view of the real map around the chosen stall (filled by parking-slots.js from the map itself). %>
+      <div class="slot-preview" id="slotPreview" aria-hidden="true" hidden>
+        <div class="slot-preview-view" data-preview-view></div>
+        <span class="slot-preview-code" id="previewCode"></span>
+      </div>
+      <div id="slotDetail">
+        <div id="slotDetailEmpty" class="slot-detail-empty">
+          <i class="bi bi-hand-index-thumb" aria-hidden="true"></i>
+          Select a green slot on the map to see it up close.
+        </div>
+        <div id="slotDetailBody" hidden>
+          <div class="slot-title">
+            <span class="big-code" id="detailCode">—</span>
+            <span class="badge-available" id="detailBadge">Available</span>
+          </div>
+          <dl class="icon-list">
+            <div><dt><i class="bi bi-geo-alt" aria-hidden="true"></i> Zone</dt><dd id="detailZone">—</dd></div>
+            <div><dt><i class="bi bi-signpost" aria-hidden="true"></i> Location</dt><dd id="detailLocation">—</dd></div>
+            <div><dt><i class="bi bi-car-front" aria-hidden="true" id="detailTypeIcon"></i> Slot Type</dt><dd id="detailType">—</dd></div>
+            <div><dt><i class="bi bi-clock" aria-hidden="true"></i> Hourly Rate</dt><dd id="detailRate">—</dd></div>
+            <div><dt><i class="bi bi-activity" aria-hidden="true"></i> Operational Status</dt><dd id="detailStatus">—</dd></div>
+          </dl>
+        </div>
+      </div>
+
+      <%# ------------------------------------------------ the driver's vehicle %>
+      <h3 class="side-title">Your Vehicle</h3>
+      <% if (vehicles.length) { %>
+        <div class="vehicle-card">
+          <div class="vehicle-art" id="vehicleArt" aria-hidden="true"></div>
+          <div class="vehicle-meta">
+            <div class="vehicle-name"><i class="<%= vehicleIcon(vehicle ? vehicle.vehicle_type : 'car') %> me-1" id="vehicleTypeIcon" aria-hidden="true"></i><span id="vehicleName"><%= vehicle ? vehicleLabel(vehicle) : '—' %></span></div>
+            <div class="vehicle-plate" id="vehiclePlate"><%= vehicle ? vehicle.plate_number : '' %></div>
+            <div class="vehicle-color"><span class="color-dot" id="vehicleDot"></span><span id="vehicleColor"><%= vehicle && vehicle.color ? vehicle.color : '' %></span></div>
+          </div>
+        </div>
+        <div class="form-text mt-1" id="vehicleNote" aria-live="polite"></div>
+      <% } else { %>
+        <div class="vehicle-card is-empty small text-muted">No vehicle on file. <a href="/driver/vehicles">Add your vehicle</a> to see it parked in your slot.</div>
+      <% } %>
+
+      <%# ------------------------------------------------ reservation summary %>
+      <h3 class="side-title">Reservation Summary</h3>
+      <dl class="icon-list summary-list" id="reservationSummary">
+        <div><dt><i class="bi bi-calendar3" aria-hidden="true"></i> Date</dt><dd id="sumDate">—</dd></div>
+        <div><dt><i class="bi bi-clock" aria-hidden="true"></i> Time</dt><dd id="sumTime">—</dd></div>
+        <div><dt><i class="bi bi-hourglass-split" aria-hidden="true"></i> Duration</dt><dd id="sumDuration">—</dd></div>
+        <div><dt><i class="bi bi-p-circle" aria-hidden="true"></i> Slot</dt><dd id="sumSlot">None selected</dd></div>
+        <div><dt><i class="bi bi-cash-coin" aria-hidden="true"></i> Hourly Rate</dt><dd id="sumRate">—</dd></div>
+        <div class="total"><dt><i class="bi bi-receipt" aria-hidden="true"></i> Estimated Fee</dt><dd id="sumFee">₱0.00</dd></div>
+      </dl>
+
+      <form id="continueForm" method="get" action="/driver/reserve" class="d-none d-md-block">
+        <input type="hidden" name="slot_id" value="<%= selectedSlotId || '' %>">
+        <input type="hidden" name="date" value="<%= search.date %>">
+        <input type="hidden" name="start" value="<%= search.start %>">
+        <input type="hidden" name="end" value="<%= search.end %>">
+        <input type="hidden" name="vehicle_type" value="<%= search.vehicleType %>">
+        <input type="hidden" name="vehicle_id" value="<%= vehicle ? vehicle.id : '' %>">
+        <button class="btn btn-primary btn-continue" type="submit" id="continueBtn" disabled>
+          <i class="bi bi-calendar-check" aria-hidden="true"></i> Continue to Reservation <i class="bi bi-chevron-right" aria-hidden="true"></i>
+        </button>
+        <div class="form-text text-center mt-2" id="continueHint" aria-live="polite">Select an available slot to continue.</div>
+      </form>
+
+      <p class="small text-muted mb-0">
+        <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
+        Fees are charged by the <%= rules.billing_increment_minutes === 60 ? 'hour' : rules.billing_increment_minutes + '-minute block' %>, rounded up.
+        The slot is only held once you confirm on the next step.
+      </p>
+    </aside>
+  </div>
+</div>
+
+<div class="mobile-book-bar d-md-none">
+  <div class="d-flex align-items-center justify-content-between gap-3">
+    <div class="small"><div class="text-muted">Selected</div><strong id="mobileSelected">Select an available slot</strong></div>
+    <button class="btn btn-primary" type="submit" form="continueForm" id="continueBtnMobile" disabled>Continue <i class="bi bi-arrow-right" aria-hidden="true"></i></button>
+  </div>
+</div>
+
+<% } %>
+
+<script type="application/json" id="findParkingConfig"><%- JSON.stringify(config).replace(/</g, '\\u003c') %></script>

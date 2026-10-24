@@ -1,0 +1,16 @@
+<%# Flash messages as accessible toasts. Params come from res.locals.flash: [{ type, message }]. %>
+<% const items = locals.flash || []; %>
+<div class="toast-stack" aria-live="polite" aria-atomic="false" id="toastStack">
+  <% items.forEach(function (f) {
+       const type = ['success', 'error', 'warning', 'info'].includes(f.type) ? f.type : 'info';
+       const icon = { success: 'bi-check-circle-fill', error: 'bi-exclamation-octagon-fill', warning: 'bi-exclamation-triangle-fill', info: 'bi-info-circle-fill' }[type];
+  %>
+    <div class="toast up-toast toast-<%= type %> show" role="<%= type === 'error' ? 'alert' : 'status' %>" data-autohide="<%= type === 'success' || type === 'info' ? 'true' : 'false' %>">
+      <div class="d-flex align-items-start gap-2 p-3">
+        <i class="bi <%= icon %> toast-icon" aria-hidden="true"></i>
+        <div class="flex-grow-1"><%= f.message %></div>
+        <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="toast" aria-label="Dismiss notification"></button>
+      </div>
+    </div>
+  <% }) %>
+</div>

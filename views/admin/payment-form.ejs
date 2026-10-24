@@ -1,0 +1,81 @@
+<div class="page-intro">
+  <div>
+    <h2>Record payment</h2>
+    <p>Enter a cash payment received at the parking office. Cash is the only accepted payment method; no payment is processed online.</p>
+  </div>
+</div>
+
+<% if (formError) { %><div class="alert alert-danger" role="alert"><i class="bi bi-exclamation-octagon me-2" aria-hidden="true"></i><%= formError %></div><% } %>
+<% if (errors.reservation_id) { %><div class="alert alert-danger" role="alert"><%= errors.reservation_id %></div><% } %>
+
+<% if (!reservation) { %>
+  <section class="summary-card mb-3">
+    <div class="summary-head"><h3>1. Choose the booking</h3></div>
+    <div class="p-3">
+      <form method="get" action="/admin/payments/new" class="row g-2 align-items-end mb-3" role="search">
+        <div class="col"><label class="form-label" for="payQ">Search bookings with a balance</label>
+          <input class="form-control" id="payQ" name="q" type="search" value="<%= q %>" placeholder="Booking ref, driver, plate" autocomplete="off"></div>
+        <div class="col-auto"><button class="btn btn-primary" type="submit"><i class="bi bi-search" aria-hidden="true"></i> Search</button></div>
+      </form>
+      <% if (!candidates.length) { %>
+        <p class="text-muted mb-0">No bookings with an outstanding balance match. Fees for upcoming bookings can also be prepaid once they exist.</p>
+      <% } else { %>
+        <div class="summary-body">
+          <% candidates.forEach(function (c) { %>
+            <div class="summary-row">
+              <span class="k"><a class="font-mono" href="/admin/reservations/<%= c.id %>"><%= c.booking_ref %></a>
+                <span class="d-block small text-faint"><%= c.driver_name %> · <%= c.plate_number %> · <%= fmtDate(c.start_at) %> · <%= c.fee_is_final ? 'final' : 'estimated' %> fee</span></span>
+              <span class="v"><%= peso(c.balance_centavos) %> <a class="btn btn-sm btn-outline-primary ms-2" href="/admin/payments/new?reservation_id=<%= c.id %>">Select</a></span>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </div>
+  </section>
+<% } else { %>
+  <div class="row g-3">
+    <div class="col-lg-5 order-lg-2">
+      <%- include('partials/summary-card', {
+        title: 'Booking',
+        badgeHtml: include('partials/status-badge', { kind: 'balance', status: reservation.payment_status }),
+        items: [
+          { label: 'Reference', value: reservation.booking_ref },
+          { label: 'Driver', value: reservation.driver_name },
+          { label: 'Vehicle', value: reservation.plate_number },
+          { label: 'Slot', value: reservation.slot_code + ' · ' + reservation.zone_name },
+          { label: reservation.fee_is_final ? 'Final fee' : 'Estimated fee', value: peso(reservation.due_centavos) },
+          { label: 'Paid so far', value: peso(reservation.paid_centavos) }
+        ],
+        total: { label: 'Remaining balance', value: peso(Math.max(0, reservation.balance_centavos)) }
+      }) %>
+      <% if (!reservation.fee_is_final) { %><p class="small text-muted mt-2">The fee is not final yet. It is finalized at check-out, cancellation or no-show. A prepayment cannot exceed the estimate.</p><% } %>
+      <a class="btn btn-ghost btn-sm mt-2" href="/admin/payments/new">Choose a different booking</a>
+    </div>
+    <div class="col-lg-7 order-lg-1">
+      <section class="summary-card">
+        <div class="summary-head"><h3>Payment details</h3></div>
+        <div class="p-3">
+          <form method="post" action="/admin/payments" novalidate>
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="reservation_id" value="<%= reservation.id %>">
+            <div class="row g-3">
+              <%- include('partials/form-field', { name: 'amount', label: 'Amount received', value: values.amount, errors: errors, required: true, prefix: '₱', col: 'col-sm-6', attrs: { inputmode: 'decimal' } }) %>
+              <div class="col-sm-6">
+                <span class="form-label d-block" id="payMethodLabel">Payment method</span>
+                <div class="form-control-plaintext d-flex align-items-center gap-2" aria-labelledby="payMethodLabel"><i class="bi bi-cash-coin text-success" aria-hidden="true"></i> Cash</div>
+                <input type="hidden" name="method" value="cash">
+                <% if (errors.method) { %><div class="invalid-feedback d-block"><%= errors.method %></div><% } %>
+              </div>
+              <%- include('partials/form-field', { name: 'reference', label: 'Office receipt number (optional)', value: values.reference, errors: errors, maxlength: 80, help: 'The number on the paper receipt, if one was issued.' }) %>
+              <%- include('partials/form-field', { name: 'notes', label: 'Notes (optional)', type: 'textarea', value: values.notes, errors: errors, rows: 2, maxlength: 300 }) %>
+              <div class="col-12 d-flex gap-2">
+                <button class="btn btn-primary" type="submit"><i class="bi bi-check2" aria-hidden="true"></i> Record payment</button>
+                <a class="btn btn-outline-secondary" href="/admin/payments">Cancel</a>
+              </div>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+  </div>
+<% } %>

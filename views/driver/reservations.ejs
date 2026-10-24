@@ -1,0 +1,50 @@
+<div class="page-intro">
+  <div>
+    <h2>My Reservations</h2>
+    <p>Track upcoming stays and review your history. Cancelled bookings are never deleted.</p>
+  </div>
+  <a class="btn btn-primary" href="/driver/find-parking"><i class="bi bi-plus-lg" aria-hidden="true"></i> New reservation</a>
+</div>
+
+<%- include('partials/unread-banner') %>
+
+<%
+  const tabs = [
+    { key: 'upcoming', label: 'Upcoming' },
+    { key: 'active', label: 'Active' },
+    { key: 'completed', label: 'Completed' },
+    { key: 'cancelled', label: 'Cancelled' },
+    { key: 'no_show', label: 'No-show' },
+    { key: 'all', label: 'All' }
+  ];
+  const emptyText = {
+    upcoming: 'You have no upcoming reservations.',
+    active: 'No vehicle of yours is parked right now.',
+    completed: 'Completed stays will appear here.',
+    cancelled: 'You have not cancelled any bookings.',
+    no_show: 'No missed reservations — nice.',
+    all: 'You have not made any reservations yet.'
+  };
+%>
+<nav class="nav-pills-tabs mb-3" aria-label="Reservation status filters">
+  <% tabs.forEach(function (t) { %>
+    <a href="/driver/reservations?tab=<%= t.key %>" class="<%= tab === t.key ? 'active' : '' %>" <%- tab === t.key ? 'aria-current="page"' : '' %>>
+      <%= t.label %> <span class="count"><%= counts[t.key] %></span>
+    </a>
+  <% }) %>
+</nav>
+
+<%- include('partials/data-table', {
+  caption: 'Your reservations',
+  columns: [{ label: 'Reference' }, { label: 'Slot' }, { label: 'Date' }, { label: 'Time' }, { label: 'Fee', align: 'end' }, { label: 'Status' }, { label: '' }],
+  rows: rows,
+  rowPartial: 'partials/rows/driver-reservation-row',
+  pager: pager,
+  baseQuery: { tab: tab },
+  noun: 'reservations',
+  empty: { icon: 'bi-calendar2-x', title: emptyText[tab], text: tab === 'upcoming' || tab === 'all' ? 'Find a slot and reserve it by the hour.' : '', actionHref: tab === 'upcoming' || tab === 'all' ? '/driver/find-parking' : '', actionLabel: 'Find parking' }
+}) %>
+
+<div class="alert alert-info small mt-3" role="note">
+  <i class="bi bi-info-circle me-1" aria-hidden="true"></i><strong>Cancellation policy.</strong> <%= policy %>
+</div>

@@ -1,0 +1,39 @@
+<div class="page-intro">
+  <div>
+    <h2>Parking Etiquette Reports</h2>
+    <p>Reports drivers submitted about other vehicles. Review each one, judge its severity, and penalise the plate when it is justified.</p>
+  </div>
+</div>
+
+<% if (unreadTotal) { %>
+  <div class="unread-banner" role="status"><i class="bi bi-bell-fill" aria-hidden="true"></i><span><%= unreadTotal === 1 ? '1 new report is' : unreadTotal + ' new reports are' %> highlighted below.</span></div>
+<% } %>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3"><%- include('partials/stat-card', { label: 'Pending', value: counts.pending || 0, hint: 'Not reviewed yet', icon: 'bi-hourglass-split', tone: (counts.pending || 0) > 0 ? 'amber' : 'green' }) %></div>
+  <div class="col-6 col-md-3"><%- include('partials/stat-card', { label: 'Under review', value: counts.under_review || 0, hint: 'Being looked into', icon: 'bi-search', tone: 'blue' }) %></div>
+  <div class="col-6 col-md-3"><%- include('partials/stat-card', { label: 'Resolved', value: counts.resolved || 0, hint: 'Action taken or settled', icon: 'bi-check2-circle', tone: 'green' }) %></div>
+  <div class="col-6 col-md-3"><%- include('partials/stat-card', { label: 'Dismissed', value: counts.dismissed || 0, hint: 'No violation found', icon: 'bi-x-circle', tone: 'blue' }) %></div>
+</div>
+
+<%- include('partials/filter-toolbar', {
+  formId: 'reportFilter',
+  action: '/admin/reports',
+  submitLabel: 'Filter',
+  resetHref: '/admin/reports',
+  fields: [
+    { type: 'search', name: 'q', label: 'Search', value: filters.q, placeholder: 'Plate, reporter or description', col: 'col-12 col-md-6' },
+    { type: 'select', name: 'status', label: 'Status', value: filters.status, options: statusOptions, col: 'col-12 col-md-3' }
+  ]
+}) %>
+
+<%- include('partials/data-table', {
+  caption: 'Parking etiquette reports',
+  columns: [{ label: 'Report' }, { label: 'Plate' }, { label: 'Violation' }, { label: 'Incident' }, { label: 'Reported by' }, { label: 'Severity' }, { label: 'Status' }],
+  rows: rows,
+  rowPartial: 'partials/rows/admin-report-row',
+  pager: pager,
+  baseQuery: baseQuery,
+  noun: 'reports',
+  empty: { icon: 'bi-flag', title: 'No reports found', text: 'Reports that drivers submit appear here.' }
+}) %>

@@ -1,0 +1,22 @@
+<%# Apply a penalty to a plate (admin). Params: action (form URL), plate, penaltyOptions, penaltyValues, penaltyErrors.
+    public/js/penalty-form.js shows the amount or days field for the chosen penalty and words the confirmation. %>
+<section class="summary-card" id="penalty">
+  <div class="summary-head"><h3><i class="bi bi-shield-exclamation me-1" aria-hidden="true"></i>Penalise <%= plate %></h3></div>
+  <div class="p-3">
+    <form method="post" action="<%= action %>" novalidate data-penalty-form data-plate="<%= plate %>"
+          data-confirm="Apply this penalty to <%= plate %>? It takes effect immediately, stays with the plate and is recorded in the audit log."
+          data-confirm-title="Apply penalty" data-confirm-label="Apply penalty" data-confirm-tone="danger">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="row g-3">
+        <%- include('partials/form-field', { name: 'kind', id: 'penalty-kind', label: 'Penalty', type: 'select', value: penaltyValues.kind, errors: penaltyErrors, required: true, options: penaltyOptions }) %>
+        <%- include('partials/form-field', { name: 'amount', id: 'penalty-amount', label: 'Additional fee per reservation', value: penaltyValues.amount, errors: penaltyErrors, prefix: '₱', placeholder: '100', col: 'col-sm-6' + (penaltyValues.kind === 'surcharge' ? '' : ' d-none'), help: 'Added to every new reservation with this plate, until lifted.', attrs: { 'data-penalty-for': 'surcharge', inputmode: 'decimal' } }) %>
+        <%- include('partials/form-field', { name: 'days', id: 'penalty-days', label: 'Ban length (days)', type: 'number', value: penaltyValues.days, errors: penaltyErrors, min: 1, max: 365, placeholder: '7', col: 'col-sm-6' + (penaltyValues.kind === 'temp_ban' ? '' : ' d-none'), help: 'No reservations or reschedules until it ends.', attrs: { 'data-penalty-for': 'temp_ban' } }) %>
+        <%- include('partials/form-field', { name: 'reason', id: 'penalty-reason', label: 'Reason', type: 'textarea', value: penaltyValues.reason, errors: penaltyErrors, required: true, rows: 2, maxlength: 500, placeholder: 'e.g. Repeatedly parked across two slots (reports #12, #15).' }) %>
+        <div class="col-12">
+          <p class="small text-muted mb-2">Bans stop new reservations and reschedules with this plate; bookings already made are kept, so cancel them separately if needed. The driver is notified.</p>
+          <button class="btn btn-danger" type="submit"><i class="bi bi-shield-exclamation" aria-hidden="true"></i> Apply penalty</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</section>

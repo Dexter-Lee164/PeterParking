@@ -1,0 +1,168 @@
+<%# Interactive top-down lot for ONE zone, rendered from live SQLite availability.
+    Params: zone { code, name, map_columns }, slots [...], selectedSlotId.
+    Every zone has its own scene (src/utils/lotLayout.js). The ground is one SVG that uses the shared gradients and
+    patterns in partials/lot-defs.ejs (so it carries no ids of its own: parking-slots.js clones it for the Selected slot
+    preview). Each stall is a real <button> placed over the SVG in percentages, so the whole stage scales with its width. %>
+<%
+  const lot = lotLayout.build(zone, slots);
+  const n = (v) => Math.round(v * 100) / 100;
+  const TOP = ['shelter'];
+  const ARROW = 'M0,-11 L7.5,-2 L2.6,-2 L2.6,11 L-2.6,11 L-2.6,-2 L-7.5,-2 Z';
+  const ARROW2 = 'M0,-13 L7,-5 L2.6,-5 L2.6,5 L7,5 L0,13 L-7,5 L-2.6,5 L-2.6,-5 L-7,-5 Z';
+  const base = lot.prims.filter(function (p) { return ['tree', 'lamp', 'canopy'].indexOf(p.k) < 0 && !(p.k === 'rect' && TOP.indexOf(p.c) >= 0); });
+  const top = lot.prims.filter(function (p) { return base.indexOf(p) < 0; });
+  const free = slots.filter(function (s) { return s.state === 'available'; }).length;
+  const positions = lot.stalls.concat(lot.empty);
+
+  function draw(p) {
+    if (p.k === 'rect') {
+      let out = '<rect class="g-' + p.c + '" x="' + p.x + '" y="' + p.y + '" width="' + p.w + '" height="' + p.h + '" rx="' + p.rx + '"/>';
+      if (p.c === 'bed' || p.c === 'island') out += hedge(p);
+      return out;
+    }
+    if (p.k === 'circle') return '<circle class="g-' + p.c + '" cx="' + p.cx + '" cy="' + p.cy + '" r="' + p.r + '"/>';
+    if (p.k === 'line') return '<line class="g-' + p.c + '" x1="' + p.x1 + '" y1="' + p.y1 + '" x2="' + p.x2 + '" y2="' + p.y2 + '"/>';
+    if (p.k === 'text') return '<text class="g-' + p.c + '" x="' + p.x + '" y="' + p.y + '" text-anchor="' + p.anchor + '"' + (p.rot ? ' transform="rotate(' + p.rot + ' ' + p.x + ' ' + p.y + ')"' : '') + '>' + escapeXml(p.t) + '</text>';
+    if (p.k === 'arrow') return '<path class="g-arrow" d="' + (p.both ? ARROW2 : ARROW) + '" transform="translate(' + p.x + ' ' + p.y + ') rotate(' + p.rot + ')"/>';
+    if (p.k === 'zebra') {
+      let out = '';
+      if (p.across === 'x') for (let x = p.x + 2; x + 3 <= p.x + p.w; x += 6) out += '<rect class="g-zebra" x="' + n(x) + '" y="' + p.y + '" width="3.2" height="' + p.h + '"/>';
+      else for (let y = p.y + 2; y + 3 <= p.y + p.h; y += 6) out += '<rect class="g-zebra" x="' + p.x + '" y="' + n(y) + '" width="' + p.w + '" height="3.2"/>';
+      return out;
+    }
+    if (p.k === 'gate') {
+      return '<line class="g-barrier" x1="' + (p.x + 3) + '" y1="' + p.y + '" x2="' + (p.x + p.w - 9) + '" y2="' + p.y + '"/>'
+        + '<rect class="g-booth" x="' + (p.x + p.w - 8) + '" y="' + (p.y - 5) + '" width="7" height="8" rx="1.5"/>';
+    }
+    if (p.k === 'bench') return '<rect class="g-bench" x="' + (p.x - 6) + '" y="' + (p.y - 1.8) + '" width="12" height="3.6" rx="1" transform="rotate(' + p.rot + ' ' + p.x + ' ' + p.y + ')"/>';
+    if (p.k === 'fountain') {
+      return '<circle class="g-water" cx="' + p.cx + '" cy="' + p.cy + '" r="' + p.r + '"/>'
+        + '<circle class="g-ripple" cx="' + p.cx + '" cy="' + p.cy + '" r="' + n(p.r * 0.62) + '"/>'
+        + '<circle class="g-ripple" cx="' + p.cx + '" cy="' + p.cy + '" r="' + n(p.r * 0.3) + '"/>'
+        + '<circle class="g-jet" cx="' + p.cx + '" cy="' + p.cy + '" r="2.2"/>';
+    }
+    if (p.k === 'building') {
+      const horizontal = p.face === 'bottom' || p.face === 'top';
+      const f = horizontal ? Math.min(20, p.h * 0.45) : Math.min(16, p.w * 0.3); // facade depth on the side facing the lot
+      const face = { bottom: [p.x, p.y + p.h - f, p.w, f], top: [p.x, p.y, p.w, f], left: [p.x, p.y, f, p.h], right: [p.x + p.w - f, p.y, f, p.h] }[p.face];
+      const roof = { bottom: [p.x, p.y, p.w, p.h - f], top: [p.x, p.y + f, p.w, p.h - f], left: [p.x + f, p.y, p.w - f, p.h], right: [p.x, p.y, p.w - f, p.h] }[p.face];
+      let out = '<rect class="g-roof" x="' + roof[0] + '" y="' + roof[1] + '" width="' + roof[2] + '" height="' + roof[3] + '"/>'
+        + '<rect class="g-gravel" x="' + (roof[0] + 2.5) + '" y="' + (roof[1] + 2.5) + '" width="' + (roof[2] - 5) + '" height="' + (roof[3] - 5) + '"/>'
+        + '<rect class="g-parapet" x="' + (roof[0] + 1) + '" y="' + (roof[1] + 1) + '" width="' + (roof[2] - 2) + '" height="' + (roof[3] - 2) + '"/>'
+        + '<rect class="g-wall" x="' + face[0] + '" y="' + face[1] + '" width="' + face[2] + '" height="' + face[3] + '"/>';
+      // two storeys of lit windows along the facade, with a glass entrance in the middle
+      const len = horizontal ? p.w : p.h;
+      const mid = len / 2;
+      const rows = [0.16, 0.56];
+      for (let i = 6; i + 10 < len; i += 15) {
+        if (Math.abs(i + 5 - mid) < 13) continue;
+        rows.forEach(function (r) {
+          const depth = f * 0.28;
+          out += horizontal
+            ? '<rect class="g-win" x="' + n(p.x + i) + '" y="' + n(face[1] + f * r) + '" width="10" height="' + n(depth) + '" rx="0.5"/><line class="g-mullion" x1="' + n(p.x + i + 5) + '" y1="' + n(face[1] + f * r) + '" x2="' + n(p.x + i + 5) + '" y2="' + n(face[1] + f * r + depth) + '"/>'
+            : '<rect class="g-win" x="' + n(face[0] + f * r) + '" y="' + n(p.y + i) + '" width="' + n(depth) + '" height="10" rx="0.5"/><line class="g-mullion" x1="' + n(face[0] + f * r) + '" y1="' + n(p.y + i + 5) + '" x2="' + n(face[0] + f * r + depth) + '" y2="' + n(p.y + i + 5) + '"/>';
+        });
+      }
+      const outer = { bottom: face[1] + f, top: face[1], left: face[0], right: face[0] + f }[p.face];
+      if (horizontal) {
+        out += '<rect class="g-door" x="' + n(p.x + mid - 10) + '" y="' + n(face[1] + f * 0.25) + '" width="20" height="' + n(f * 0.75) + '"/>'
+          + '<rect class="g-awning" x="' + n(p.x + mid - 14) + '" y="' + n(p.face === 'bottom' ? outer - 3 : outer) + '" width="28" height="3"/>'
+          + '<ellipse class="g-spill" cx="' + n(p.x + mid) + '" cy="' + n(outer) + '" rx="34" ry="9"/>';
+        [-18, 18].forEach(function (d) {
+          out += '<circle class="g-glow" cx="' + n(p.x + mid + d) + '" cy="' + n(face[1] + f * 0.5) + '" r="9"/><circle class="g-sconce" cx="' + n(p.x + mid + d) + '" cy="' + n(face[1] + f * 0.5) + '" r="1.4"/>';
+        });
+      } else {
+        out += '<rect class="g-door" x="' + n(face[0] + f * 0.25) + '" y="' + n(p.y + mid - 10) + '" width="' + n(f * 0.75) + '" height="20"/>'
+          + '<rect class="g-awning" x="' + n(p.face === 'right' ? outer - 3 : outer) + '" y="' + n(p.y + mid - 14) + '" width="3" height="28"/>'
+          + '<ellipse class="g-spill" cx="' + n(outer) + '" cy="' + n(p.y + mid) + '" rx="9" ry="34"/>';
+      }
+      // rooftop plant
+      out += '<rect class="g-hvac" x="' + n(roof[0] + roof[2] * 0.12) + '" y="' + n(roof[1] + roof[3] * 0.2) + '" width="14" height="9" rx="1.2"/>'
+        + '<rect class="g-hvac" x="' + n(roof[0] + roof[2] * 0.12 + (horizontal ? 18 : 0)) + '" y="' + n(roof[1] + roof[3] * 0.2 + (horizontal ? 0 : 13)) + '" width="14" height="9" rx="1.2"/>'
+        + '<rect class="g-skylight" x="' + n(roof[0] + roof[2] * (horizontal ? 0.72 : 0.3)) + '" y="' + n(roof[1] + roof[3] * (horizontal ? 0.25 : 0.8)) + '" width="20" height="8" rx="1"/>';
+      const tx = roof[0] + roof[2] / 2;
+      const ty = roof[1] + roof[3] / 2 + (horizontal ? 3 : 0);
+      const turn = horizontal ? '' : ' transform="rotate(-90 ' + n(tx) + ' ' + n(ty) + ')"';
+      out += '<text class="g-label" x="' + n(tx) + '" y="' + n(ty) + '" text-anchor="middle"' + turn + '>' + escapeXml(p.label) + '</text>';
+      if (p.sub) out += '<text class="g-sub" x="' + n(tx) + '" y="' + n(ty + 8) + '" text-anchor="middle"' + turn + '>' + escapeXml(p.sub) + '</text>';
+      return out;
+    }
+    if (p.k === 'tree') {
+      const r = p.r;
+      const a = (p.seed * 47) % 360 * Math.PI / 180;
+      let out = '<circle class="g-tree-shadow" cx="' + n(p.x + r * 0.45) + '" cy="' + n(p.y + r * 0.55) + '" r="' + n(r * 1.08) + '"/><g class="g-foliage">';
+      for (let i = 0; i < 6; i += 1) {
+        const t = a + i * Math.PI / 3;
+        const d = r * (i % 2 ? 0.42 : 0.34);
+        out += '<circle class="g-tree" cx="' + n(p.x + Math.cos(t) * d) + '" cy="' + n(p.y + Math.sin(t) * d) + '" r="' + n(r * (i % 2 ? 0.55 : 0.62)) + '"/>';
+      }
+      return out + '<circle class="g-tree" cx="' + p.x + '" cy="' + p.y + '" r="' + n(r * 0.66) + '"/>'
+        + '<circle class="g-tree-hi" cx="' + n(p.x - r * 0.3) + '" cy="' + n(p.y - r * 0.32) + '" r="' + n(r * 0.36) + '"/></g>';
+    }
+    if (p.k === 'lamp') {
+      return '<circle class="g-pool" cx="' + p.x + '" cy="' + p.y + '" r="34"/>'
+        + '<circle class="g-glow" cx="' + p.x + '" cy="' + p.y + '" r="12"/>'
+        + '<circle class="g-lamp-shadow" cx="' + (p.x + 1.2) + '" cy="' + (p.y + 1.4) + '" r="2.4"/>'
+        + '<circle class="g-lamp" cx="' + p.x + '" cy="' + p.y + '" r="2.2"/>';
+    }
+    if (p.k === 'canopy') {
+      let out = '<rect class="g-canopy" x="' + p.x + '" y="' + p.y + '" width="' + p.w + '" height="' + p.h + '" rx="2"/>';
+      for (let x = p.x + 13; x < p.x + p.w; x += 13) out += '<line class="g-panel" x1="' + x + '" y1="' + (p.y + 1) + '" x2="' + x + '" y2="' + (p.y + p.h - 1) + '"/>';
+      out += '<line class="g-panel" x1="' + p.x + '" y1="' + p.pillarsY + '" x2="' + (p.x + p.w) + '" y2="' + p.pillarsY + '"/>';
+      for (let x = p.x + 4; x < p.x + p.w; x += 52) out += '<rect class="g-pillar" x="' + (x - 2) + '" y="' + (p.pillarsY - 2) + '" width="4" height="4" rx="0.6"/>';
+      return out;
+    }
+    return '';
+  }
+  /** Clipped hedge along a planted strip or island: a row of overlapping shrubs. */
+  function hedge(p) {
+    const along = p.w >= p.h;
+    const len = along ? p.w : p.h;
+    const thick = along ? p.h : p.w;
+    const r = Math.max(2.4, thick * 0.42);
+    let out = '<g class="g-foliage">';
+    for (let d = r; d < len - r * 0.6; d += r * 1.25) {
+      const jitter = ((d * 13) % 7) / 7 - 0.5;
+      const cx = along ? p.x + d : p.x + thick / 2 + jitter;
+      const cy = along ? p.y + thick / 2 + jitter : p.y + d;
+      out += '<circle class="g-hedge" cx="' + n(cx) + '" cy="' + n(cy) + '" r="' + n(r) + '"/>';
+    }
+    return out + '</g>';
+  }
+  function escapeXml(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function marking(p) {
+    const hw = p.w / 2;
+    const hh = p.h / 2;
+    let out = '<g transform="translate(' + p.cx + ' ' + p.cy + ') rotate(' + p.rot + ')">';
+    if (p.slot && p.slot.slot_type === 'accessible') out += '<rect class="g-access" x="' + (-hw + 1.5) + '" y="' + (-hh + 1.5) + '" width="' + (p.w - 3) + '" height="' + (p.h - 3) + '"/>';
+    out += '<path class="g-line' + (p.kind === 'moto' ? ' is-thin' : '') + '" d="M' + -hw + ',' + hh + ' L' + -hw + ',' + -hh + ' L' + hw + ',' + -hh + ' L' + hw + ',' + hh + '"/>';
+    if (p.kind !== 'moto' && p.kind !== 'parallel') out += '<rect class="g-stop" x="' + (-hw + 6) + '" y="' + (-hh + 4) + '" width="' + (p.w - 12) + '" height="2" rx="1"/>';    return out + '</g>';
+  }
+%>
+<div class="lot-map" id="lotMap" role="group" aria-label="Parking map for <%= zone.name %>">
+  <% if (!slots.length) { %>
+    <p class="text-muted p-3 mb-0"><%= locals.emptyText || 'No parking slots have been set up in this zone yet.' %></p>
+  <% } else { %>
+    <div class="lot-scroll">
+      <div class="lot-stage" data-lot-stage style="aspect-ratio: <%= lot.width %> / <%= lot.height %>; --lot-w: <%= lot.width %>; --lot-h: <%= lot.height %>;">
+        <svg class="lot-ground" viewBox="0 0 <%= lot.width %> <%= lot.height %>" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">
+          <rect class="g-<%= lot.ground %>" x="0" y="0" width="<%= lot.width %>" height="<%= lot.height %>"/>
+          <% base.forEach(function (p) { %><%- draw(p) %><% }) %>
+          <rect class="g-grime" x="0" y="0" width="<%= lot.width %>" height="<%= lot.height %>"/>
+          <rect class="g-noise" x="0" y="0" width="<%= lot.width %>" height="<%= lot.height %>"/>
+          <% positions.forEach(function (p) { %><%- marking(p) %><% }) %>
+          <% top.forEach(function (p) { %><%- draw(p) %><% }) %>
+          <rect class="g-vignette" x="0" y="0" width="<%= lot.width %>" height="<%= lot.height %>"/>
+        </svg>
+
+        <% lot.stalls.forEach(function (p) { %>
+          <%- include('parking-slot', { slot: p.slot, selected: p.slot.id === selectedSlotId, stall: p, style: lotLayout.stallStyle(lot, p) }) %>
+        <% }) %>
+      </div>
+    </div>
+    <div class="lot-card" aria-hidden="true">
+      <div class="lot-card-title"><%= zone.name %><% if (zone.code) { %> (<%= zone.code %>)<% } %></div>
+      <div class="lot-card-sub"><%= lotLayout.summary(slots) %> · <span class="lot-card-free"><%= free %> free</span></div>
+    </div>
+  <% } %>
+</div>

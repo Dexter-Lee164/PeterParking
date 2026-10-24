@@ -1,0 +1,10 @@
+<%# Params: icon, title, text, actionHref, actionLabel, secondaryHref, secondaryLabel %>
+<div class="empty-state">
+  <div class="empty-icon" aria-hidden="true"><i class="bi <%= locals.icon || 'bi-inbox' %>"></i></div>
+  <h3><%= locals.title || 'Nothing here yet' %></h3>
+  <% if (locals.text) { %><p><%= text %></p><% } %>
+  <div class="d-flex justify-content-center gap-2 flex-wrap">
+    <% if (locals.actionHref) { %><a class="btn btn-primary btn-sm" href="<%= actionHref %>"><%= locals.actionLabel || 'Get started' %></a><% } %>
+    <% if (locals.secondaryHref) { %><a class="btn btn-outline-secondary btn-sm" href="<%= secondaryHref %>"><%= locals.secondaryLabel || 'Learn more' %></a><% } %>
+  </div>
+</div>

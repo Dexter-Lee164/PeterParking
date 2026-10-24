@@ -1,0 +1,4 @@
+<%# Shown on a page opened from a notification badge: the records behind the new updates are highlighted below. %>
+<% if (unreadTotal) { %>
+  <div class="unread-banner" role="status"><i class="bi bi-bell-fill" aria-hidden="true"></i><span><%= unreadTotal === 1 ? '1 record with a new update is' : unreadTotal + ' records with new updates are' %> highlighted below.</span></div>
+<% } %>

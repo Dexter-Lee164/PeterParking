@@ -1,0 +1,60 @@
+<div class="page-intro">
+  <div>
+    <h2>Payments</h2>
+    <p>Payments are recorded manually by staff. Recording a payment never changes a booking's or a slot's status.</p>
+  </div>
+  <a class="btn btn-primary" href="/admin/payments/new"><i class="bi bi-plus-lg" aria-hidden="true"></i> Record payment</a>
+</div>
+
+<%- include('partials/unread-banner') %>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4"><%- include('partials/stat-card', { label: 'Collected today', value: peso(todayTotal), hint: 'Valid payments recorded today', icon: 'bi-cash-coin', tone: 'green' }) %></div>
+  <div class="col-md-4"><%- include('partials/stat-card', { label: 'Outstanding balance', value: peso(outstandingTotal), hint: 'Across finalized bookings', icon: 'bi-exclamation-circle', tone: outstandingTotal > 0 ? 'amber' : 'green' }) %></div>
+  <div class="col-md-4"><%- include('partials/stat-card', { label: 'Bookings with a balance', value: outstandingCount, hint: 'Awaiting payment', icon: 'bi-receipt', tone: 'blue' }) %></div>
+</div>
+
+<% if (outstanding.length) { %>
+  <section class="summary-card mb-4">
+    <div class="summary-head"><h3>Unpaid bookings</h3><span class="small text-muted">Most recent <%= outstanding.length %> of <%= outstandingCount %></span></div>
+    <div class="summary-body">
+      <% outstanding.forEach(function (o) { %>
+        <div class="summary-row<%= isUnread('reservation', o.id) ? ' is-unread' : '' %>">
+          <span class="k">
+            <a class="font-mono" href="/admin/reservations/<%= o.id %>"><%= o.booking_ref %></a>
+            <span class="d-block small text-faint"><%= o.driver_name %> · <%= o.plate_number %> · <%= fmtDate(o.start_at) %></span>
+          </span>
+          <span class="v">
+            <%= peso(o.balance_centavos) %>
+            <a class="btn btn-sm btn-outline-primary ms-2" href="/admin/payments/new?reservation_id=<%= o.id %>">Record</a>
+          </span>
+        </div>
+      <% }) %>
+    </div>
+  </section>
+<% } %>
+
+<%- include('partials/filter-toolbar', {
+  formId: 'payFilter',
+  action: '/admin/payments',
+  submitLabel: 'Filter',
+  resetHref: '/admin/payments',
+  fields: [
+    { type: 'search', name: 'q', label: 'Search', value: filters.q, placeholder: 'Receipt, reference, booking, driver, plate', col: 'col-12 col-md-4' },
+    { type: 'select', name: 'method', label: 'Method', value: filters.method, options: methodOptions, col: 'col-6 col-md-2' },
+    { type: 'select', name: 'status', label: 'Status', value: filters.status, options: statusOptions, col: 'col-6 col-md-2' },
+    { type: 'date', name: 'from', label: 'From date', value: filters.from, col: 'col-6 col-md-2' },
+    { type: 'date', name: 'to', label: 'To date', value: filters.to, col: 'col-6 col-md-2' }
+  ]
+}) %>
+
+<%- include('partials/data-table', {
+  caption: 'Recorded payments',
+  columns: [{ label: 'Receipt' }, { label: 'Booking' }, { label: 'Driver' }, { label: 'Paid on' }, { label: 'Method' }, { label: 'Amount', align: 'end' }, { label: 'Status' }, { label: '' }],
+  rows: rows,
+  rowPartial: 'partials/rows/admin-payment-row',
+  pager: pager,
+  baseQuery: baseQuery,
+  noun: 'payments',
+  empty: { icon: 'bi-receipt', title: 'No payments found', text: 'Record a payment when a driver settles their parking fee.', actionHref: '/admin/payments/new', actionLabel: 'Record payment' }
+}) %>

@@ -1,0 +1,694 @@
+/* =========================================================================
+   Find Parking: filter toolbar, zone tabs, the top-down lot map (one scene
+   per zone), stall states, vehicles, the Selected Slot panel and the list view.
+   ========================================================================= */
+
+/* ------------------------------------------------------------- toolbar */
+.reserve-toolbar {
+  background: var(--up-surface);
+  border: 1px solid var(--up-border);
+  border-radius: 16px;
+  padding: 1rem 1.1rem;
+  box-shadow: var(--up-shadow-sm);
+}
+.toolbar-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  align-items: end;
+}
+@media (min-width: 768px) {
+  .toolbar-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 1200px) {
+  .toolbar-grid { grid-template-columns: 1.15fr 1fr 1fr 0.8fr 1.25fr 1fr; }
+}
+.tb-field .form-label {
+  font-size: 0.85rem;
+  color: var(--up-muted);
+  margin-bottom: 0.35rem;
+}
+.tb-input {
+  position: relative;
+}
+.tb-input > .bi,
+.tb-input > .vi {
+  position: absolute;
+  left: 0.8rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--up-muted);
+  pointer-events: none;
+  z-index: 1;
+}
+.tb-input .form-control,
+.tb-input .form-select {
+  padding-left: 2.3rem;
+  min-height: 44px;
+}
+.tb-submit .btn {
+  min-height: 44px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+@media (max-width: 767.98px) {
+  .tb-date, .tb-submit { grid-column: 1 / -1; }
+}
+.reserve-toolbar .duration-pill {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.4rem 0.85rem;
+  border-radius: 10px;
+  background: var(--up-bg-soft);
+  border: 1px solid var(--up-border);
+  color: var(--up-text);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.reserve-toolbar .duration-pill.is-invalid {
+  border-color: #f87171;
+  color: #fca5a5;
+}
+.toolbar-errors {
+  color: #fca5a5;
+  font-size: 0.84rem;
+  margin-top: 0.6rem;
+}
+.toolbar-errors:empty {
+  display: none;
+}
+
+/* ------------------------------------------------------------- zone tabs */
+.zone-tabs {
+  display: flex;
+  gap: 0.6rem;
+  overflow-x: auto;
+  padding: 0.1rem 0.1rem 0.3rem;
+  scrollbar-width: thin;
+}
+.zone-tab {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.65rem 1.15rem;
+  border-radius: 12px;
+  border: 1px solid var(--up-border);
+  background: var(--up-surface);
+  color: var(--up-text);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.zone-tab:hover {
+  border-color: var(--up-border-strong);
+  color: var(--up-text-strong);
+}
+.zone-tab[aria-selected='true'] {
+  background: var(--up-accent);
+  border-color: var(--up-accent);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
+}
+.zone-tab .zone-count {
+  min-width: 1.6rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(22, 163, 74, 0.2);
+  color: #86efac;
+  text-align: center;
+}
+.zone-tab[aria-selected='true'] .zone-count {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+.zone-tab .zone-count.none {
+  background: var(--up-unavailable-soft);
+  color: #b6c0d1;
+}
+
+/* ------------------------------------------------------------- map card */
+.map-card {
+  position: relative;
+  background: #122a17;
+  border: 1px solid var(--up-border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--up-shadow-sm);
+}
+.lot-map {
+  position: relative;
+}
+.lot-scroll {
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.lot-card {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 5;
+  padding: 0.7rem 1rem;
+  border-radius: 12px;
+  background: rgba(8, 12, 20, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+}
+.lot-card-title {
+  font-size: 1.15rem;
+  font-weight: 750;
+  color: #fff;
+  line-height: 1.2;
+}
+.lot-card-sub {
+  font-size: 0.82rem;
+  color: var(--up-muted);
+  margin-top: 0.15rem;
+}
+.lot-card-free {
+  color: #86efac;
+  font-weight: 650;
+}
+.map-legend {
+  background: var(--up-surface);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.4rem;
+  padding: 0.85rem 1.1rem;
+  border-top: 1px solid var(--up-border);
+  font-size: 0.85rem;
+  color: var(--up-text);
+}
+.map-legend .lg {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.map-counts {
+  margin-left: auto;
+  color: var(--up-faint);
+  font-size: 0.78rem;
+}
+.swatch {
+  width: 20px;
+  height: 14px;
+  border-radius: 4px;
+  border: 2px solid;
+  display: inline-block;
+}
+.swatch.s-available   { border-color: #22c55e; background: rgba(22, 163, 74, 0.55); }
+.swatch.s-reserved    { border-color: #3b82f6; background: rgba(37, 99, 235, 0.55); }
+.swatch.s-occupied    { border-color: #ef4444; background: rgba(220, 38, 38, 0.6); }
+.swatch.s-unavailable { border-color: #6b7280; background: rgba(107, 114, 128, 0.5); }
+.swatch.s-maintenance { border-color: #3b5b8f; background: repeating-linear-gradient(135deg, #475569 0 3px, #1e293b 3px 5px); }
+.swatch.s-selected    { border-color: #60a5fa; background: transparent; box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.4); }
+
+/* ------------------------------------------------------------- lot stage
+   One drawing unit (a decimetre of lot) is --u; every size inside the stage is a multiple of it, so the map, its
+   labels and the vehicles scale together, in the page and in the zoomed preview.
+   The stage is as wide as the card, but never taller than about a screen (--lot-fit-h); it then shrinks and centres.
+   It never gets narrower than 760px: on small screens the lot scrolls sideways in .lot-scroll instead of shrinking. */
+.lot-stage {
+  --u: calc(100cqw / var(--lot-w, 400));
+  --lot-fit-h: max(560px, 100dvh - 160px);
+  position: relative;
+  width: min(100%, calc(var(--lot-fit-h) * var(--lot-w, 400) / var(--lot-h, 400)));
+  min-width: 760px;
+  margin-inline: auto;
+  container-type: inline-size;
+  overflow: hidden;
+  background: #122a17;
+}
+.lot-stage.is-preview {
+  min-width: 0;
+}
+.lot-ground {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}.lot-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+.g-grass { fill: url(#up-grass); }
+.g-lawn { fill: #1f4a28; }
+.g-asphalt, .g-asphaltc { fill: #25292f; }
+.g-concrete { fill: #34383e; }
+.g-pavers { fill: url(#up-pavers); }
+.g-bed { fill: #1f4d2a; stroke: #7c838c; stroke-width: 0.8; }
+.g-curb { fill: #6e757e; }
+.g-island, .g-islandc { fill: #22502c; stroke: #8a919b; stroke-width: 1.4; }
+.g-noise { filter: url(#up-noise); opacity: 0.09; pointer-events: none; }
+.g-grime { filter: url(#up-grime); opacity: 0.32; pointer-events: none; }
+.g-vignette { fill: url(#up-vignette); pointer-events: none; }
+.g-line { fill: none; stroke: #e8ecf1; stroke-width: 1.3; stroke-linecap: square; opacity: 0.85; }
+.g-line.is-thin { stroke-width: 0.8; }
+.g-dash { stroke: rgba(240, 243, 247, 0.6); stroke-width: 1; stroke-dasharray: 8 7; }
+.g-yline { stroke: #e9bd2c; stroke-width: 1.2; stroke-dasharray: 10 6; }
+.g-access { fill: url(#up-access); }
+.g-stop { fill: #c4cad3; opacity: 0.5; }
+.g-zebra { fill: rgba(240, 243, 247, 0.75); }
+.g-arrow { fill: rgba(240, 243, 247, 0.78); }
+.g-paint { fill: rgba(240, 243, 247, 0.85); font: 800 7px/1 var(--up-font, system-ui), sans-serif; letter-spacing: 1.1px; }
+.g-barrier { stroke: #f87171; stroke-width: 2; stroke-dasharray: 4 3; stroke-linecap: round; }
+.g-booth { fill: #cbd5e1; stroke: #475569; stroke-width: 0.7; }
+.g-roof { fill: url(#up-roof); }
+.g-parapet { fill: none; stroke: #5b616c; stroke-width: 1.2; }
+.g-gravel { fill: url(#up-gravel); }
+.g-wall { fill: url(#up-wall); stroke: #2a251f; stroke-width: 0.8; }
+.g-win { fill: url(#up-lit); filter: drop-shadow(0 0 1.6px rgba(255, 196, 96, 0.95)); }
+.g-mullion { stroke: #3a3128; stroke-width: 0.7; }
+.g-door { fill: url(#up-door); stroke: #0f1a24; stroke-width: 0.6; }
+.g-awning { fill: #2b2f36; stroke: #6b7280; stroke-width: 0.5; }
+.g-spill { fill: url(#up-pool); mix-blend-mode: screen; }
+.g-sconce { fill: #fff1c2; }
+.g-hvac { fill: #555c68; stroke: #707a88; stroke-width: 0.6; }
+.g-skylight { fill: #3c5a78; opacity: 0.8; }
+.g-label { fill: #eef1f5; font: 700 8px/1 var(--up-font, system-ui), sans-serif; }
+.g-sub { fill: #a3adbd; font: 600 5.5px/1 var(--up-font, system-ui), sans-serif; letter-spacing: 0.8px; text-transform: uppercase; }
+.g-tree-shadow { fill: #000; opacity: 0.5; filter: url(#up-soft); }
+.g-foliage { filter: url(#up-foliage); }
+.g-hedge { fill: url(#up-hedge); }
+.g-tree { fill: url(#up-tree); }
+.g-tree-hi { fill: #9ad07a; opacity: 0.18; }
+.g-glow { fill: url(#up-glow); mix-blend-mode: screen; }
+.g-pool { fill: url(#up-pool); mix-blend-mode: screen; }
+.g-lamp { fill: #fff6d6; stroke: #4b5563; stroke-width: 0.6; filter: drop-shadow(0 0 1.5px #ffd27a); }
+.g-lamp-shadow { fill: #000; opacity: 0.5; filter: url(#up-soft-sm); }
+.g-canopy { fill: rgba(30, 64, 120, 0.28); stroke: rgba(147, 197, 253, 0.45); stroke-width: 1; }
+.g-panel { stroke: rgba(147, 197, 253, 0.22); stroke-width: 0.6; }
+.g-pillar { fill: #9aa3ae; }
+.g-shelter { fill: rgba(148, 163, 184, 0.16); stroke: rgba(203, 213, 225, 0.5); stroke-width: 0.8; }
+.g-water { fill: url(#up-water); }
+.g-ripple { fill: none; stroke: rgba(255, 255, 255, 0.45); stroke-width: 0.6; }
+.g-jet { fill: #e0f2fe; }
+.g-bench { fill: #7c5a3a; }
+.g-portico { fill: rgba(203, 213, 225, 0.25); stroke: #94a3b8; stroke-width: 0.8; }
+.g-flagbase { fill: #6b7280; }
+.g-flag { fill: #e5e7eb; }
+
+/* ------------------------------------------------------------- stall (one button per slot, drawn in its own frame) */
+.slot {
+  --state: #6b7280;
+  --fill: rgba(107, 114, 128, 0.22);
+  position: absolute;
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-size: calc(var(--u) * 5.2);
+  line-height: 1.1;
+  text-align: center;
+  cursor: pointer;
+  transform: rotate(var(--rot, 0deg));
+  -webkit-tap-highlight-color: transparent;
+}
+/* a tinted tile below the painted code, which sits at the back of the stall (the visual top of the row) */
+.slot-fill {
+  position: absolute;
+  inset: calc(var(--u) * 9) calc(var(--u) * 2) calc(var(--u) * 2.4);
+  border-radius: calc(var(--u) * 1);
+  border: calc(var(--u) * 0.6) solid var(--state);
+  background: var(--fill);
+  transition: background-color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.slot.faces-up .slot-fill { inset: calc(var(--u) * 2.4) calc(var(--u) * 2) calc(var(--u) * 9); }
+.slot.kind-moto .slot-fill,
+.slot.kind-parallel .slot-fill { inset: calc(var(--u) * 1.2); }
+.slot.is-available   { --state: rgba(34, 197, 94, 0.8); --fill: rgba(22, 163, 74, 0.4); }
+.slot.is-reserved    { --state: #3b82f6; --fill: rgba(37, 99, 235, 0.62); }
+.slot.is-occupied    { --state: #ef4444; --fill: rgba(220, 38, 38, 0.42); }
+.slot.is-unavailable { --state: rgba(148, 163, 184, 0.7); }
+.slot.is-unavailable .slot-fill {
+  background: repeating-linear-gradient(135deg, rgba(148, 163, 184, 0.22) 0 calc(var(--u) * 1.2), rgba(30, 35, 44, 0.4) calc(var(--u) * 1.2) calc(var(--u) * 2.4));
+}
+.slot.is-unavailable:not(.is-maintenance) .slot-fill::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 14%;
+  bottom: 14%;
+  border-left: calc(var(--u) * 0.5) dashed rgba(226, 232, 240, 0.6);
+  transform: translateX(-50%);
+}
+/* A bay for the other kind of vehicle: plain grey (no "closed" line, it is not out of service), its own states dimmed. */
+.slot.is-other-type.is-unavailable .slot-fill { background: rgba(100, 116, 139, 0.16); }
+.slot.is-other-type.is-unavailable .slot-fill::after { content: none; }
+.slot.is-other-type .slot-badge,
+.slot.is-other-type .slot-fill { opacity: 0.72; }
+.slot.is-maintenance { --state: #3b5b8f; }
+.slot.is-maintenance .slot-fill {
+  background: repeating-linear-gradient(135deg, rgba(71, 85, 105, 0.55) 0 calc(var(--u) * 1.2), rgba(30, 41, 59, 0.6) calc(var(--u) * 1.2) calc(var(--u) * 2.4));
+}
+.slot.is-available:hover .slot-fill {
+  background: rgba(22, 163, 74, 0.48);
+  box-shadow: 0 0 calc(var(--u) * 4) rgba(34, 197, 94, 0.5);
+}
+.slot:disabled,
+.slot[aria-disabled='true'] {
+  cursor: not-allowed;
+}
+.slot:focus-visible {
+  outline: none;
+}
+.slot:focus-visible .slot-fill {
+  box-shadow: 0 0 0 calc(var(--u) * 0.8) #fff, 0 0 0 calc(var(--u) * 1.6) var(--up-accent-bright);
+}
+.slot.is-selected {
+  z-index: 3;
+}
+.slot.is-selected .slot-fill {
+  border-color: #60a5fa;
+  border-width: calc(var(--u) * 0.9);
+  background: rgba(37, 99, 235, 0.28);
+  box-shadow: 0 0 0 calc(var(--u) * 0.6) rgba(96, 165, 250, 0.5), 0 0 calc(var(--u) * 7) rgba(59, 130, 246, 0.8), inset 0 0 calc(var(--u) * 4) rgba(59, 130, 246, 0.45);
+}
+
+/* the code is painted at the back of the stall and turned back upright */
+.slot-paint,
+.slot-badge {
+  position: absolute;
+  left: 50%;
+  z-index: 2;
+  pointer-events: none;
+  white-space: nowrap;
+  transform: translate(-50%, -50%) rotate(calc(-1 * var(--rot, 0deg)));
+}
+.slot-paint { top: 9%; }
+.slot.faces-up .slot-paint { top: 91%; }
+.slot-badge { top: 76%; display: inline-flex; gap: 0.25em; }
+.slot.faces-up .slot-badge { top: 24%; }
+.slot .slot-code {
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  color: #f8fafc;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75);
+}
+.slot.kind-moto { font-size: calc(var(--u) * 3.9); }
+.slot.kind-moto .slot-paint { top: 50%; }
+.slot.kind-moto .slot-badge { display: none; }
+.slot.kind-parallel .slot-paint { top: 50%; }
+.slot.kind-parallel .slot-badge { display: none; }
+.slot .slot-glyph,
+.slot .slot-type {
+  font-size: 1.25em;
+  line-height: 1;
+  color: var(--state);
+  filter: brightness(1.3) drop-shadow(0 1px 1px rgba(0, 0, 0, 0.6));
+}
+/* state is carried by the tile's colour and pattern (and the hidden text); only the slot type keeps an icon */
+.slot .slot-glyph { display: none; }
+.slot .slot-type { color: #bfdbfe; }
+
+/* with a vehicle in it, only the code stays */
+.slot.has-vehicle .slot-badge { display: none; }
+.slot.kind-moto.has-vehicle .slot-paint,
+.slot.kind-parallel.has-vehicle .slot-paint { display: none; }
+
+/* vehicles (front at the top of the stall's frame: nose-in) */
+.slot-vehicle {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.vehicle-svg {
+  display: block;
+  overflow: visible;
+  filter: drop-shadow(0 calc(var(--u) * 0.8) calc(var(--u) * 1.4) rgba(0, 0, 0, 0.6));
+}
+.slot-vehicle[data-kind='mine'] .vehicle-svg { animation: park-in 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.lot-stage.is-preview .slot-vehicle .vehicle-svg { animation: none; }
+@keyframes park-in {
+  from { transform: translateY(55%); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+/* ------------------------------------------------------------- side panel */
+.reserve-side {
+  display: grid;
+  gap: 0.9rem;
+  align-content: start;
+}
+@media (min-width: 1200px) {
+  .reserve-side {
+    position: sticky;
+    top: calc(var(--up-header-height) + 1rem);
+  }
+}
+.side-card {
+  background: var(--up-surface);
+  border: 1px solid var(--up-border);
+  border-radius: 16px;
+  padding: 1.1rem 1.15rem 1.2rem;
+  box-shadow: var(--up-shadow-sm);
+}
+.side-title {
+  font-size: 1.08rem;
+  font-weight: 700;
+  margin: 0.2rem 0 0;
+  color: #fff;
+}
+.slot-preview {
+  position: relative;
+  height: 180px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #122a17;
+  border: 1px solid var(--up-border-strong);
+}
+.slot-preview[hidden] { display: none; }
+.slot-preview-view {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.slot-preview-pan {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transition: transform 0.45s cubic-bezier(0.2, 0.7, 0.2, 1);
+  will-change: transform;
+}
+.slot-preview::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 55%, rgba(5, 8, 14, 0.75));
+  pointer-events: none;
+}
+.slot-preview-code {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.55rem;
+  z-index: 1;
+  text-align: center;
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+}
+.lot-stage.is-preview .slot.is-selected .slot-paint { display: none; }
+.slot-detail-empty {
+  text-align: center;
+  color: var(--up-muted);
+  padding: 1.2rem 1rem;
+  font-size: 0.9rem;
+  border: 1px dashed var(--up-border-strong);
+  border-radius: 12px;
+}
+.slot-detail-empty i {
+  display: block;
+  font-size: 1.7rem;
+  color: var(--up-accent-bright);
+  margin-bottom: 0.35rem;
+}
+.slot-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.6rem;
+}
+.slot-title .big-code {
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #fff;
+}
+.badge-available {
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: #16a34a;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.icon-list {
+  margin: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+.icon-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.icon-list dt {
+  font-weight: 500;
+  color: var(--up-muted);
+  white-space: nowrap;
+}
+.icon-list dt .bi {
+  width: 1.2em;
+  margin-right: 0.35rem;
+  color: var(--up-text);
+}
+.icon-list dd {
+  margin: 0;
+  text-align: right;
+  color: var(--up-text-strong, #fff);
+  font-weight: 550;
+}
+.summary-list .total {
+  margin-top: 0.3rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--up-border);
+  align-items: center;
+}
+.summary-list .total dd {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--up-accent-bright);
+}
+.vehicle-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.7rem;
+  border-radius: 12px;
+  background: var(--up-bg-soft);
+  border: 1px solid var(--up-border);
+}
+.vehicle-card.is-empty { display: block; }
+.vehicle-art {
+  flex: 0 0 140px;
+  height: 78px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: radial-gradient(ellipse at 50% 85%, rgba(148, 163, 184, 0.18), transparent 70%), #0e1626;
+}
+.vehicle-side {
+  width: 92%;
+  height: auto;
+  max-height: 70px;
+}
+.vehicle-name { font-weight: 700; color: #fff; }
+.vehicle-plate { color: var(--up-text); font-variant-numeric: tabular-nums; }
+.vehicle-color { display: flex; align-items: center; gap: 0.4rem; color: var(--up-muted); font-size: 0.9rem; }
+.color-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+.btn-continue {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.search-loading {
+  position: relative;
+}
+.search-loading::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  background: rgba(11, 18, 32, 0.55);
+  backdrop-filter: blur(1px);
+}
+/* spinner in the middle of the map while availability refreshes */
+.search-loading::before {
+  content: '';
+  position: absolute;
+  z-index: 8;
+  top: 50%;
+  left: 50%;
+  width: 2.4rem;
+  height: 2.4rem;
+  margin: -1.2rem 0 0 -1.2rem;
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  border-top-color: var(--up-accent-bright);
+  border-radius: 50%;
+  animation: search-spin 0.8s linear infinite;
+}
+@keyframes search-spin { to { transform: rotate(360deg); } }
+.search-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+  font-size: 0.82rem;
+  color: var(--up-muted);
+}
+.search-status .spinner-border {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-width: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-loading::before { animation-duration: 2.4s; }
+  .slot-preview-pan { transition: none; }
+  .slot-vehicle[data-kind='mine'] .vehicle-svg { animation: none; }
+}
+
+/* ------------------------------------------------------------- mobile refinements */
+@media (max-width: 767.98px) {
+  .reserve-toolbar {
+    padding: 0.85rem;
+  }
+  .lot-card {
+    top: 0.5rem;
+    left: 0.5rem;
+    padding: 0.45rem 0.7rem;
+  }
+  .lot-card-title { font-size: 0.95rem; }
+  .map-counts { margin-left: 0; width: 100%; }
+  .mobile-book-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 50;
+    margin: 0 -1rem -1rem;
+    padding: 0.75rem 1rem;
+    background: rgba(13, 21, 37, 0.96);
+    border-top: 1px solid var(--up-border-strong);
+    backdrop-filter: blur(8px);
+  }
+}
+@media (min-width: 768px) {
+  .mobile-book-bar {
+    display: none;
+  }
+}

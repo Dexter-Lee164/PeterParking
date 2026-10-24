@@ -1,0 +1,33 @@
+<%# Reusable table. Params:
+      columns   [{ label, class?, align? ('end') }]
+      rows      array of records
+      rowPartial  EJS path for ONE <tr> (receives `row` plus anything in rowData)
+      rowData   (optional) extra variables for the row partial
+      pager / baseQuery / noun  (optional) pagination
+      empty     { icon, title, text, actionHref, actionLabel } shown when there are no rows
+      caption   accessible table caption
+    On phones the table becomes stacked cards (row partials supply data-label attributes). %>
+<div class="table-wrap">
+  <% if (rows.length) { %>
+    <div class="table-responsive">
+      <table class="table table-hover table-stack" <%- locals.tableId ? 'id="' + tableId + '"' : '' %>>
+        <% if (locals.caption) { %><caption class="visually-hidden"><%= caption %></caption><% } %>
+        <thead>
+          <tr>
+            <% columns.forEach(function (c) { %>
+              <th scope="col" class="<%= c.class || '' %> <%= c.align === 'end' ? 'text-end' : '' %>"><%= c.label %></th>
+            <% }) %>
+          </tr>
+        </thead>
+        <tbody>
+          <% rows.forEach(function (r, i) { %>
+            <%- include(rowPartial, Object.assign({}, locals.rowData || {}, { row: r, rowIndex: i })) %>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% if (locals.pager) { %><%- include('pagination', { pager: pager, baseQuery: locals.baseQuery || {}, noun: locals.noun || 'results' }) %><% } %>
+  <% } else { %>
+    <%- include('empty-state', locals.empty || {}) %>
+  <% } %>
+</div>

@@ -1,0 +1,46 @@
+<%# Role-aware navigation. Persistent on desktop; an accessible off-canvas menu on tablet/mobile. %>
+<aside class="offcanvas-lg offcanvas-start app-sidebar" tabindex="-1" id="appSidebar" aria-label="Main navigation">
+  <div class="offcanvas-header d-lg-none border-bottom" style="border-color: var(--up-border) !important;">
+    <span class="fw-semibold">Menu</span>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#appSidebar" aria-label="Close menu"></button>
+  </div>
+  <div class="offcanvas-body p-0">
+    <div class="sidebar-inner">
+      <a class="brand" href="<%= currentUser && currentUser.role === 'admin' ? '/admin' : '/driver' %>" aria-label="<%= appName %> home">
+        <span class="brand-mark" aria-hidden="true">P</span>
+        <span class="brand-text">
+          <span class="brand-name"><%= appName %></span>
+          <span class="brand-tag"><%= tagline %></span>
+        </span>
+      </a>
+
+      <div class="nav-section-label"><%= currentUser && currentUser.role === 'admin' ? 'Administration' : 'Driver' %></div>
+      <%# Unread-update badges exist only for the sections the notifications service counts (src/services/notifications.js). %>
+      <% const badges = locals.navBadges || null; %>
+      <nav<% if (badges) { %> data-nav-badges="<%= locals.navBadgesUrl %>"<% } %>>
+        <ul class="side-nav">
+          <% navItems.forEach(function (item) { %>
+            <% const hasBadge = badges && Object.prototype.hasOwnProperty.call(badges, item.key); const n = hasBadge ? badges[item.key] : 0; %>
+            <li>
+              <a class="nav-link <%= item.key === activeNav ? 'active' : '' %>" href="<%= item.href %>" <%- item.key === activeNav ? 'aria-current="page"' : '' %>>
+                <i class="bi <%= item.icon %>" aria-hidden="true"></i>
+                <span><%= item.label %></span>
+                <% if (hasBadge) { %><span class="nav-badge" data-badge-for="<%= item.key %>"<%= n ? '' : ' hidden' %>><span aria-hidden="true"><%= n > 99 ? '99+' : n %></span><span class="visually-hidden"><%= n === 1 ? '1 new update' : n + ' new updates' %></span></span><% } %>
+              </a>
+            </li>
+          <% }) %>
+        </ul>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-chip">
+          <span class="avatar" aria-hidden="true"><%= initials(currentUser.full_name) %></span>
+          <span class="who">
+            <strong><%= currentUser.full_name %></strong>
+            <span><%= currentUser.role === 'admin' ? 'Administrator' : 'Driver' %></span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</aside>

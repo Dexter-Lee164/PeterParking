@@ -1,0 +1,81 @@
+<div class="page-intro">
+  <div>
+    <h2>Confirm your reservation</h2>
+    <p>Review the details below. Your slot is held only after you confirm.</p>
+  </div>
+  <a class="btn btn-outline-secondary btn-sm" href="<%= backHref %>"><i class="bi bi-arrow-left" aria-hidden="true"></i> Change selection</a>
+</div>
+
+<% if (formError) { %>
+  <div class="alert alert-danger" role="alert"><%= formError %></div>
+<% } %>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <%- include('partials/summary-card', {
+      title: 'Booking summary',
+      badgeHtml: '<span class="badge-status tone-green"><i class="bi bi-check-circle-fill" aria-hidden="true"></i>Available</span>',
+      items: [
+        { label: 'Slot', value: slot.slot_code },
+        { label: 'Zone', value: slot.zone_name },
+        { label: 'Slot type', value: slot.type_label },
+        { label: 'Date', value: fmtDate(range.startAt) },
+        { label: 'Time', value: fmtTime(range.startAt) + ' – ' + fmtTime(range.endAt) },
+        { label: 'Duration', value: fmtDuration(range.durationMinutes) },
+        { label: 'Hourly rate', value: peso(slot.hourly_rate_centavos) + ' / hour' }
+      ],
+      total: { label: 'Estimated fee', value: peso(fee) }
+    }) %>
+  </div>
+
+  <div class="col-lg-6">
+    <section class="summary-card">
+      <div class="summary-head"><h3>Your vehicle</h3></div>
+      <div class="p-3">
+        <% if (!vehicles.length) { %>
+          <div class="alert alert-warning mb-3" role="alert">
+            <% if (allVehicles === 0) { %>You have not added a vehicle yet.<% } else { %>None of your vehicles fit a <strong><%= slot.type_label %></strong> slot.<% } %>
+          </div>
+          <a class="btn btn-primary" href="/driver/vehicles"><i class="bi bi-plus-lg" aria-hidden="true"></i> Add a vehicle</a>
+          <a class="btn btn-outline-secondary ms-2" href="<%= backHref %>">Pick another slot</a>
+        <% } else { %>
+          <form method="post" action="/driver/reserve" novalidate>
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="slot_id" value="<%= slot.id %>">
+            <input type="hidden" name="date" value="<%= params.date %>">
+            <input type="hidden" name="start" value="<%= params.start %>">
+            <input type="hidden" name="end" value="<%= params.end %>">
+            <input type="hidden" name="vehicle_type" value="<%= params.vehicle_type %>">
+            <div class="row g-3">
+              <%- include('partials/form-field', {
+                name: 'vehicle_id', label: 'Vehicle', type: 'select', required: true, errors: errors, value: values.vehicle_id,
+                options: vehicles.map(function (v) { return { value: v.id, label: vehicleGlyph(v.vehicle_type) + ' ' + v.plate_number + ' — ' + vehicleLabel(v) + (v.color ? ' (' + v.color + ')' : '') + (v.ban ? ' — banned' : '') }; })
+              }) %>
+            </div>
+            <% vehicles.filter(function (v) { return v.ban || v.surcharge; }).forEach(function (v) { %>
+              <div class="alert <%= v.ban ? 'alert-danger' : 'alert-warning' %> small mt-3 mb-0" role="note">
+                <i class="bi bi-shield-exclamation me-1" aria-hidden="true"></i>
+                <% if (v.ban) { %>
+                  <strong><%= v.plate_number %></strong> cannot be used: <%= v.ban.kind === 'perm_ban' ? 'it is permanently banned from parking reservations' : 'it is banned from parking reservations until ' + fmtDateTime(v.ban.ends_at) %>.
+                <% } else { %>
+                  <strong><%= v.plate_number %></strong> carries an additional fee of <%= peso(v.surcharge) %> on every reservation (a parking etiquette penalty), so its estimated fee is <%= peso(fee + v.surcharge) %>.
+                <% } %>
+                <a href="/driver/reports#penalties">Details</a>
+              </div>
+            <% }) %>
+
+            <div class="alert alert-info small mt-3 mb-3" role="note">
+              <strong>Cancellation policy.</strong> <%= policy %>
+            </div>
+            <p class="small text-muted">
+              Payment is settled at the parking office after your stay; there is no online payment.
+              Late arrivals past the grace period may be marked as a no-show.
+            </p>
+
+            <button type="submit" class="btn btn-primary btn-lg w-100"><i class="bi bi-check2-circle" aria-hidden="true"></i> Confirm reservation</button>
+          </form>
+        <% } %>
+      </div>
+    </section>
+  </div>
+</div>

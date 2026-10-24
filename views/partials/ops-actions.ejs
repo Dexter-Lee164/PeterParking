@@ -1,0 +1,23 @@
+<%# Check-in / check-out / no-show buttons for one reservation on the operations screen.
+    Params: r (reservation), q (current search), canIn, canOut, canNoShow %>
+<div class="d-flex flex-wrap gap-2">
+  <% if (locals.canIn) { %>
+    <form method="post" action="/admin/operations/<%= r.id %>/check-in" data-confirm="Check in <%= r.plate_number %> to slot <%= r.slot_code %>?" data-confirm-title="Confirm arrival" data-confirm-label="Check in">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="q" value="<%= locals.q || '' %>">
+      <button class="btn btn-success btn-sm" type="submit" aria-label="Check in <%= r.plate_number %>"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Check in</button>
+    </form>
+  <% } %>
+  <% if (locals.canOut) { %>
+    <form method="post" action="/admin/operations/<%= r.id %>/check-out" data-confirm="Check out <%= r.plate_number %> from slot <%= r.slot_code %> now? The final fee is calculated from the current time." data-confirm-title="Check out vehicle" data-confirm-label="Check out">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="q" value="<%= locals.q || '' %>">
+      <button class="btn btn-primary btn-sm" type="submit" aria-label="Check out <%= r.plate_number %>"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Check out</button>
+    </form>
+  <% } %>
+  <% if (locals.canNoShow) { %>
+    <form method="post" action="/admin/operations/<%= r.id %>/no-show" data-confirm="Mark <%= r.booking_ref %> as a no-show? The no-show fee set in Settings will be assessed." data-confirm-title="Mark as no-show" data-confirm-label="Mark no-show" data-confirm-tone="danger">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="q" value="<%= locals.q || '' %>">
+      <button class="btn btn-outline-danger btn-sm" type="submit" aria-label="Mark <%= r.booking_ref %> as no-show"><i class="bi bi-person-x" aria-hidden="true"></i> No-show</button>
+    </form>
+  <% } %>
+  <a class="btn btn-ghost btn-sm" href="/admin/reservations/<%= r.id %>">Details</a>
+</div>

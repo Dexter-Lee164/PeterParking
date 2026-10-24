@@ -1,0 +1,10 @@
+<tr>
+  <td data-label="Name"><a class="fw-semibold" href="/admin/drivers/<%= row.id %>"><%= row.full_name %></a><span class="sub"><%= row.university_id || 'No university ID' %></span></td>
+  <td data-label="Contact"><%= row.email %><% if (row.phone) { %><span class="sub"><%= row.phone %></span><% } %></td>
+  <td data-label="Role"><%- include('partials/status-badge', { kind: 'user', status: row.role }) %></td>
+  <td data-label="Vehicles" class="text-end"><%= row.vehicle_count %></td>
+  <td data-label="Bookings" class="text-end"><%= row.reservation_count %></td>
+  <td data-label="Last sign-in"><%= row.last_login_at ? fmtDateTime(row.last_login_at) : 'Never' %></td>
+  <td data-label="Status"><%- include('partials/status-badge', { kind: 'user', status: row.is_active ? 'active' : 'inactive' }) %></td>
+  <td data-label="" class="text-end"><a class="btn btn-sm btn-outline-secondary" href="/admin/drivers/<%= row.id %>" aria-label="Open <%= row.full_name %>">Open</a></td>
+</tr>

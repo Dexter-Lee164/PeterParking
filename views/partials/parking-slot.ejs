@@ -1,0 +1,51 @@
+<%# One stall on the lot map. Params: slot { id, code, zone_name, slot_type, type_label, type_icon, state, reason,
+    hourly_rate_centavos, est_fee_centavos, operational_status }, selected (bool), stall { kind, rot } (from
+    src/utils/lotLayout.js) and style (its box and rotation over the lot).
+    The button is drawn in the stall's own frame (back at the top), so vehicles sit nose-in; the code is turned back
+    upright. State is shown by colour, an icon and (for screen readers and the legend) text. Only "available" stalls
+    are selectable; parking-slots.js draws the driver's vehicle into the selected one and a parked car into occupied ones. %>
+<%
+  const state = slot.state;
+  const isSelected = !!locals.selected && state === 'available';
+  // On the administrator's read-only map (linkAll) every stall can be chosen, to open that slot.
+  const selectable = !!locals.linkAll || state === 'available';
+  const maintenance = slot.operational_status === 'maintenance';
+  const glyph = isSelected ? 'bi-check-circle-fill'
+    : maintenance ? 'bi-cone-striped'
+    : { available: 'bi-check-circle', reserved: 'bi-bookmark-fill', occupied: 'bi-car-front-fill', unavailable: 'bi-slash-circle' }[state];
+  const stateLabel = isSelected ? 'Selected' : maintenance ? 'Maintenance' : badge('availability', state).label;
+  // Motorcycle bays get the motorcycle icon (Bootstrap Icons has none); others keep their slot type's icon.
+  const typeIcon = slot.type_vehicle === 'motorcycle' ? 'vi vi-motorcycle' : 'bi ' + slot.type_icon;
+  // A bay for the other kind of vehicle stays on the map (its state included) but is set back and cannot be chosen.
+  const otherType = slot.compatible === false;
+  const opLabel = badge('slot', slot.operational_status).label;
+  const aria = 'Slot ' + slot.code + ', ' + slot.zone_name + ', ' + slot.type_label + ', ' + badge('availability', state).label
+    + ', ' + peso(slot.hourly_rate_centavos) + ' per hour. ' + slot.reason;
+%>
+<button type="button"
+        class="slot is-<%= state %><%= isSelected ? ' is-selected' : '' %><%= maintenance ? ' is-maintenance' : '' %><%= otherType ? ' is-other-type' : '' %> kind-<%= stall.kind %> type-<%= slot.slot_type %><%= stall.rot === 180 ? ' faces-up' : '' %>"
+        style="<%= style %>"
+        data-slot-id="<%= slot.id %>"
+        data-state="<%= state %>"
+        data-code="<%= slot.code %>"
+        data-zone="<%= slot.zone_name %>"
+        data-type="<%= slot.slot_type %>"
+        data-type-label="<%= slot.type_label %>"
+        data-type-icon="<%= typeIcon %>"
+        data-op-status="<%= opLabel %>"
+        data-rate="<%= slot.hourly_rate_centavos %>"
+        data-fee="<%= slot.est_fee_centavos %>"
+        data-reason="<%= slot.reason %>"
+        data-kind="<%= stall.kind %>"
+        data-cx="<%= stall.cx %>"
+        data-cy="<%= stall.cy %>"
+        aria-pressed="<%= isSelected ? 'true' : 'false' %>"
+        aria-label="<%= aria %>"
+        title="<%= slot.code %> · <%= slot.reason %>"
+        <%- selectable ? '' : 'disabled aria-disabled="true"' %>>
+  <span class="slot-fill" aria-hidden="true"></span>
+  <span class="slot-vehicle" aria-hidden="true"></span>
+  <span class="slot-paint" aria-hidden="true"><span class="slot-code"><%= slot.code %></span></span>
+  <span class="slot-badge" aria-hidden="true"><i class="bi <%= glyph %> slot-glyph"></i><% if (slot.slot_type !== 'regular' && !maintenance) { %><i class="<%= typeIcon %> slot-type"></i><% } %></span>
+  <span class="slot-state visually-hidden"><%= stateLabel %></span>
+</button>

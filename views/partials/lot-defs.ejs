@@ -1,0 +1,114 @@
+<%# Shared SVG gradients, patterns and filters for the lot map and the vehicle drawings. Included ONCE per page, so the
+    map (and its cloned preview) can reference them without ids of their own. %>
+<svg class="lot-defs" width="0" height="0" aria-hidden="true" focusable="false">
+  <defs>
+    <radialGradient id="up-tree" cx="40%" cy="35%" r="70%">
+      <stop offset="0" stop-color="#5c9a48"/>
+      <stop offset="0.55" stop-color="#2f6b31"/>
+      <stop offset="1" stop-color="#173f1f"/>
+    </radialGradient>
+    <radialGradient id="up-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ffd98a" stop-opacity="0.55"/>
+      <stop offset="0.45" stop-color="#ffc861" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#ffc861" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="up-roof" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4a4f5a"/>
+      <stop offset="1" stop-color="#2c3039"/>
+    </linearGradient>
+    <radialGradient id="up-water" cx="45%" cy="40%" r="65%">
+      <stop offset="0" stop-color="#7cc4f0"/>
+      <stop offset="1" stop-color="#1f5f8f"/>
+    </radialGradient>
+    <radialGradient id="up-vignette" cx="50%" cy="50%" r="75%">
+      <stop offset="0.6" stop-color="#000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.45"/>
+    </radialGradient>
+    <radialGradient id="up-grass" cx="50%" cy="50%" r="80%">
+      <stop offset="0" stop-color="#1f4527"/>
+      <stop offset="1" stop-color="#122a17"/>
+    </radialGradient>
+    <pattern id="up-pavers" width="6" height="6" patternUnits="userSpaceOnUse">
+      <rect width="6" height="6" fill="#5b5f66"/>
+      <path d="M0 0H6V6" fill="none" stroke="#474b52" stroke-width="0.6"/>
+    </pattern>
+    <pattern id="up-access" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="5" height="5" fill="rgba(37, 99, 235, 0.22)"/>
+      <rect width="1.6" height="5" fill="rgba(147, 197, 253, 0.55)"/>
+    </pattern>
+    <filter id="up-noise" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="3" seed="7"/>
+      <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.7 -0.1"/>
+    </filter>
+    <filter id="up-grime" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="3" seed="12"/>
+      <feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1.3 -0.55"/>
+    </filter>
+    <!-- foliage: ragged, leafy edges and a mottled surface for trees and hedges -->
+    <filter id="up-foliage" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.55" numOctaves="2" seed="3" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="3.2" xChannelSelector="R" yChannelSelector="G" result="d"/>
+      <feTurbulence type="fractalNoise" baseFrequency="1.6" numOctaves="1" seed="9" result="leaf"/>
+      <feColorMatrix in="leaf" values="0 0 0 0 0  0 0 0 0 0.05  0 0 0 0 0  0 0 0 -1.4 0.9" result="dots"/>
+      <feComposite in="dots" in2="d" operator="in" result="dotsIn"/>
+      <feMerge><feMergeNode in="d"/><feMergeNode in="dotsIn"/></feMerge>
+    </filter>
+    <filter id="up-soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.2"/>
+    </filter>
+    <filter id="up-soft-sm" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="0.9"/>
+    </filter>
+    <radialGradient id="up-hedge" cx="40%" cy="35%" r="70%">
+      <stop offset="0" stop-color="#4c8a3c"/>
+      <stop offset="1" stop-color="#1c4520"/>
+    </radialGradient>
+    <radialGradient id="up-pool" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#ffcf7a" stop-opacity="0.42"/>
+      <stop offset="0.35" stop-color="#ffb84d" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#ffb84d" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="up-wall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5a5248"/>
+      <stop offset="1" stop-color="#3a342d"/>
+    </linearGradient>
+    <linearGradient id="up-lit" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe6a8"/>
+      <stop offset="1" stop-color="#e9a94c"/>
+    </linearGradient>
+    <linearGradient id="up-door" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1d3346"/>
+      <stop offset="0.5" stop-color="#6c8aa3"/>
+      <stop offset="1" stop-color="#1d3346"/>
+    </linearGradient>
+    <pattern id="up-gravel" width="4" height="4" patternUnits="userSpaceOnUse">
+      <rect width="4" height="4" fill="#3d4148"/>
+      <circle cx="1" cy="1" r="0.5" fill="#4a4f57"/>
+      <circle cx="3" cy="2.6" r="0.45" fill="#33373d"/>
+    </pattern>
+    <!-- vehicles -->
+    <linearGradient id="up-sheen" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#000" stop-opacity="0.35"/>
+      <stop offset="0.22" stop-color="#fff" stop-opacity="0.18"/>
+      <stop offset="0.5" stop-color="#fff" stop-opacity="0.32"/>
+      <stop offset="0.78" stop-color="#fff" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.38"/>
+    </linearGradient>
+    <linearGradient id="up-sheen-side" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.45"/>
+      <stop offset="0.45" stop-color="#fff" stop-opacity="0.08"/>
+      <stop offset="0.55" stop-color="#000" stop-opacity="0.05"/>
+      <stop offset="1" stop-color="#000" stop-opacity="0.4"/>
+    </linearGradient>
+    <linearGradient id="up-glass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3f566f"/>
+      <stop offset="0.5" stop-color="#16212e"/>
+      <stop offset="1" stop-color="#0b121b"/>
+    </linearGradient>
+    <radialGradient id="up-rim" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#e5e7eb"/>
+      <stop offset="0.7" stop-color="#9aa1ab"/>
+      <stop offset="1" stop-color="#4b5058"/>
+    </radialGradient>
+  </defs>
+</svg>

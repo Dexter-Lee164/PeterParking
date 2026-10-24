@@ -1,0 +1,23 @@
+<%# Reservation / fee / balance summary. Params: title, items [{ label, value, html? }], total { label, value } (optional),
+    badgeHtml (optional trusted HTML), id (optional), footerHtml (optional trusted HTML). %>
+<section class="summary-card" <%- locals.id ? 'id="' + id + '"' : '' %>>
+  <div class="summary-head">
+    <h3><%= title %></h3>
+    <% if (locals.badgeHtml) { %><%- badgeHtml %><% } %>
+  </div>
+  <div class="summary-body">
+    <% (locals.items || []).forEach(function (row) { %>
+      <div class="summary-row">
+        <span class="k"><%= row.label %></span>
+        <span class="v"><% if (row.html) { %><%- row.value %><% } else { %><%= row.value %><% } %></span>
+      </div>
+    <% }) %>
+    <% if (locals.total) { %>
+      <div class="summary-row total">
+        <span class="k"><%= total.label %></span>
+        <span class="v" <%- total.id ? 'id="' + total.id + '"' : '' %>><%= total.value %></span>
+      </div>
+    <% } %>
+  </div>
+  <% if (locals.footerHtml) { %><div class="summary-foot"><%- footerHtml %></div><% } %>
+</section>

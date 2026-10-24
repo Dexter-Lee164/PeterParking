@@ -1,0 +1,13 @@
+<% const fresh = isUnread('reservation', row.id); %>
+<tr class="<%= fresh ? 'is-unread' : '' %>">
+  <td data-label="Reference"><a class="font-mono fw-semibold" href="/driver/reservations/<%= row.id %>"><%= row.booking_ref %></a><% if (fresh) { %><span class="new-pill">New</span><% } %></td>
+  <td data-label="Slot"><strong><%= row.slot_code %></strong><span class="sub"><%= row.zone_name %></span></td>
+  <td data-label="Date"><%= fmtDate(row.start_at) %></td>
+  <td data-label="Time"><%= fmtTime(row.start_at) %> – <%= fmtTime(row.end_at) %></td>
+  <td data-label="Fee" class="text-end">
+    <%= peso(row.due_centavos) %>
+    <span class="sub"><%= row.fee_is_final ? 'final' : 'estimated' %></span>
+  </td>
+  <td data-label="Status"><%- include('partials/status-badge', { kind: 'reservation', status: row.status }) %></td>
+  <td data-label="" class="text-end"><a class="btn btn-sm btn-outline-secondary" href="/driver/reservations/<%= row.id %>">Details</a></td>
+</tr>

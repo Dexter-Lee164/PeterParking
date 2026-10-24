@@ -1,0 +1,30 @@
+<div class="page-intro">
+  <div>
+    <h2>Drivers</h2>
+    <p>Manage driver accounts and administrators. Accounts with history are deactivated, never deleted.</p>
+  </div>
+  <a class="btn btn-primary" href="/admin/drivers/new"><i class="bi bi-person-plus" aria-hidden="true"></i> Add user</a>
+</div>
+
+<%- include('partials/filter-toolbar', {
+  formId: 'drvFilter',
+  action: '/admin/drivers',
+  submitLabel: 'Filter',
+  resetHref: '/admin/drivers',
+  fields: [
+    { type: 'search', name: 'q', label: 'Search', value: filters.q, placeholder: 'Name, email, university ID or plate', col: 'col-12 col-md-5' },
+    { type: 'select', name: 'role', label: 'Show', value: filters.role, options: roleOptions, col: 'col-6 col-md-3' },
+    { type: 'select', name: 'status', label: 'Status', value: filters.status, options: statusOptions, col: 'col-6 col-md-2' }
+  ]
+}) %>
+
+<%- include('partials/data-table', {
+  caption: 'User accounts',
+  columns: [{ label: 'Name' }, { label: 'Contact' }, { label: 'Role' }, { label: 'Vehicles', align: 'end' }, { label: 'Bookings', align: 'end' }, { label: 'Last sign-in' }, { label: 'Status' }, { label: '' }],
+  rows: rows,
+  rowPartial: 'partials/rows/admin-driver-row',
+  pager: pager,
+  baseQuery: baseQuery,
+  noun: 'users',
+  empty: { icon: 'bi-people', title: 'No users found', text: 'Adjust the filters or add a user.', actionHref: '/admin/drivers/new', actionLabel: 'Add user' }
+}) %>

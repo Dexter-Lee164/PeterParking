@@ -1,0 +1,42 @@
+<div class="page-intro">
+  <div>
+    <h2>Report #<%= report.id %></h2>
+    <p>Submitted <%= fmtDateTime(report.created_at) %>. Parking administration decides on any penalty for the reported vehicle.</p>
+  </div>
+  <a class="btn btn-outline-secondary btn-sm" href="/driver/reports"><i class="bi bi-arrow-left" aria-hidden="true"></i> All reports</a>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <%- include('partials/summary-card', {
+      title: 'What you reported',
+      badgeHtml: include('partials/status-badge', { kind: 'report', status: report.status }),
+      items: [
+        { label: 'Plate number', value: report.plate_number },
+        { label: 'Violation', value: report.violation_label },
+        { label: 'Incident', value: fmtDateTime(report.incident_at) },
+        { label: 'Description', value: report.description }
+      ]
+    }) %>
+    <% if (report.has_evidence) { %>
+      <section class="summary-card mt-3">
+        <div class="summary-head"><h3>Supporting image</h3></div>
+        <div class="p-3"><a href="/driver/reports/<%= report.id %>/evidence" target="_blank" rel="noopener"><img class="evidence-image" src="/driver/reports/<%= report.id %>/evidence" alt="Image attached to report #<%= report.id %>"></a></div>
+      </section>
+    <% } %>
+  </div>
+  <div class="col-lg-5">
+    <section class="summary-card">
+      <div class="summary-head"><h3>Review</h3></div>
+      <div class="summary-body">
+        <div class="summary-row"><span class="k">Status</span><span class="v"><%- include('partials/status-badge', { kind: 'report', status: report.status }) %></span></div>
+        <% if (report.reviewed_at) { %>
+          <div class="summary-row"><span class="k">Last reviewed</span><span class="v"><%= fmtDateTime(report.reviewed_at) %></span></div>
+          <% if (report.admin_notes) { %><div class="summary-row"><span class="k">Notes from parking administration</span><span class="v"><%= report.admin_notes %></span></div><% } %>
+        <% } else { %>
+          <div class="summary-row"><span class="k text-muted">Waiting for review by parking administration.</span></div>
+        <% } %>
+      </div>
+    </section>
+  </div>
+</div>

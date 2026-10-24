@@ -1,0 +1,154 @@
+<%
+  const snap = data.snapshot;
+  const pct = function (n) { return snap.total ? Math.round((n / snap.total) * 100) : 0; };
+%>
+<section class="hero-card mb-4" aria-labelledby="adminHero">
+  <div>
+    <h2 id="adminHero">Operations overview</h2>
+    <p><%= today %> · live from the parking database</p>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-primary" href="/admin/operations"><i class="bi bi-arrow-left-right" aria-hidden="true"></i> Check-in / out</a>
+    <a class="btn btn-outline-secondary" href="/admin/payments/new"><i class="bi bi-cash-coin" aria-hidden="true"></i> Record payment</a>
+  </div>
+</section>
+
+<% if (overstayCount > 0 || data.lateArrivals > 0) { %>
+  <div class="alert alert-warning d-flex flex-wrap align-items-center justify-content-between gap-2" role="status">
+    <span>
+      <i class="bi bi-exclamation-triangle me-2" aria-hidden="true"></i>
+      <% if (overstayCount > 0) { %><strong><%= overstayCount %></strong> vehicle<%= overstayCount === 1 ? ' is' : 's are' %> past the reserved end time. <% } %>
+      <% if (data.lateArrivals > 0) { %><strong><%= data.lateArrivals %></strong> booking<%= data.lateArrivals === 1 ? ' is' : 's are' %> late for arrival.<% } %>
+    </span>
+    <a class="btn btn-sm btn-outline-secondary" href="/admin/operations">Review</a>
+  </div>
+<% } %>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-4"><%- include('partials/stat-card', { label: 'Total slots', value: data.kpis.totalSlots, hint: 'Active and in service', icon: 'bi-grid-3x3-gap', tone: 'blue', href: '/admin/slots' }) %></div>
+  <div class="col-6 col-md-4"><%- include('partials/stat-card', { label: 'Available now', value: data.kpis.available, hint: pct(data.kpis.available) + '% of slots', icon: 'bi-check-circle', tone: 'green' }) %></div>
+  <div class="col-6 col-md-4"><%- include('partials/stat-card', { label: 'Reserved now', value: data.kpis.reserved, hint: 'Booked, not yet arrived', icon: 'bi-bookmark', tone: 'blue' }) %></div>
+  <div class="col-6 col-md-4"><%- include('partials/stat-card', { label: 'Occupied now', value: data.kpis.occupied, hint: 'Vehicles checked in', icon: 'bi-car-front-fill', tone: 'red', href: '/admin/operations' }) %></div>
+  <div class="col-6 col-md-4"><%- include('partials/stat-card', { label: "Today's bookings", value: data.kpis.todaysReservations, hint: 'Excluding cancelled', icon: 'bi-calendar2-week', tone: 'teal', href: '/admin/reservations' }) %></div>
+  <div class="col-6 col-md-4"><%- include('partials/stat-card', { label: 'Outstanding', value: peso(data.kpis.outstandingCentavos), hint: 'Unpaid final fees', icon: 'bi-wallet2', tone: 'amber', href: '/admin/payments' }) %></div>
+</div>
+
+<section class="summary-card mb-4" aria-labelledby="occTitle">
+  <div class="summary-head"><h3 id="occTitle">Live occupancy</h3><span class="small text-muted"><%= snap.unavailable %> slot<%= snap.unavailable === 1 ? '' : 's' %> out of service</span></div>
+  <div class="p-3">
+    <div class="d-flex rounded overflow-hidden" style="height:14px;background:var(--up-surface-3)" role="img"
+         aria-label="<%= snap.available %> available, <%= snap.reserved %> reserved, <%= snap.occupied %> occupied">
+      <div style="width:<%= pct(snap.available) %>%;background:var(--up-available)"></div>
+      <div style="width:<%= pct(snap.reserved) %>%;background:var(--up-reserved)"></div>
+      <div style="width:<%= pct(snap.occupied) %>%;background:var(--up-occupied)"></div>
+    </div>
+    <div class="slot-legend mt-2">
+      <span class="lg"><i class="swatch s-available" aria-hidden="true"></i> Available <%= snap.available %></span>
+      <span class="lg"><i class="swatch s-reserved" aria-hidden="true"></i> Reserved <%= snap.reserved %></span>
+      <span class="lg"><i class="swatch s-occupied" aria-hidden="true"></i> Occupied <%= snap.occupied %></span>
+    </div>
+  </div>
+</section>
+
+<div class="row g-3 mb-4">
+  <div class="col-lg-8">
+    <section class="summary-card h-100">
+      <div class="summary-head"><h3>Reservations — last 14 days</h3></div>
+      <div class="p-3"><div class="chart-box"><canvas id="chartReservations" role="img" aria-label="Line chart of reservations per day over the last 14 days"></canvas></div></div>
+    </section>
+  </div>
+  <div class="col-lg-4">
+    <section class="summary-card h-100">
+      <div class="summary-head"><h3>Outcomes — last 30 days</h3></div>
+      <div class="p-3">
+        <div class="chart-box chart-sm"><canvas id="chartOutcomes" role="img" aria-label="Doughnut chart of reservation outcomes"></canvas></div>
+        <div class="d-flex justify-content-between small text-muted mt-2">
+          <span>Cancellation rate <strong class="text-white"><%= data.charts.outcomes.cancellationRate %>%</strong></span>
+          <span>No-show rate <strong class="text-white"><%= data.charts.outcomes.noShowRate %>%</strong></span>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="col-lg-6">
+    <section class="summary-card h-100">
+      <div class="summary-head"><h3>Peak hours — last 30 days</h3></div>
+      <div class="p-3"><div class="chart-box chart-sm"><canvas id="chartPeak" role="img" aria-label="Bar chart of bookings by starting hour"></canvas></div></div>
+    </section>
+  </div>
+  <div class="col-lg-3">
+    <section class="summary-card h-100">
+      <div class="summary-head"><h3>Demand by zone</h3></div>
+      <div class="p-3"><div class="chart-box chart-sm"><canvas id="chartZones" role="img" aria-label="Bar chart of bookings per zone in the last 30 days"></canvas></div></div>
+    </section>
+  </div>
+  <div class="col-lg-3">
+    <section class="summary-card h-100">
+      <div class="summary-head"><h3>Collections (₱)</h3></div>
+      <div class="p-3">
+        <div class="chart-box chart-sm"><canvas id="chartCollections" role="img" aria-label="Bar chart of manually recorded collections per day"></canvas></div>
+        <div class="small text-muted mt-2">14-day total <strong class="text-white"><%= peso(data.charts.collections.totalCentavos) %></strong></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-lg-6">
+    <section class="summary-card h-100">
+      <div class="summary-head"><h3>Currently parked <span class="chip ms-1"><%= parkedCount %></span></h3><a class="small" href="/admin/operations">Manage</a></div>
+      <div class="summary-body">
+        <% if (!parked.length) { %>
+          <p class="text-muted small my-3">No vehicles are parked right now.</p>
+        <% } else { parked.forEach(function (p) { %>
+          <div class="summary-row">
+            <span class="k">
+              <span class="plate"><%= p.plate_number %></span>
+              <span class="d-block small text-faint"><%= p.slot_code %> · <%= p.zone_name %> · in since <%= fmtTime(p.check_in_at) %></span>
+            </span>
+            <span class="v">
+              <% if (p.overstaying) { %><%- include('partials/status-badge', { kind: 'session', status: 'overstay' }) %>
+              <% } else { %><span class="small text-muted">until <%= fmtTime(p.end_at) %></span><% } %>
+            </span>
+          </div>
+        <% }) } %>
+      </div>
+    </section>
+  </div>
+  <div class="col-lg-6">
+    <section class="summary-card h-100">
+      <div class="summary-head"><h3>Arriving today</h3><a class="small" href="/admin/operations">Open</a></div>
+      <div class="summary-body">
+        <% if (!arrivals.length) { %>
+          <p class="text-muted small my-3">No more confirmed arrivals for today.</p>
+        <% } else { arrivals.forEach(function (a) { %>
+          <div class="summary-row">
+            <span class="k">
+              <a class="font-mono" href="/admin/reservations/<%= a.id %>"><%= a.booking_ref %></a>
+              <span class="d-block small text-faint"><%= a.driver_name %> · <%= a.plate_number %> · <%= a.slot_code %></span>
+            </span>
+            <span class="v"><%= fmtTime(a.start_at) %><% if (a.is_late) { %><span class="d-block"><%- include('partials/status-badge', { kind: 'session', status: 'late' }) %></span><% } %></span>
+          </div>
+        <% }) } %>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="section-title"><h3>Recent activity</h3><a class="small" href="/admin/settings/audit">Full audit log</a></div>
+<div class="table-wrap">
+  <% if (!data.recentActivity.length) { %>
+    <%- include('partials/empty-state', { icon: 'bi-activity', title: 'No activity yet', text: 'Reservation and payment events will be listed here.' }) %>
+  <% } else { %>
+    <ul class="timeline m-3">
+      <% data.recentActivity.forEach(function (a) { %>
+        <li>
+          <span class="when"><%= fmtDateTime(a.created_at) %></span>
+          <strong><%= a.action.replace(/[._]/g, ' ') %></strong>
+          <% if (a.user_name) { %> by <%= a.user_name %><% } else { %> by system<% } %>
+        </li>
+      <% }) %>
+    </ul>
+  <% } %>
+</div>
+
+<script type="application/json" id="chart-data"><%- JSON.stringify(chartData).replace(/</g, '\\u003c') %></script>

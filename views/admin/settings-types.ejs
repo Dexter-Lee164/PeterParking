@@ -1,0 +1,68 @@
+<div class="page-intro">
+  <div>
+    <h2>Settings</h2>
+    <p>Slot types decide which vehicles fit a slot (for example accessible or motorcycle bays). Deactivate a type instead of deleting it once slots use it.</p>
+  </div>
+</div>
+<%- include('partials/settings-tabs') %>
+
+<% if (formError) { %><div class="alert alert-danger" role="alert"><i class="bi bi-exclamation-octagon me-2" aria-hidden="true"></i><%= formError %></div><% } %>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="table-wrap">
+      <div class="table-responsive">
+        <table class="table table-stack">
+          <caption class="visually-hidden">Slot types</caption>
+          <thead><tr><th scope="col">Type</th><th scope="col">Fits</th><th scope="col" class="text-end">Slots</th><th scope="col">Status</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+          <tbody>
+            <% slotTypes.forEach(function (t) { %>
+              <tr>
+                <td data-label="Type"><i class="bi <%= t.icon %> me-2" aria-hidden="true"></i><strong><%= t.label %></strong><span class="sub font-mono"><%= t.code %></span></td>
+                <td data-label="Fits"><%= t.vehicle_type === 'any' ? 'Any vehicle' : (t.vehicle_type === 'motorcycle' ? 'Motorcycles only' : 'Cars, vans and SUVs') %></td>
+                <td data-label="Slots" class="text-end"><%= t.slot_count %></td>
+                <td data-label="Status"><%- include('partials/status-badge', { kind: 'user', status: t.is_active ? 'active' : 'inactive' }) %></td>
+                <td data-label="" class="text-end">
+                  <div class="table-actions">
+                    <a class="btn btn-sm btn-outline-secondary" href="/admin/settings/types?edit=<%= t.code %>" aria-label="Edit slot type <%= t.label %>">Edit</a>
+                    <form method="post" action="/admin/settings/types/<%= t.code %>/delete" data-confirm="Delete the slot type “<%= t.label %>”? This only works when no slot or rate uses it." data-confirm-title="Delete slot type" data-confirm-label="Delete" data-confirm-tone="danger">
+                      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                      <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Delete slot type <%= t.label %>"><i class="bi bi-trash" aria-hidden="true"></i></button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <section class="summary-card">
+      <div class="summary-head"><h3><%= editing ? 'Edit slot type' : 'Add a slot type' %></h3></div>
+      <div class="p-3">
+        <form method="post" action="<%= editing ? '/admin/settings/types/' + editing.code : '/admin/settings/types' %>" novalidate>
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="row g-3">
+            <% if (!editing) { %>
+              <%- include('partials/form-field', { name: 'code', label: 'Code', value: values.code, errors: errors, required: true, col: 'col-5', placeholder: 'compact', maxlength: 20, help: 'Lowercase, permanent.' }) %>
+              <%- include('partials/form-field', { name: 'label', label: 'Label', value: values.label, errors: errors, required: true, col: 'col-7', maxlength: 40 }) %>
+            <% } else { %>
+              <%- include('partials/form-field', { name: 'label', label: 'Label', value: values.label, errors: errors, required: true, maxlength: 40 }) %>
+            <% } %>
+            <%- include('partials/form-field', { name: 'vehicle_type', label: 'Fits', type: 'select', value: values.vehicle_type, errors: errors, required: true, options: vehicleOptions }) %>
+            <%- include('partials/form-field', { name: 'icon', label: 'Icon', type: 'select', value: values.icon, errors: errors, col: 'col-6', options: icons.map(function (i) { return { value: i, label: i.replace('bi-', '') }; }) }) %>
+            <%- include('partials/form-field', { name: 'sort_order', label: 'Order', type: 'number', value: values.sort_order, errors: errors, col: 'col-3' }) %>
+            <%- include('partials/form-field', { name: 'is_active', label: 'Status', type: 'select', value: values.is_active, errors: errors, col: 'col-3', options: [{ value: '1', label: 'Active' }, { value: '0', label: 'Off' }] }) %>
+            <div class="col-12 d-flex gap-2">
+              <button class="btn btn-primary" type="submit"><i class="bi bi-check2" aria-hidden="true"></i> <%= editing ? 'Save type' : 'Add type' %></button>
+              <% if (editing) { %><a class="btn btn-outline-secondary" href="/admin/settings/types">Cancel</a><% } %>
+            </div>
+          </div>
+        </form>
+      </div>
+    </section>
+  </div>
+</div>

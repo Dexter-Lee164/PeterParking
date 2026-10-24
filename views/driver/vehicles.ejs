@@ -1,0 +1,97 @@
+<div class="page-intro">
+  <div>
+    <h2><%= editing ? 'Edit vehicle' : 'My Vehicles' %></h2>
+    <p>Staff match your plate number at check-in, so keep these details accurate.</p>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="table-wrap">
+      <% if (!vehicles.length) { %>
+        <%- include('partials/empty-state', { icon: 'bi-car-front', title: 'No vehicles yet', text: 'Add a vehicle using the form to start reserving parking.' }) %>
+      <% } else { %>
+        <div class="table-responsive">
+          <table class="table table-stack">
+            <caption class="visually-hidden">Your registered vehicles</caption>
+            <thead><tr><th scope="col">Plate</th><th scope="col">Type</th><th scope="col">Vehicle</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+            <tbody>
+              <% vehicles.forEach(function (v) { %>
+                <tr>
+                  <td data-label="Plate"><span class="plate"><%= v.plate_number %></span></td>
+                  <td data-label="Type"><i class="<%= vehicleIcon(v.vehicle_type) %> me-1" aria-hidden="true"></i><%= titleCase(v.vehicle_type) %></td>
+                  <td data-label="Vehicle"><%= vehicleLabel(v) %><% if (v.color) { %><span class="sub"><%= v.color %></span><% } %></td>
+                  <td data-label="" class="text-end">
+                    <div class="table-actions">
+                      <a class="btn btn-sm btn-outline-secondary" href="/driver/vehicles/<%= v.id %>/edit" aria-label="Edit <%= v.plate_number %>">Edit</a>
+                      <form method="post" action="/driver/vehicles/<%= v.id %>/delete" data-confirm="Remove <%= v.plate_number %> from your vehicles? Past reservation history is kept." data-confirm-title="Remove vehicle" data-confirm-label="Remove" data-confirm-tone="danger">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Remove <%= v.plate_number %>">Remove</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <section class="summary-card">
+      <div class="summary-head"><h3><%= editing ? 'Update details' : 'Add a vehicle' %></h3></div>
+      <div class="p-3">
+        <%
+          // Manufacturer and model are dropdowns from the catalogue, each with an "Other" choice that reveals a text box.
+          // A saved name that is not in the catalogue (typed in, or from before the catalogue) shows as Other + its text.
+          const OTHER = vehicleCatalog.OTHER;
+          const vType = typeOptions.some(function (o) { return o.value === values.vehicle_type; }) ? values.vehicle_type : 'car';
+          let makeSel = values.make || '';
+          let makeOther = values.make_other || '';
+          if (makeSel && makeSel !== OTHER) {
+            const found = vehicleCatalog.findManufacturer(vType, makeSel);
+            if (found) makeSel = found;
+            else { makeOther = makeSel; makeSel = OTHER; }
+          }
+          let modelSel = values.model || '';
+          let modelOther = values.model_other || '';
+          if (modelSel && modelSel !== OTHER) {
+            const found = makeSel && makeSel !== OTHER && vehicleCatalog.findModel(vType, makeSel, modelSel);
+            if (found) modelSel = found;
+            else { modelOther = modelSel; modelSel = OTHER; }
+          }
+          const makeOptions = [{ value: '', label: 'Choose a manufacturer' }]
+            .concat(vehicleCatalog.manufacturers(vType).map(function (m) { return { value: m, label: m }; }), [{ value: OTHER, label: 'Other' }]);
+          const modelOptions = [{ value: '', label: !makeSel ? 'Choose a manufacturer first' : makeSel === OTHER ? 'No model' : 'Choose a model' }]
+            .concat(makeSel && makeSel !== OTHER ? vehicleCatalog.models(vType, makeSel).map(function (m) { return { value: m, label: m }; }) : [], makeSel ? [{ value: OTHER, label: 'Other' }] : []);
+        %>
+        <form method="post" action="<%= editing ? '/driver/vehicles/' + editing.id : '/driver/vehicles' %>" novalidate data-vehicle-form>
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="row g-3">
+            <%- include('partials/form-field', { name: 'plate_number', label: 'Plate number', value: values.plate_number, errors: errors, required: true, placeholder: 'ABC 1234', maxlength: 12, attrs: { style: 'text-transform:uppercase' } }) %>
+            <%- include('partials/form-field', { name: 'vehicle_type', label: 'Vehicle type', type: 'select', value: vType, errors: errors, options: typeOptions, required: true }) %>
+            <div class="col-sm-6">
+              <div class="row g-2">
+                <%- include('partials/form-field', { name: 'make', label: 'Manufacturer', type: 'select', value: makeSel, errors: errors, options: makeOptions, attrs: { 'data-vehicle-make': '' } }) %>
+                <%- include('partials/form-field', { name: 'make_other', label: 'Manufacturer name', value: makeOther, errors: errors, col: 'col-12' + (makeSel === OTHER ? '' : ' d-none'), placeholder: 'Type the manufacturer', maxlength: 40, autocomplete: 'off', attrs: { 'data-other-for': 'make' } }) %>
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <div class="row g-2">
+                <%- include('partials/form-field', { name: 'model', label: 'Model', type: 'select', value: modelSel, errors: errors, options: modelOptions, disabled: !makeSel, attrs: { 'data-vehicle-model': '' } }) %>
+                <%- include('partials/form-field', { name: 'model_other', label: 'Model name', value: modelOther, errors: errors, col: 'col-12' + (modelSel === OTHER ? '' : ' d-none'), placeholder: 'Type the model', maxlength: 40, autocomplete: 'off', attrs: { 'data-other-for': 'model' } }) %>
+              </div>
+            </div>
+            <%- include('partials/form-field', { name: 'color', label: 'Color', value: values.color, errors: errors, placeholder: 'Silver' }) %>
+            <div class="col-12 d-flex gap-2">
+              <button class="btn btn-primary" type="submit"><i class="bi bi-<%= editing ? 'check2' : 'plus-lg' %>" aria-hidden="true"></i> <%= editing ? 'Save changes' : 'Add vehicle' %></button>
+              <% if (editing) { %><a class="btn btn-outline-secondary" href="/driver/vehicles">Cancel</a><% } %>
+            </div>
+          </div>
+        </form>
+      </div>
+    </section>
+  </div>
+</div>

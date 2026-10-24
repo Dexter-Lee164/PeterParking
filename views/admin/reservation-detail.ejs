@@ -1,0 +1,138 @@
+<div class="page-intro">
+  <div>
+    <h2>Reservation <span class="font-mono"><%= r.booking_ref %></span></h2>
+    <p><%= fmtDate(r.start_at) %> · <%= fmtTime(r.start_at) %> – <%= fmtTime(r.end_at) %> · <%= r.driver_name %></p>
+  </div>
+  <div class="d-flex flex-wrap gap-2 align-items-center">
+    <%- include('partials/status-badge', { kind: 'reservation', status: r.status }) %>
+    <% if (canCheckIn) { %>
+      <form method="post" action="/admin/operations/<%= r.id %>/check-in">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="back" value="reservation">
+        <button class="btn btn-success btn-sm" type="submit"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Check in</button>
+      </form>
+    <% } %>
+    <% if (canCheckOut) { %>
+      <form method="post" action="/admin/operations/<%= r.id %>/check-out" data-confirm="Check out <%= r.plate_number %> from slot <%= r.slot_code %> now? The final fee is calculated from the current time." data-confirm-title="Check out vehicle" data-confirm-label="Check out">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="back" value="reservation">
+        <button class="btn btn-primary btn-sm" type="submit"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Check out</button>
+      </form>
+    <% } %>
+    <% if (canPay) { %><a class="btn btn-outline-primary btn-sm" href="/admin/payments/new?reservation_id=<%= r.id %>"><i class="bi bi-cash-coin" aria-hidden="true"></i> Record payment</a><% } %>
+    <% if (canNoShow) { %>
+      <form method="post" action="/admin/reservations/<%= r.id %>/no-show" data-confirm="Mark <%= r.booking_ref %> as a no-show? A no-show fee of <%= peso(noShowPreview) %> will be assessed." data-confirm-title="Mark as no-show" data-confirm-label="Mark no-show" data-confirm-tone="danger">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button class="btn btn-outline-danger btn-sm" type="submit"><i class="bi bi-person-x" aria-hidden="true"></i> No-show</button>
+      </form>
+    <% } %>
+    <% if (canCancel) { %>
+      <button class="btn btn-outline-danger btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#cancelModal"><i class="bi bi-x-circle" aria-hidden="true"></i> Cancel booking</button>
+    <% } %>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <section class="summary-card mb-3">
+      <div class="summary-head"><h3>Reservation details</h3></div>
+      <div class="p-3">
+        <dl class="kv-list">
+          <dt>Driver</dt><dd><a href="/admin/drivers/<%= r.user_id %>"><%= r.driver_name %></a><span class="d-block small text-muted"><%= r.driver_email %><% if (r.driver_phone) { %> · <%= r.driver_phone %><% } %></span></dd>
+          <dt>Vehicle</dt><dd><span class="plate"><%= r.plate_number %></span> <span class="text-muted ms-1"><%= vehicleLabel(r) %><% if (r.color) { %>, <%= r.color %><% } %></span></dd>
+          <dt>Slot</dt><dd><strong><%= r.slot_code %></strong> · <%= r.zone_name %> (<%= r.type_label %>)</dd>
+          <dt>Date</dt><dd><%= fmtDate(r.start_at) %></dd>
+          <dt>Time</dt><dd><%= fmtTime(r.start_at) %> – <%= fmtTime(r.end_at) %> (<%= fmtDuration(r.duration_minutes) %>)</dd>
+          <dt>Hourly rate</dt><dd><%= peso(r.hourly_rate_centavos) %> (locked at booking)</dd>
+          <% if (r.surcharge_centavos) { %><dt>Additional fee</dt><dd><%= peso(r.surcharge_centavos) %> <span class="text-muted small">(parking etiquette penalty on <%= r.plate_number %>, included in the fee)</span></dd><% } %>
+          <dt>Booked on</dt><dd><%= fmtDateTime(r.created_at) %></dd>
+          <% if (session) { %>
+            <dt>Checked in</dt><dd><%= fmtDateTime(session.check_in_at) %><% if (session.in_by) { %> by <%= session.in_by %><% } %>
+              <% if (session.late_arrival_minutes > 0) { %><span class="badge-status tone-amber ms-1"><i class="bi bi-clock-history" aria-hidden="true"></i>Late by <%= fmtDuration(session.late_arrival_minutes) %></span><% } %></dd>
+            <% if (session.check_out_at) { %>
+              <dt>Checked out</dt><dd><%= fmtDateTime(session.check_out_at) %><% if (session.out_by) { %> by <%= session.out_by %><% } %>
+                <% if (session.overstay_minutes > 0) { %><span class="badge-status tone-red ms-1"><i class="bi bi-alarm" aria-hidden="true"></i>Overstayed <%= fmtDuration(session.overstay_minutes) %> (+<%= peso(session.overstay_fee_centavos) %>)</span><% } %></dd>
+            <% } %>
+            <% if (session.notes) { %><dt>Check-in notes</dt><dd><%= session.notes %></dd><% } %>
+          <% } %>
+          <% if (r.status === 'cancelled') { %><dt>Cancelled</dt><dd><%= fmtDateTime(r.cancelled_at) %><% if (r.cancel_reason) { %> — <%= r.cancel_reason %><% } %></dd><% } %>
+          <% if (r.status === 'no_show') { %><dt>No-show</dt><dd>Recorded <%= fmtDateTime(r.no_show_at) %></dd><% } %>
+        </dl>
+      </div>
+    </section>
+
+    <section class="summary-card">
+      <div class="summary-head"><h3>History</h3></div>
+      <div class="p-3">
+        <% if (!trail.length) { %>
+          <p class="text-muted small mb-0">No recorded events.</p>
+        <% } else { %>
+          <ul class="timeline mb-0">
+            <% trail.forEach(function (a) { %>
+              <li><span class="when"><%= fmtDateTime(a.created_at) %></span> <strong><%= a.action.replace(/[._]/g, ' ') %></strong> <% if (a.user_name) { %>by <%= a.user_name %><% } else { %>by system<% } %></li>
+            <% }) %>
+          </ul>
+        <% } %>
+      </div>
+    </section>
+  </div>
+
+  <div class="col-lg-5">
+    <%- include('partials/summary-card', {
+      title: 'Fees & payment',
+      badgeHtml: include('partials/status-badge', { kind: 'balance', status: r.payment_status }),
+      items: [
+        { label: 'Estimated fee', value: peso(r.fee_estimated_centavos) },
+        { label: 'Final fee', value: r.fee_is_final ? peso(r.fee_final_centavos) : 'After check-out' },
+        { label: 'Paid so far', value: peso(r.paid_centavos) }
+      ],
+      total: { label: r.balance_centavos < 0 ? 'Credit' : 'Balance', value: peso(Math.abs(r.balance_centavos)) }
+    }) %>
+
+    <section class="summary-card mt-3">
+      <div class="summary-head"><h3>Payment records</h3></div>
+      <div class="summary-body">
+        <% if (!payRows.length) { %>
+          <p class="text-muted small my-3">No payments recorded yet.</p>
+        <% } else { payRows.forEach(function (p) { %>
+          <div class="summary-row">
+            <span class="k"><a class="font-mono" href="/admin/payments/<%= p.id %>/receipt"><%= p.receipt_no %></a><span class="d-block small text-faint"><%= fmtDateTime(p.paid_at) %> · <%= paymentMethod(p.method) %></span></span>
+            <span class="v"><%= peso(p.amount_centavos) %><span class="d-block"><%- include('partials/status-badge', { kind: 'payment', status: p.status }) %></span></span>
+          </div>
+        <% }) } %>
+      </div>
+    </section>
+  </div>
+</div>
+
+<% if (canCancel) { %>
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="post" action="/admin/reservations/<%= r.id %>/cancel">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="modal-header">
+          <h2 class="modal-title fs-5" id="cancelTitle">Cancel <%= r.booking_ref %></h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small">The booking stays on record as <em>cancelled</em>. The slot becomes free for that time.</p>
+          <div class="row g-3">
+            <%- include('partials/form-field', { name: 'reason', label: 'Reason for cancelling', type: 'textarea', required: true, rows: 3, maxlength: 300, id: 'cancel-reason' }) %>
+            <% if (cancelPreview > 0) { %>
+              <div class="col-12">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="waive_fee" name="waive_fee" value="1" checked>
+                  <label class="form-check-label" for="waive_fee">Waive the late-cancellation fee (<%= peso(cancelPreview) %>)</label>
+                </div>
+              </div>
+            <% } %>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Keep booking</button>
+          <button type="submit" class="btn btn-danger">Cancel reservation</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<% } %>

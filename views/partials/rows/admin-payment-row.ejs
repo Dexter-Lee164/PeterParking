@@ -1,0 +1,11 @@
+<% const fresh = isUnread('payment', row.id); %>
+<tr class="<%= fresh ? 'is-unread' : '' %>">
+  <td data-label="Receipt"><a class="font-mono fw-semibold" href="/admin/payments/<%= row.id %>/receipt"><%= row.receipt_no %></a><% if (fresh) { %><span class="new-pill">New</span><% } %></td>
+  <td data-label="Booking"><a class="font-mono" href="/admin/reservations/<%= row.reservation_id %>"><%= row.booking_ref %></a></td>
+  <td data-label="Driver"><%= row.driver_name %><span class="sub"><%= row.plate_number %></span></td>
+  <td data-label="Paid on"><%= fmtDateTime(row.paid_at) %></td>
+  <td data-label="Method"><%= paymentMethod(row.method) %><% if (row.reference) { %><span class="sub">Ref: <%= row.reference %></span><% } %></td>
+  <td data-label="Amount" class="text-end"><%= peso(row.amount_centavos) %></td>
+  <td data-label="Status"><%- include('partials/status-badge', { kind: 'payment', status: row.status }) %></td>
+  <td data-label="" class="text-end"><a class="btn btn-sm btn-outline-secondary" href="/admin/payments/<%= row.id %>/receipt" aria-label="Open receipt <%= row.receipt_no %>">Receipt</a></td>
+</tr>

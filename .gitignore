@@ -1,0 +1,28 @@
+# dependencies
+node_modules/
+
+# local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# SQLite database files (created at run time)
+data/*.sqlite
+data/*.sqlite-wal
+data/*.sqlite-shm
+data/*.db
+data/*.db-*
+!data/.gitkeep
+
+# logs, OS and editor files
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+coverage/
+*.zip
+
+# generated e-mail previews (scripts/mail-preview.js)
+data/mail-preview/

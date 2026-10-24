@@ -1,0 +1,69 @@
+<div class="page-intro">
+  <div>
+    <h2>Settings</h2>
+    <p>Hourly parking rates. The most specific active rate wins: zone + type, then zone, then type, then the default. A per-slot override beats them all.</p>
+  </div>
+</div>
+<%- include('partials/settings-tabs') %>
+
+<% if (formError) { %><div class="alert alert-danger" role="alert"><i class="bi bi-exclamation-octagon me-2" aria-hidden="true"></i><%= formError %></div><% } %>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="table-wrap">
+      <% if (!rates.length) { %>
+        <%- include('partials/empty-state', { icon: 'bi-tag', title: 'No rates yet', text: 'Add a default rate so slots can be priced.' }) %>
+      <% } else { %>
+        <div class="table-responsive">
+          <table class="table table-stack">
+            <caption class="visually-hidden">Parking rates</caption>
+            <thead><tr><th scope="col">Rate</th><th scope="col">Applies to</th><th scope="col" class="text-end">Per hour</th><th scope="col">Status</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr></thead>
+            <tbody>
+              <% rates.forEach(function (r) { %>
+                <tr>
+                  <td data-label="Rate"><strong><%= r.name %></strong></td>
+                  <td data-label="Applies to"><%= r.zone_name || 'All zones' %> · <%= r.type_label || 'all slot types' %></td>
+                  <td data-label="Per hour" class="text-end"><%= peso(r.hourly_rate_centavos) %></td>
+                  <td data-label="Status"><%- include('partials/status-badge', { kind: 'user', status: r.is_active ? 'active' : 'inactive' }) %></td>
+                  <td data-label="" class="text-end">
+                    <div class="table-actions">
+                      <a class="btn btn-sm btn-outline-secondary" href="/admin/settings/rates?edit=<%= r.id %>" aria-label="Edit rate <%= r.name %>">Edit</a>
+                      <form method="post" action="/admin/settings/rates/<%= r.id %>/delete" data-confirm="Delete the rate “<%= r.name %>”? Existing bookings keep the rate they were made at." data-confirm-title="Delete rate" data-confirm-label="Delete" data-confirm-tone="danger">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Delete rate <%= r.name %>"><i class="bi bi-trash" aria-hidden="true"></i></button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <section class="summary-card">
+      <div class="summary-head"><h3><%= editing ? 'Edit rate' : 'Add a rate' %></h3></div>
+      <div class="p-3">
+        <form method="post" action="<%= editing ? '/admin/settings/rates/' + editing.id : '/admin/settings/rates' %>" novalidate>
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="row g-3">
+            <%- include('partials/form-field', { name: 'name', label: 'Rate name', value: values.name, errors: errors, required: true, maxlength: 60 }) %>
+            <%- include('partials/form-field', { name: 'zone_id', label: 'Zone', type: 'select', value: values.zone_id, errors: errors, col: 'col-6',
+                options: [{ value: '', label: 'All zones' }].concat(zones.map(function (z) { return { value: z.id, label: z.name }; })) }) %>
+            <%- include('partials/form-field', { name: 'slot_type', label: 'Slot type', type: 'select', value: values.slot_type, errors: errors, col: 'col-6',
+                options: [{ value: '', label: 'All types' }].concat(slotTypes.map(function (t) { return { value: t.code, label: t.label }; })) }) %>
+            <%- include('partials/form-field', { name: 'hourly_rate', label: 'Hourly rate', value: values.hourly_rate, errors: errors, required: true, prefix: '₱', col: 'col-6', attrs: { inputmode: 'decimal' } }) %>
+            <%- include('partials/form-field', { name: 'is_active', label: 'Status', type: 'select', value: values.is_active, errors: errors, col: 'col-6', options: [{ value: '1', label: 'Active' }, { value: '0', label: 'Inactive' }] }) %>
+            <div class="col-12 d-flex gap-2">
+              <button class="btn btn-primary" type="submit"><i class="bi bi-check2" aria-hidden="true"></i> <%= editing ? 'Save rate' : 'Add rate' %></button>
+              <% if (editing) { %><a class="btn btn-outline-secondary" href="/admin/settings/rates">Cancel</a><% } %>
+            </div>
+          </div>
+        </form>
+      </div>
+    </section>
+  </div>
+</div>

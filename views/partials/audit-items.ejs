@@ -1,0 +1,13 @@
+<%# Readable audit details: items [{ label, value } | { label, items }] from src/utils/auditFormat.js (nests itself). %>
+<dl class="audit-details<%= locals.nested ? ' is-nested' : '' %>">
+  <% items.forEach(function (it) { %>
+    <div class="audit-item">
+      <dt><%= it.label %></dt>
+      <% if (it.items) { %>
+        <dd><%- include('audit-items', { items: it.items, nested: true }) %></dd>
+      <% } else { %>
+        <dd><%= it.value %></dd>
+      <% } %>
+    </div>
+  <% }) %>
+</dl>

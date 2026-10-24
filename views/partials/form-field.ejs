@@ -1,0 +1,52 @@
+<%# Reusable form control with validation feedback.
+    Params: name, label, type (text|email|password|number|date|time|tel|search|select|textarea|checkbox), value, errors (object),
+            options [{ value, label }] (select), required, help, placeholder, rows, min, max, step, maxlength, autocomplete,
+            prefix, suffix, disabled, readonly, col (wrapper class), id, attrs (object of extra attributes) %>
+<%
+  const fType = locals.type || 'text';
+  const fId = locals.id || ('f-' + name);
+  const fErr = locals.errors && locals.errors[name];
+  const fVal = (locals.value === undefined || locals.value === null) ? '' : locals.value;
+  const describedBy = [fErr ? fId + '-error' : '', locals.help ? fId + '-help' : ''].filter(Boolean).join(' ');
+  const extra = locals.attrs || {};
+%>
+<div class="<%= locals.col || 'col-12' %>">
+  <% if (fType === 'checkbox') { %>
+    <div class="form-check">
+      <input class="form-check-input<%= fErr ? ' is-invalid' : '' %>" type="checkbox" id="<%= fId %>" name="<%= name %>" value="<%= locals.checkValue || '1' %>" <%= fVal === true || fVal === '1' || fVal === 1 ? 'checked' : '' %> <%= locals.disabled ? 'disabled' : '' %>>
+      <label class="form-check-label" for="<%= fId %>"><%= label %></label>
+    </div>
+  <% } else { %>
+    <label class="form-label" for="<%= fId %>"><%= label %><% if (locals.required) { %> <span class="text-danger" aria-hidden="true">*</span><% } %></label>
+    <% if (locals.prefix || locals.suffix) { %><div class="input-group<%= fErr ? ' has-validation' : '' %>"><% } %>
+    <% if (locals.prefix) { %><span class="input-group-text"><%= prefix %></span><% } %>
+    <% if (fType === 'select') { %>
+      <select class="form-select<%= fErr ? ' is-invalid' : '' %>" id="<%= fId %>" name="<%= name %>" <%= locals.required ? 'required' : '' %> <%= locals.disabled ? 'disabled' : '' %>
+              <% if (describedBy) { %>aria-describedby="<%= describedBy %>"<% } %>
+              <% Object.keys(extra).forEach(function (k) { %> <%= k %>="<%= extra[k] %>"<% }) %>>
+        <% (locals.options || []).forEach(function (o) { %>
+          <option value="<%= o.value %>" <%= String(o.value) === String(fVal) ? 'selected' : '' %>><%= o.label %></option>
+        <% }) %>
+      </select>
+    <% } else if (fType === 'textarea') { %>
+      <textarea class="form-control<%= fErr ? ' is-invalid' : '' %>" id="<%= fId %>" name="<%= name %>" rows="<%= locals.rows || 3 %>"
+                <%= locals.required ? 'required' : '' %> <%= locals.readonly ? 'readonly' : '' %> <% if (locals.maxlength) { %>maxlength="<%= maxlength %>"<% } %>
+                <% if (locals.placeholder) { %>placeholder="<%= placeholder %>"<% } %>
+                <% if (describedBy) { %>aria-describedby="<%= describedBy %>"<% } %>><%= fVal %></textarea>
+    <% } else { %>
+      <input class="form-control<%= fErr ? ' is-invalid' : '' %>" type="<%= fType %>" id="<%= fId %>" name="<%= name %>"
+             <% if (fType !== 'password') { %>value="<%= fVal %>"<% } %>
+             <%= locals.required ? 'required' : '' %> <%= locals.disabled ? 'disabled' : '' %> <%= locals.readonly ? 'readonly' : '' %>
+             <% if (locals.placeholder) { %>placeholder="<%= placeholder %>"<% } %>
+             <% if (locals.min !== undefined) { %>min="<%= min %>"<% } %> <% if (locals.max !== undefined) { %>max="<%= max %>"<% } %>
+             <% if (locals.step !== undefined) { %>step="<%= step %>"<% } %> <% if (locals.maxlength) { %>maxlength="<%= maxlength %>"<% } %>
+             <% if (locals.autocomplete) { %>autocomplete="<%= autocomplete %>"<% } %>
+             <% if (describedBy) { %>aria-describedby="<%= describedBy %>"<% } %> <%= fErr ? 'aria-invalid=true' : '' %>
+             <% Object.keys(extra).forEach(function (k) { %> <%= k %>="<%= extra[k] %>"<% }) %>>
+    <% } %>
+    <% if (locals.suffix) { %><span class="input-group-text"><%= suffix %></span><% } %>
+    <% if (locals.prefix || locals.suffix) { %><% if (fErr) { %><div class="invalid-feedback" id="<%= fId %>-error"><%= fErr %></div><% } %></div><% } %>
+  <% } %>
+  <% if (fErr && !(locals.prefix || locals.suffix)) { %><div class="invalid-feedback d-block" id="<%= fId %>-error"><%= fErr %></div><% } %>
+  <% if (locals.help) { %><div class="form-text" id="<%= fId %>-help"><%= help %></div><% } %>
+</div>

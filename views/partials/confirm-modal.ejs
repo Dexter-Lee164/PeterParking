@@ -1,0 +1,25 @@
+<%# One reusable confirmation dialog. Any <form data-confirm="Message"> opens it before submitting.
+    Optional form attributes: data-confirm-title, data-confirm-label, data-confirm-tone (danger|primary),
+    data-confirm-reason="Label" (adds a required reason box whose text is posted as `reason`). %>
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title fs-5" id="confirmModalTitle">Please confirm</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmModalMessage" class="mb-0"></p>
+        <div id="confirmModalReasonWrap" class="mt-3" hidden>
+          <label for="confirmModalReason" class="form-label" id="confirmModalReasonLabel">Reason</label>
+          <textarea id="confirmModalReason" class="form-control" rows="3" maxlength="300"></textarea>
+          <div class="invalid-feedback" id="confirmModalReasonError">A reason is required.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Keep as is</button>
+        <button type="button" class="btn btn-primary" id="confirmModalOk">Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,1119 @@
+/* =========================================================================
+   University Parking — unified sign-in / sign-up screen ("sliding panel")
+
+   One card holds both forms. At >= 900px a brand overlay slides over the half of the card
+   that is not in use; below 900px the overlay disappears and the two forms slide as panes
+   under a two-segment control.
+
+   Motion rules
+   - Everything moves because [data-mode] on .auth-card changed. No JS timers drive movement,
+     so interrupting a switch simply reverses the transition from where it currently is.
+   - Only transform and opacity animate on anything large (colour/border/ring on small controls too).
+   - Transitions are enabled by .is-ready, which auth.js adds after the first painted frame, so a page
+     that loads in register mode does not slide in from login. Without JS nothing animates at all.
+   Colours come from the tokens in theme.css; nothing new is added to the palette.
+   ========================================================================= */
+
+:root {
+  --dur-micro: 150ms;
+  --dur-fast: 220ms;
+  --dur-form: 320ms;
+  --dur-slide: 600ms;
+  --ease-slide: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+
+  --auth-form-delay: 240ms; /* the incoming form waits for the overlay to clear most of its half */
+  --auth-shift: 24px; /* how far forms travel along the overlay's direction */
+  --auth-child-dur: 200ms; /* 240ms start + 150ms max stagger + 200ms = 590ms: the 600ms overlay slide stays the longest thing on screen */
+  --auth-stagger: 30ms;
+  --auth-stagger-cap: 150ms;
+  --auth-ring: var(--up-accent-bright);
+  --auth-danger: #f87171;
+  --auth-danger-text: #fca5a5;
+}
+
+/* ------------------------------------------------------------ page */
+.auth-body {
+  background:
+    radial-gradient(900px 500px at 12% -10%, rgba(37, 99, 235, 0.28), transparent 60%),
+    radial-gradient(700px 420px at 100% 110%, rgba(20, 184, 166, 0.14), transparent 60%),
+    var(--up-bg);
+  min-height: 100vh;
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem 1rem;
+}
+
+/* ------------------------------------------------------------ card (shared) */
+.auth-card {
+  position: relative;
+  width: 100%;
+  max-width: 960px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  isolation: isolate;
+  --auth-ground: var(--up-bg); /* what sits behind the form: the page on phones, the card surface on desktop */
+}
+
+/* Keyboard users reach the visible controls only; focus is drawn the same way everywhere. */
+.auth-card a:focus-visible,
+.auth-card button:focus-visible {
+  outline: 2px solid var(--auth-ring);
+  outline-offset: 2px;
+}
+.auth-card [tabindex='-1']:focus {
+  outline: none;
+}
+.auth-card .auth-alert:focus-visible {
+  outline: 2px solid var(--auth-ring);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------ overlay content */
+.auth-overlay {
+  display: none;
+}
+.auth-overlay .brand,
+.auth-mobile-head .brand {
+  padding: 0;
+}
+.auth-headline {
+  font-size: 2.1rem;
+  line-height: 1.15;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--up-text-strong);
+  margin: 1.6rem 0 0.8rem;
+}
+.auth-lede {
+  color: var(--up-muted);
+  max-width: 340px;
+  margin: 0;
+  text-wrap: pretty; /* no one-word last line */
+}
+.auth-points {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.7rem;
+  color: var(--up-text);
+  font-size: 0.9rem;
+}
+.auth-points i {
+  color: var(--up-accent-bright);
+  margin-right: 0.55rem;
+}
+.auth-mini-map {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  max-width: 300px;
+}
+.auth-mini-map span {
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid;
+}
+.auth-mini-map .a { background: var(--up-available-soft); border-color: rgba(22, 163, 74, 0.6); }
+.auth-mini-map .r { background: var(--up-reserved-soft); border-color: rgba(59, 130, 246, 0.7); }
+.auth-mini-map .o { background: var(--up-occupied-soft); border-color: rgba(220, 38, 38, 0.6); }
+.auth-mini-map .u { background: var(--up-unavailable-soft); border-color: rgba(107, 114, 128, 0.6); }
+
+/* "New driver? [Create an account]" / "Already registered? [Sign in]" — both stacked in one cell. */
+.auth-prompts {
+  display: grid;
+  margin-top: 1.6rem;
+  padding-top: 1.3rem;
+  border-top: 1px solid rgba(148, 165, 195, 0.22);
+}
+.auth-prompt {
+  grid-area: 1 / 1;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.9rem;
+  color: var(--up-text);
+  opacity: 0;
+  visibility: hidden;
+}
+.auth-switch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.55rem 1.05rem;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-weight: 650;
+  text-decoration: none;
+  transition: background-color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out), transform var(--dur-micro) var(--ease-out);
+}
+.auth-switch-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.65);
+  color: #fff;
+  text-decoration: none;
+}
+.auth-switch-btn:active {
+  transform: scale(0.98);
+  transition-duration: 80ms;
+}
+.auth-card[data-mode='login'] .auth-prompt--login,
+.auth-card[data-mode='register'] .auth-prompt--register {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* ------------------------------------------------------------ form panes */
+.auth-pane {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.auth-pane-inner {
+  width: 100%;
+}
+.auth-title {
+  font-size: 1.5rem;
+  line-height: 1.2;
+  margin: 0 0 0.25rem;
+}
+.auth-sub {
+  color: var(--up-muted);
+  margin: 0 0 1.35rem;
+}
+.auth-foot {
+  color: var(--up-muted);
+  font-size: 0.85rem;
+  margin: 1.4rem 0 0;
+}
+.auth-hint {
+  color: var(--up-muted);
+  font-size: 0.82rem;
+  margin: -0.35rem 0 0;
+}
+.auth-alert {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  margin: 0 0 1.1rem;
+  padding: 0.7rem 0.85rem;
+}
+.auth-alert .bi {
+  margin-top: 0.15rem;
+}
+
+.auth-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.95rem 0.9rem;
+}
+.auth-span-2 {
+  grid-column: 1 / -1;
+}
+@media (max-width: 479.98px) {
+  .auth-body {
+    padding-block: 1rem; /* every pixel counts: the register form should fit a 390x844 phone without scrolling */
+  }
+  .auth-fields {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 0.75rem;
+  }
+  .auth-fields > * {
+    grid-column: 1 / -1;
+  }
+  .auth-sub {
+    margin-bottom: 1rem;
+  }
+}
+
+/* ------------------------------------------------------------ fields */
+.auth-card .form-label {
+  color: var(--up-muted);
+  margin-bottom: 0.4rem;
+}
+.auth-req {
+  color: var(--auth-danger);
+}
+.auth-input {
+  position: relative;
+}
+.auth-card .form-control {
+  min-height: 44px;
+  font-size: 1rem;
+  background-color: var(--up-bg-soft);
+  transition: none; /* enabled below once the first frame is painted, so the page never animates on load */
+}
+.auth-card.is-ready .form-control {
+  transition: border-color var(--dur-micro) var(--ease-out), box-shadow var(--dur-micro) var(--ease-out);
+}
+.auth-card .form-control::placeholder {
+  color: var(--up-muted);
+  opacity: 1;
+}
+.auth-card .form-control:focus {
+  border-color: var(--auth-ring);
+  box-shadow: 0 0 0 2px var(--auth-ground), 0 0 0 4px var(--auth-ring);
+}
+.auth-card .form-control.is-invalid,
+.auth-card .form-control.is-invalid:focus {
+  border-color: var(--auth-danger);
+  background-image: none;
+  padding-right: 0.8rem;
+}
+.auth-card .form-control.is-invalid:focus {
+  box-shadow: 0 0 0 2px var(--auth-ground), 0 0 0 4px var(--auth-ring);
+}
+.auth-input.has-toggle .form-control,
+.auth-input.has-toggle .form-control.is-invalid {
+  padding-right: 3rem;
+}
+.auth-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 44px;
+  height: 100%;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 0 10px 10px 0;
+  background: transparent;
+  color: var(--up-muted);
+  font-size: 1.1rem;
+  transition: color var(--dur-micro) var(--ease-out);
+}
+.auth-toggle:hover,
+.auth-toggle[aria-pressed='true'] {
+  color: var(--up-text-strong);
+}
+.auth-toggle:focus-visible {
+  outline-offset: -4px; /* the button sits inside the field, so the ring goes inward */
+}
+
+/* Field error: border goes red in 150ms (above), the message fades/settles in 200ms. No shake. */
+.auth-error {
+  margin: 0;
+  height: 0;
+  overflow: hidden;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: var(--auth-danger-text);
+  opacity: 0;
+  transform: translateY(-4px);
+}
+.auth-field.is-invalid .auth-error {
+  height: auto;
+  margin-top: 0.4rem;
+  opacity: 1;
+  transform: none;
+}
+
+/* "Did you mean ...?" under the create-account e-mail field. Collapsed (and out of the Tab order and the accessibility
+   tree) until there is a suggestion; opens in 200ms by growing its grid row from 0fr to 1fr. */
+.auth-suggest {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+}
+.auth-suggest.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+}
+.auth-suggest-inner {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 0.75rem;
+}
+.auth-suggest.is-open .auth-suggest-inner {
+  padding-top: 0.15rem;
+}
+.auth-suggest-text {
+  font-size: 0.86rem;
+  line-height: 1.35;
+  color: var(--up-text);
+}
+.auth-suggest-text strong {
+  color: var(--up-text-strong);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.auth-suggest-btn {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 0.9rem;
+  border: 1px solid var(--up-border-strong);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--up-accent-bright);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out);
+}
+.auth-suggest-btn[hidden] {
+  display: none;
+}
+.auth-suggest-btn:hover {
+  background: var(--up-accent-soft);
+  border-color: var(--up-accent-bright);
+}
+.auth-suggest-btn:focus-visible {
+  outline-offset: -3px; /* the box clips overflow, so the ring goes inward */
+}
+
+/* Applying the suggestion: the field flashes for 150ms so the change is noticed. */
+.auth-input.is-applied .form-control {
+  animation: auth-applied var(--dur-micro) var(--ease-out);
+}
+@keyframes auth-applied {
+  from {
+    background-color: var(--up-accent-soft);
+    border-color: var(--up-accent-bright);
+  }
+}
+
+/* The logo is a label, not a control (on every auth screen): no pointer, no hover or focus styling, never dragged. */
+.auth-brand {
+  cursor: default;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* ------------------------------------------------------------ submit button */
+.auth-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-height: 48px;
+  white-space: nowrap;
+  /* Lighter on hover, but only as light as white text still passes 4.5:1 (a stronger tint drops to ~3.8:1). */
+  --bs-btn-hover-bg: #346eec;
+  --bs-btn-hover-border-color: #346eec;
+  --bs-btn-active-bg: var(--up-accent-hover);
+  --bs-btn-active-border-color: var(--up-accent-hover);
+  transition: background-color var(--dur-micro) var(--ease-out), border-color var(--dur-micro) var(--ease-out), transform var(--dur-micro) var(--ease-out), opacity var(--dur-micro) var(--ease-out);
+}
+@supports (background: color-mix(in srgb, red 50%, white)) {
+  .auth-submit {
+    --bs-btn-hover-bg: color-mix(in srgb, var(--up-accent) 93%, white);
+    --bs-btn-hover-border-color: color-mix(in srgb, var(--up-accent) 93%, white);
+  }
+}
+/* The lift moves the button 1px up; this strip keeps the pointer's original footprint hot so a cursor resting on the
+   bottom edge does not make the button flicker between lifted and resting. */
+.auth-submit {
+  position: relative;
+}
+.auth-submit::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -2px;
+  height: 2px;
+}
+.auth-submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.auth-submit:active:not(:disabled) {
+  transform: scale(0.98);
+  transition-duration: 80ms;
+}
+.auth-submit-icon {
+  display: inline-grid;
+  width: 1.1em;
+  height: 1.1em;
+  place-items: center;
+}
+.auth-submit-icon > * {
+  grid-area: 1 / 1;
+}
+.auth-spinner {
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  opacity: 0;
+}
+.auth-submit.is-loading {
+  opacity: 1; /* keep it readable: it is disabled, but it is not "unavailable" */
+  --bs-btn-disabled-opacity: 1;
+}
+.auth-submit.is-loading .auth-submit-icon .bi {
+  opacity: 0;
+}
+.auth-submit.is-loading .auth-spinner {
+  opacity: 1;
+  animation: auth-spin 700ms linear infinite;
+}
+@keyframes auth-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ------------------------------------------------------------ mobile header + two-segment control */
+.auth-mobile-head {
+  grid-area: 1 / 1;
+  display: grid;
+  gap: 1.1rem;
+  padding: 0.25rem 0.5rem 0.9rem;
+}
+.auth-switch {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 4px;
+  background: var(--up-surface-2);
+  border: 1px solid var(--up-border-strong);
+  border-radius: 14px;
+}
+.auth-switch a {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  border-radius: 10px;
+  color: var(--up-muted);
+  font-weight: 650;
+  text-decoration: none;
+  transition: color var(--dur-micro) var(--ease-out);
+}
+.auth-switch a:hover {
+  color: var(--up-text-strong);
+  text-decoration: none;
+}
+.auth-switch-pill {
+  position: absolute;
+  z-index: 0;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  border-radius: 10px;
+  background: var(--up-accent);
+}
+.auth-card[data-mode='login'] .auth-switch a[data-auth-switch='login'],
+.auth-card[data-mode='register'] .auth-switch a[data-auth-switch='register'] {
+  color: #fff;
+}
+.auth-card[data-mode='register'] .auth-switch-pill {
+  transform: translateX(100%);
+}
+
+/* ------------------------------------------------------------ below 900px: no overlay, forms slide as panes */
+@media (max-width: 899.98px) {
+  .auth-card {
+    max-width: 520px;
+    margin-inline: auto;
+    overflow: hidden; /* clips the pane that is sliding in or out */
+  }
+  .auth-pane {
+    grid-area: 2 / 1;
+    justify-content: flex-start;
+    padding: 0.5rem 0.5rem 1.25rem;
+    visibility: hidden;
+  }
+  .auth-card[data-mode='login'] .auth-pane--login,
+  .auth-card[data-mode='register'] .auth-pane--register {
+    visibility: visible;
+    transform: none;
+  }
+  .auth-card[data-mode='login'] .auth-pane--register {
+    transform: translateX(100%);
+  }
+  .auth-card[data-mode='register'] .auth-pane--login {
+    transform: translateX(-100%);
+  }
+
+  .auth-card.is-ready .auth-pane {
+    transition: transform var(--dur-form) var(--ease-out), visibility 0s linear var(--dur-form);
+  }
+  .auth-card.is-ready[data-mode='login'] .auth-pane--login,
+  .auth-card.is-ready[data-mode='register'] .auth-pane--register {
+    transition: transform var(--dur-form) var(--ease-out), visibility 0s linear 0s;
+  }
+  .auth-card.is-ready .auth-switch-pill {
+    transition: transform 260ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .auth-card.is-sliding .auth-pane {
+    will-change: transform;
+  }
+}
+@media (max-width: 479.98px) {
+  .auth-pane {
+    padding-bottom: 0.5rem;
+  }
+}
+
+/* ------------------------------------------------------------ 900px and wider: one card, sliding overlay */
+@media (min-width: 900px) {
+  .auth-card {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    background: var(--up-surface);
+    border: 1px solid var(--up-border-strong);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(2, 6, 18, 0.55); /* static: never animated */
+    --auth-ground: var(--up-surface);
+  }
+  .auth-mobile-head {
+    display: none;
+  }
+
+  /* Overlay, register pane and login pane share one grid row, so the card is as tall as its tallest
+     member (the register form) in BOTH modes and nothing jumps when switching. */
+  .auth-overlay {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 2rem;
+    grid-area: 1 / 1;
+    z-index: 3;
+    padding: 2.4rem 2.2rem;
+    background:
+      linear-gradient(160deg, rgba(37, 99, 235, 0.35), rgba(13, 21, 37, 0.2) 70%),
+      var(--up-sidebar);
+    box-shadow: inset 1px 0 0 var(--up-border), inset -1px 0 0 var(--up-border);
+  }
+  .auth-card[data-mode='register'] .auth-overlay {
+    transform: translateX(100%);
+  }
+  .auth-overlay a:focus-visible {
+    outline-color: #fff;
+  }
+
+  .auth-pane {
+    grid-row: 1;
+    z-index: 1;
+    padding: 2.4rem 2.6rem;
+    opacity: 0;
+    visibility: hidden;
+  }
+  .auth-pane--register {
+    grid-column: 1;
+    transform: translateX(calc(var(--auth-shift) * -1)); /* waits a step behind the overlay's travel */
+  }
+  .auth-pane--login {
+    grid-column: 2;
+    transform: translateX(var(--auth-shift)); /* leaves along the overlay's travel */
+  }
+  .auth-card[data-mode='login'] .auth-pane--login,
+  .auth-card[data-mode='register'] .auth-pane--register {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+  }
+
+  /* Reveal children: opacity only, staggered; the pane itself carries the 24px settle. */
+  .auth-card[data-mode='login'] .auth-pane--register .auth-r,
+  .auth-card[data-mode='register'] .auth-pane--login .auth-r {
+    opacity: 0;
+  }
+
+  /* ---- transitions (only once .is-ready) ---- */
+  .auth-card.is-ready .auth-overlay {
+    transition: transform var(--dur-slide) var(--ease-slide);
+  }
+  .auth-card.is-sliding .auth-overlay {
+    will-change: transform;
+  }
+
+  /* Outgoing form: 220ms ease-in, no delay, then visibility:hidden. */
+  .auth-card.is-ready .auth-pane {
+    transition:
+      opacity var(--dur-fast) var(--ease-in),
+      transform var(--dur-fast) var(--ease-in),
+      visibility 0s linear var(--dur-fast);
+  }
+  .auth-card.is-ready .auth-pane .auth-r {
+    transition: opacity var(--dur-fast) var(--ease-in);
+  }
+
+  /* Incoming form: 320ms ease-out, starts at 240ms; children follow with a 30ms stagger capped at 150ms. */
+  .auth-card.is-ready[data-mode='login'] .auth-pane--login,
+  .auth-card.is-ready[data-mode='register'] .auth-pane--register {
+    transition:
+      opacity var(--dur-form) var(--ease-out) var(--auth-form-delay),
+      transform var(--dur-form) var(--ease-out) var(--auth-form-delay),
+      visibility 0s linear 0s;
+  }
+  .auth-card.is-ready[data-mode='login'] .auth-pane--login .auth-r,
+  .auth-card.is-ready[data-mode='register'] .auth-pane--register .auth-r {
+    transition: opacity var(--auth-child-dur) var(--ease-out)
+      calc(var(--auth-form-delay) + min(var(--i, 0) * var(--auth-stagger), var(--auth-stagger-cap)));
+  }
+
+  /* Switch prompt: both versions cross-fade for 160ms, linear. */
+  .auth-card.is-ready .auth-prompt {
+    transition: opacity 160ms linear, visibility 0s linear 160ms;
+  }
+  .auth-card.is-ready[data-mode='login'] .auth-prompt--login,
+  .auth-card.is-ready[data-mode='register'] .auth-prompt--register {
+    transition: opacity 160ms linear, visibility 0s linear 0s;
+  }
+}
+
+/* ------------------------------------------------------------ field error reveal (all sizes) */
+.auth-card.is-ready .auth-error {
+  transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+}
+.auth-card.is-ready .auth-suggest {
+  transition: grid-template-rows 200ms var(--ease-out), opacity 200ms var(--ease-out), visibility 0s linear 200ms;
+}
+.auth-card.is-ready .auth-suggest.is-open {
+  transition: grid-template-rows 200ms var(--ease-out), opacity 200ms var(--ease-out), visibility 0s linear 0s;
+}
+
+/* ------------------------------------------------------------ reduced motion: 150ms cross-fade, no travel, no stagger */
+@media (prefers-reduced-motion: reduce) {
+  .auth-card .auth-overlay,
+  .auth-card .auth-switch-pill {
+    transition: none !important;
+    will-change: auto !important;
+  }
+  .auth-card .auth-pane {
+    transform: none !important;
+    will-change: auto !important;
+  }
+  .auth-card .auth-r {
+    opacity: 1 !important;
+    transition: none !important;
+  }
+  .auth-card .auth-error {
+    transform: none !important;
+  }
+
+  .auth-card.is-ready .auth-pane,
+  .auth-card.is-ready .auth-prompt {
+    transition: opacity 150ms linear, visibility 0s linear 150ms !important;
+  }
+  .auth-card.is-ready[data-mode='login'] .auth-pane--login,
+  .auth-card.is-ready[data-mode='register'] .auth-pane--register,
+  .auth-card.is-ready[data-mode='login'] .auth-prompt--login,
+  .auth-card.is-ready[data-mode='register'] .auth-prompt--register {
+    transition: opacity 150ms linear, visibility 0s linear 0s !important;
+  }
+  .auth-card.is-ready .auth-error {
+    transition: opacity 150ms linear !important;
+  }
+  .auth-card.is-ready .auth-suggest {
+    transition: opacity 150ms linear, visibility 0s linear 150ms !important;
+  }
+  .auth-card.is-ready .auth-suggest.is-open {
+    transition: opacity 150ms linear, visibility 0s linear 0s !important;
+  }
+  .auth-submit:hover:not(:disabled),
+  .auth-submit:active:not(:disabled),
+  .auth-switch-btn:active {
+    transform: none;
+  }
+  .auth-submit.is-loading .auth-spinner {
+    animation-duration: 1.6s; /* the spinner is feedback, not decoration: keep it, but calmer */
+  }
+}
+
+/* Mobile with reduced motion: panes cross-fade in place instead of sliding (they share one grid cell). */
+@media (max-width: 899.98px) and (prefers-reduced-motion: reduce) {
+  .auth-card .auth-pane {
+    opacity: 0;
+  }
+  .auth-card[data-mode='login'] .auth-pane--login,
+  .auth-card[data-mode='register'] .auth-pane--register {
+    opacity: 1;
+  }
+}
+
+/* =========================================================================
+   Steps inside a pane: sign in -> forgot -> sent, sign-up form -> verify, reset
+   Every step of a pane shares one grid cell, so the card's height never changes.
+   Forward: the outgoing step fades to -24px (180ms ease-in); the incoming one comes from +24px
+   (280ms ease-out, 140ms later). Back mirrors the direction ([data-dir='back']).
+   ========================================================================= */
+.auth-pane {
+  --step-out-dur: 180ms;
+  --step-in-dur: 280ms;
+  --step-in-delay: 140ms;
+}
+.auth-steps {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+  --step-in: var(--auth-shift);
+  --step-out: calc(var(--auth-shift) * -1);
+}
+.auth-steps[data-dir='back'] {
+  --step-in: calc(var(--auth-shift) * -1);
+  --step-out: var(--auth-shift);
+}
+.auth-step {
+  grid-area: 1 / 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(var(--step-in));
+}
+.auth-step.is-out {
+  transform: translateX(var(--step-out));
+}
+.auth-step.is-current {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+.auth-card.is-ready .auth-step {
+  transition:
+    opacity var(--step-out-dur) var(--ease-in),
+    transform var(--step-out-dur) var(--ease-in),
+    visibility 0s linear var(--step-out-dur);
+}
+.auth-card.is-ready .auth-step.is-current {
+  transition:
+    opacity var(--step-in-dur) var(--ease-out) var(--step-in-delay),
+    transform var(--step-in-dur) var(--ease-out) var(--step-in-delay),
+    visibility 0s linear 0s;
+}
+.auth-card .auth-step.is-instant {
+  transition: none !important;
+}
+.auth-card.is-stepping .auth-step {
+  will-change: transform, opacity;
+}
+@media (max-width: 899.98px) {
+  .auth-step {
+    justify-content: flex-start;
+  }
+}
+
+/* ------------------------------------------------------------ small text links and buttons (44px targets) */
+.auth-text-link,
+.auth-label-link,
+.auth-error-actions a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 44px;
+  color: var(--up-accent-bright);
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 6px;
+}
+.auth-text-link:hover,
+.auth-label-link:hover,
+.auth-error-actions a:hover {
+  color: var(--up-text-strong);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.auth-foot--tight {
+  margin-top: 0;
+}
+.auth-foot--inline {
+  margin: 0;
+}
+.auth-hint--after {
+  margin: 0.5rem 0 1rem;
+}
+.auth-email {
+  color: var(--up-text-strong);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* "Forgot password?" sits at the right end of the Password label row. It follows the input in the source (Tab reaches
+   the password first) and is placed on the label row by the grid; negative margins keep the 44px target from
+   pushing the input down. */
+.auth-field.has-action {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 0.75rem;
+}
+.auth-field.has-action > * {
+  grid-column: 1 / -1;
+}
+.auth-field.has-action > .form-label {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: center;
+}
+.auth-field.has-action > .auth-label-link {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+  margin: -12px -0.35rem -8px 0;
+  padding-inline: 0.35rem;
+  font-size: 0.86rem;
+}
+.auth-field.has-action > .auth-input {
+  grid-row: 2;
+}
+
+/* "Sign in · Forgot password?" under "That email is already registered." */
+.auth-error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 0.6rem;
+  margin: -0.35rem 0 -0.6rem;
+  font-size: 0.86rem;
+  color: var(--up-muted);
+}
+
+/* Text-style button ("Resend code"). Disabled during the cooldown. */
+.auth-link-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 0.15rem;
+  border: 0;
+  background: transparent;
+  color: var(--up-accent-bright);
+  font-weight: 600;
+  border-radius: 6px;
+  transition: color var(--dur-micro) var(--ease-out);
+}
+.auth-link-btn:hover:not(:disabled) {
+  color: var(--up-text-strong);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.auth-link-btn:disabled {
+  color: var(--up-muted);
+  cursor: default;
+}
+.auth-link-btn.is-emphasis:not(:disabled) {
+  padding: 0 1rem;
+  border: 1px solid var(--up-accent-bright);
+  border-radius: 10px;
+}
+.auth-verify-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+  margin-top: 1rem;
+  color: var(--up-muted);
+  font-size: 0.9rem;
+}
+.auth-verify-actions form {
+  margin: 0;
+}
+.js-auth [data-auth-nojs] {
+  display: none;
+}
+
+/* ------------------------------------------------------------ status banners (role="status") */
+.auth-banner {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  margin: 0 0 1.1rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid;
+  border-radius: 10px;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--up-text);
+}
+.auth-banner .bi {
+  margin-top: 0.1rem;
+}
+.auth-banner--success {
+  background: var(--up-available-soft);
+  border-color: rgba(34, 197, 94, 0.45);
+}
+.auth-banner--success .bi {
+  color: #4ade80;
+}
+.auth-banner--danger {
+  background: var(--up-occupied-soft);
+  border-color: rgba(248, 113, 113, 0.45);
+}
+.auth-banner--danger .bi {
+  color: var(--auth-danger);
+}
+.auth-banner--info {
+  background: var(--up-accent-soft);
+  border-color: rgba(96, 165, 250, 0.4);
+}
+.auth-banner--info .bi {
+  color: var(--up-accent-bright);
+}
+.auth-banner:focus {
+  outline: none;
+}
+/* Server-rendered banners animate once the page is ready; auth.js marks them .is-new for that one moment. */
+.auth-card.is-ready .auth-banner.is-new {
+  animation: auth-banner-in 240ms var(--ease-out) both;
+}
+@keyframes auth-banner-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+/* ------------------------------------------------------------ 6-digit code: one input, drawn as six boxes */
+.auth-code {
+  position: relative;
+}
+/* Without the script: a plain, wide, monospaced field. */
+.auth-card .auth-code-input {
+  font-family: var(--up-mono);
+  font-size: 1.35rem;
+  letter-spacing: 0.4em;
+  text-align: center;
+}
+.auth-code-cells {
+  display: none;
+}
+.auth-code.is-segmented .auth-code-cells {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+.auth-code-cells > span {
+  display: grid;
+  place-items: center;
+  height: 56px;
+  border: 1px solid var(--up-border-strong);
+  border-radius: 10px;
+  background: var(--up-bg-soft);
+  color: var(--up-text-strong);
+  font-family: var(--up-mono);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+.auth-card.is-ready .auth-code-cells > span {
+  transition: border-color var(--dur-micro) var(--ease-out), box-shadow var(--dur-micro) var(--ease-out);
+}
+/* The real input lies over the boxes, fully transparent, so taps, paste and autofill reach it. */
+.auth-card .auth-code.is-segmented .auth-code-input {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+  box-shadow: none;
+  font-size: 16px; /* no zoom-on-focus on iOS */
+  letter-spacing: 0;
+}
+.auth-code.is-segmented .auth-code-input::selection {
+  background: transparent;
+}
+.auth-code.is-segmented .auth-code-input:focus + .auth-code-cells > span.is-active {
+  border-color: var(--auth-ring);
+  box-shadow: 0 0 0 2px var(--auth-ground), 0 0 0 4px var(--auth-ring);
+}
+.auth-field.is-invalid .auth-code-cells > span {
+  border-color: var(--auth-danger);
+}
+.auth-code.is-success .auth-code-cells > span,
+.auth-card .auth-code.is-success .auth-code-input {
+  border-color: #22c55e;
+  box-shadow: none;
+}
+.auth-code-check {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #16a34a;
+  color: #fff;
+  font-size: 1rem;
+  opacity: 0;
+  transform: scale(0.6);
+  pointer-events: none;
+}
+.auth-code.is-success .auth-code-check {
+  opacity: 1;
+  transform: none;
+  transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+}
+
+/* ------------------------------------------------------------ flows: verify / forgot / reset */
+.auth-back {
+  display: none;
+}
+@media (max-width: 899.98px) {
+  /* The two-segment control gives way to a "Back" button while a flow is in progress. */
+  .auth-card:not([data-flow='']) .auth-switch {
+    display: none;
+  }
+  .auth-card:not([data-flow='']) .auth-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    justify-self: start;
+    min-height: 44px;
+    padding: 0 0.6rem 0 0.2rem;
+    color: var(--up-text);
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 10px;
+  }
+  .auth-card:not([data-flow='']) .auth-back:hover {
+    color: var(--up-text-strong);
+  }
+}
+/* The reset screen has no slider: the overlay stays on the left and offers no switch. */
+.auth-card[data-flow='reset'] .auth-prompts {
+  visibility: hidden;
+}
+
+/* ------------------------------------------------------------ reduced motion: 150ms cross-fades only */
+@media (prefers-reduced-motion: reduce) {
+  .auth-card .auth-step,
+  .auth-card .auth-step.is-out {
+    transform: none !important;
+  }
+  .auth-card.is-ready .auth-step {
+    transition: opacity 150ms linear, visibility 0s linear 150ms !important;
+  }
+  .auth-card.is-ready .auth-step.is-current {
+    transition: opacity 150ms linear, visibility 0s linear 0s !important;
+  }
+  .auth-card.is-ready .auth-banner.is-new {
+    animation: auth-fade-in 150ms linear both;
+  }
+  .auth-code-check,
+  .auth-code.is-success .auth-code-check {
+    transform: none;
+    transition: opacity 150ms linear;
+  }
+}
+@keyframes auth-fade-in {
+  from {
+    opacity: 0;
+  }
+}

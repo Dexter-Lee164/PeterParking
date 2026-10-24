@@ -1,0 +1,44 @@
+<%# Reusable GET filter bar: search, date, time, select (zone, status…) controls.
+    Params: formId, action, fields [{ type: search|text|date|time|select, name, label, value, options, placeholder, col, attrs }],
+            submitLabel, submitIcon, resetHref, durationPill (bool), showErrors (bool), toolbarClass %>
+<%
+  const tFields = locals.fields || [];
+  const tFormId = locals.formId || 'filterForm';
+%>
+<form id="<%= tFormId %>" class="<%= locals.toolbarClass || 'filter-bar' %>" method="get" action="<%= locals.action || '' %>" novalidate>
+  <div class="row g-2 align-items-end">
+    <% tFields.filter(function (f) { return f.type === 'hidden'; }).forEach(function (f) { %>
+      <input type="hidden" name="<%= f.name %>" value="<%= f.value === undefined || f.value === null ? '' : f.value %>">
+    <% }) %>
+    <% tFields.filter(function (f) { return f.type !== 'hidden'; }).forEach(function (f) { const fid = tFormId + '-' + f.name; %>
+      <div class="<%= f.col || 'col-6 col-md-3' %>">
+        <label class="form-label" for="<%= fid %>"><%= f.label %></label>
+        <% if (f.type === 'select') { %>
+          <select class="form-select" id="<%= fid %>" name="<%= f.name %>" <% Object.keys(f.attrs || {}).forEach(function (k) { %> <%= k %>="<%= f.attrs[k] %>"<% }) %>>
+            <% (f.options || []).forEach(function (o) { %>
+              <option value="<%= o.value %>" <%= String(o.value) === String(f.value === undefined || f.value === null ? '' : f.value) ? 'selected' : '' %>><%= o.label %></option>
+            <% }) %>
+          </select>
+        <% } else { %>
+          <input class="form-control" id="<%= fid %>" name="<%= f.name %>" type="<%= f.type || 'text' %>"
+                 value="<%= f.value === undefined || f.value === null ? '' : f.value %>"
+                 <% if (f.placeholder) { %>placeholder="<%= f.placeholder %>"<% } %> autocomplete="off"
+                 <% Object.keys(f.attrs || {}).forEach(function (k) { %> <%= k %>="<%= f.attrs[k] %>"<% }) %>>
+        <% } %>
+      </div>
+    <% }) %>
+    <% if (locals.durationPill) { %>
+      <div class="col-6 col-md-2">
+        <span class="form-label d-block" id="<%= tFormId %>-duration-label">Duration</span>
+        <div class="duration-pill" id="durationPill" role="status" aria-labelledby="<%= tFormId %>-duration-label"><i class="bi bi-hourglass-split" aria-hidden="true"></i><span id="durationText">—</span></div>
+      </div>
+    <% } %>
+    <div class="col-12 col-md-auto ms-md-auto d-flex gap-2 pt-1">
+      <button class="btn btn-primary flex-grow-1" type="submit" id="<%= tFormId %>-submit">
+        <i class="bi <%= locals.submitIcon || 'bi-search' %>" aria-hidden="true"></i> <%= locals.submitLabel || 'Apply filters' %>
+      </button>
+      <% if (locals.resetHref) { %><a class="btn btn-outline-secondary" href="<%= resetHref %>">Reset</a><% } %>
+    </div>
+  </div>
+  <% if (locals.showErrors) { %><div class="toolbar-errors" id="<%= tFormId %>-errors" role="alert" aria-live="assertive"></div><% } %>
+</form>

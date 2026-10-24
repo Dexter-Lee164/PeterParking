@@ -1,0 +1,26 @@
+<tr>
+  <td data-label="Slot"><strong class="font-mono"><%= row.slot_code %></strong><% if (row.notes) { %><span class="sub"><%= row.notes %></span><% } %></td>
+  <td data-label="Zone"><%= row.zone_name %></td>
+  <td data-label="Type"><i class="bi <%= row.type_icon %> me-1" aria-hidden="true"></i><%= row.type_label %></td>
+  <td data-label="Rate / hr" class="text-end"><%= peso(row.hourly_rate_centavos) %><% if (row.hourly_rate_override_centavos !== null) { %><span class="sub">override</span><% } %></td>
+  <td data-label="Status"><%- include('partials/status-badge', { kind: 'slot', status: row.status }) %></td>
+  <td data-label="Right now"><%- include('partials/status-badge', { kind: 'availability', status: row.live_state }) %></td>
+  <td data-label="" class="text-end">
+    <div class="table-actions">
+      <a class="btn btn-sm btn-outline-secondary" href="/admin/slots/<%= row.id %>/edit" aria-label="Manage slot <%= row.slot_code %>">Manage</a>
+      <% if (row.status === 'active') { %>
+        <form method="post" action="/admin/slots/<%= row.id %>/status">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="status" value="maintenance">
+          <button class="btn btn-sm btn-outline-warning" type="submit" aria-label="Put slot <%= row.slot_code %> into maintenance">Maintenance</button>
+        </form>
+      <% } else { %>
+        <form method="post" action="/admin/slots/<%= row.id %>/status">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="status" value="active">
+          <button class="btn btn-sm btn-outline-success" type="submit" aria-label="Return slot <%= row.slot_code %> to service">Activate</button>
+        </form>
+      <% } %>
+    </div>
+  </td>
+</tr>

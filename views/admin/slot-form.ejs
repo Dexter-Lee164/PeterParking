@@ -1,0 +1,49 @@
+<div class="page-intro">
+  <div>
+    <h2>Slot <%= slot.slot_code %></h2>
+    <p><%= slot.zone_name %> · <%= slot.type_label %>. The parking layout is fixed; you can change how this slot operates.</p>
+  </div>
+</div>
+
+<% if (formError) { %><div class="alert alert-danger" role="alert"><i class="bi bi-exclamation-octagon me-2" aria-hidden="true"></i><%= formError %></div><% } %>
+
+<% if (blockers && (blockers.openSession || blockers.upcoming.length)) { %>
+  <div class="alert alert-warning small" role="note">
+    <strong>This slot is in use.</strong>
+    <% if (blockers.openSession) { %>A vehicle is parked here now. <% } %>
+    <% if (blockers.upcoming.length) { %><%= blockers.upcoming.length %> upcoming reservation(s) (<%= blockers.upcoming.slice(0, 4).map(function (u) { return u.booking_ref; }).join(', ') %>).<% } %>
+    You can change its notes and rate, but it cannot be put into maintenance or made inactive until these are resolved.
+  </div>
+<% } %>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <section class="summary-card">
+      <div class="p-3">
+        <form method="post" action="/admin/slots/<%= slot.id %>" novalidate>
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="row g-3">
+            <%- include('partials/form-field', { name: 'status', label: 'Operational status', type: 'select', value: values.status, errors: errors, required: true, col: 'col-sm-6', options: statusOptions, help: 'Maintenance and Inactive slots cannot be reserved.' }) %>
+            <%- include('partials/form-field', { name: 'hourly_rate_override', label: 'Hourly rate override (optional)', value: values.hourly_rate_override, errors: errors, col: 'col-sm-6', prefix: '₱', placeholder: 'Use zone/type rate', help: 'Leave blank to use the standard rate.' }) %>
+            <%- include('partials/form-field', { name: 'notes', label: 'Notes (optional)', type: 'textarea', value: values.notes, errors: errors, rows: 2, maxlength: 300, placeholder: 'e.g. Pothole being repaired' }) %>
+            <div class="col-12 d-flex gap-2">
+              <button class="btn btn-primary" type="submit"><i class="bi bi-check2" aria-hidden="true"></i> Save changes</button>
+              <a class="btn btn-outline-secondary" href="/admin/slots?zone=<%= slot.zone_id %>">Cancel</a>
+            </div>
+          </div>
+        </form>
+      </div>
+    </section>
+  </div>
+  <div class="col-lg-5">
+    <%- include('partials/summary-card', {
+      title: 'Layout (fixed)',
+      items: [
+        { label: 'Zone', value: slot.zone_name + ' (' + slot.zone_code + ')' },
+        { label: 'Slot code', value: slot.slot_code },
+        { label: 'Slot type', value: slot.type_label },
+        { label: 'Current rate', value: peso(slot.hourly_rate_centavos) + ' / hour' }
+      ]
+    }) %>
+  </div>
+</div>

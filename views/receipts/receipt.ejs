@@ -1,0 +1,50 @@
+<div class="receipt-toolbar no-print">
+  <a class="btn btn-outline-secondary btn-sm" href="<%= backHref %>"><i class="bi bi-arrow-left" aria-hidden="true"></i> Back</a>
+  <button type="button" class="btn btn-primary btn-sm" data-print><i class="bi bi-printer" aria-hidden="true"></i> Print receipt</button>
+  <% if (locals.voidable) { %>
+    <form method="post" action="/admin/payments/<%= payment.id %>/void" data-confirm="Void receipt <%= payment.receipt_no %> (<%= peso(payment.amount_centavos) %>)? The amount is added back to the booking balance. The record is kept." data-confirm-title="Void payment" data-confirm-label="Void payment" data-confirm-tone="danger" data-confirm-reason="Reason for voiding">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-slash-circle" aria-hidden="true"></i> Void payment</button>
+    </form>
+  <% } %>
+</div>
+
+<article class="receipt-sheet" aria-label="Payment receipt <%= payment.receipt_no %>">
+  <header style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;border-bottom:2px solid #111827;padding-bottom:.9rem;margin-bottom:1rem">
+    <div>
+      <h1 style="font-size:1.25rem;margin:0"><%= appName %></h1>
+      <div class="muted" style="font-size:.85rem">Parking Office · Official payment record</div>
+    </div>
+    <div style="text-align:right">
+      <div class="muted" style="font-size:.75rem;letter-spacing:.08em;text-transform:uppercase">Receipt</div>
+      <div style="font-family:var(--up-mono);font-weight:700"><%= payment.receipt_no %></div>
+    </div>
+  </header>
+
+  <% if (payment.status === 'voided') { %>
+    <div style="text-align:center;margin:.5rem 0 1rem"><span class="stamp-void">VOIDED</span></div>
+  <% } %>
+
+  <table>
+    <tbody>
+      <tr><th scope="row" class="muted" style="font-weight:500">Date &amp; time</th><td class="r"><%= fmtDateTime(payment.paid_at) %></td></tr>
+      <tr><th scope="row" class="muted" style="font-weight:500">Received from</th><td class="r"><%= payment.driver_name %></td></tr>
+      <tr><th scope="row" class="muted" style="font-weight:500">Booking reference</th><td class="r" style="font-family:var(--up-mono)"><%= payment.booking_ref %></td></tr>
+      <tr><th scope="row" class="muted" style="font-weight:500">Slot / zone</th><td class="r"><%= payment.slot_code %> · <%= payment.zone_name %></td></tr>
+      <tr><th scope="row" class="muted" style="font-weight:500">Vehicle plate</th><td class="r"><%= payment.plate_number %></td></tr>
+      <tr><th scope="row" class="muted" style="font-weight:500">Payment method</th><td class="r"><%= paymentMethod(payment.method) %></td></tr>
+      <% if (payment.reference) { %><tr><th scope="row" class="muted" style="font-weight:500">Reference no.</th><td class="r"><%= payment.reference %></td></tr><% } %>
+      <tr><th scope="row" style="font-size:1.05rem">Amount received</th><td class="r" style="font-size:1.35rem;font-weight:800"><%= peso(payment.amount_centavos) %></td></tr>
+    </tbody>
+  </table>
+
+  <% if (payment.status === 'voided') { %>
+    <p style="margin:1rem 0 0;font-size:.85rem;color:#b91c1c">
+      Voided on <%= fmtDateTime(payment.voided_at) %><% if (payment.voided_by_name) { %> by <%= payment.voided_by_name %><% } %>. Reason: <%= payment.void_reason %>
+    </p>
+  <% } %>
+
+  <footer class="muted" style="margin-top:1.4rem;font-size:.78rem;text-align:center">
+    Recorded by <%= payment.recorded_by_name %>. This payment was recorded manually by parking staff; no online payment was processed.
+  </footer>
+</article>

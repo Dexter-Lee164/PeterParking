@@ -1,0 +1,41 @@
+<div class="page-intro">
+  <div>
+    <h2>Settings</h2>
+    <p>Booking and billing policy. Changes apply to new bookings, check-outs and cancellations right away.</p>
+  </div>
+</div>
+<%- include('partials/settings-tabs') %>
+
+<% if (locals.formError) { %><div class="alert alert-danger" role="alert"><i class="bi bi-exclamation-octagon me-2" aria-hidden="true"></i><%= formError %></div><% } %>
+
+<form method="post" action="/admin/settings/rules" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <%
+    const groups = [
+      { title: 'Operating hours & booking window', icon: 'bi-clock', keys: ['open_time', 'close_time', 'time_step_minutes', 'min_duration_minutes', 'max_duration_minutes', 'max_advance_days', 'max_active_reservations'] },
+      { title: 'Arrival & departure', icon: 'bi-box-arrow-in-right', keys: ['checkin_early_minutes', 'late_arrival_grace_minutes', 'overstay_grace_minutes'] },
+      { title: 'Billing & fees', icon: 'bi-cash-stack', keys: ['billing_increment_minutes', 'overstay_multiplier_percent', 'cancel_free_hours', 'late_cancel_fee_percent', 'no_show_fee_percent'] }
+    ];
+    const byKey = {};
+    definitions.forEach(function (d) { byKey[d.key] = d; });
+  %>
+  <% groups.forEach(function (g) { %>
+    <section class="summary-card mb-3">
+      <div class="summary-head"><h3><i class="bi <%= g.icon %> me-2" aria-hidden="true"></i><%= g.title %></h3></div>
+      <div class="p-3">
+        <div class="row g-3">
+          <% g.keys.forEach(function (k) { const d = byKey[k]; %>
+            <%- include('partials/form-field', {
+              name: d.key, label: d.label, help: d.help,
+              type: d.type === 'select' ? 'select' : (d.type === 'time' ? 'time' : 'number'),
+              value: values[d.key], errors: errors, required: true, col: 'col-sm-6 col-xl-4',
+              options: d.type === 'select' ? d.options.map(function (o) { return { value: o, label: o + ' minutes' }; }) : undefined,
+              min: d.type === 'int' ? d.min : undefined, max: d.type === 'int' ? d.max : undefined
+            }) %>
+          <% }) %>
+        </div>
+      </div>
+    </section>
+  <% }) %>
+  <button class="btn btn-primary" type="submit"><i class="bi bi-check2" aria-hidden="true"></i> Save settings</button>
+</form>

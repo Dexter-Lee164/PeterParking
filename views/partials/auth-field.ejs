@@ -1,0 +1,49 @@
+<%# One field of the auth card (used only by partials/auth-shell.ejs).
+    Params: id, name, label, type, value, error (server message or ''), required, autocomplete, inputmode,
+            toggle (adds the show/hide password button), span (extra wrapper class), index (reveal order), describedBy (extra ids),
+            suggest (e-mail fields: adds the "Did you mean ...?" fix; shown when the value is a mistyped well-known provider),
+            labelAction ({ href, text, step }: a link drawn at the right end of the label row, e.g. "Forgot password?"; it
+                         comes after the input in the source, so Tab reaches the input first),
+            errorActions ([{ href, text }]: links shown under the error message, e.g. "Sign in" for a taken address) %>
+<%
+  const fType = locals.type || 'text';
+  const fErr = locals.error || '';
+  const fVal = (locals.value === undefined || locals.value === null || fType === 'password') ? '' : locals.value;
+  const fSuggestion = (locals.suggest && fErr && typeof locals.suggestEmail === 'function') ? (locals.suggestEmail(fVal) || '') : '';
+  const describedBy = [locals.describedBy || '', id + '-error', locals.suggest ? id + '-suggest-text' : ''].filter(Boolean).join(' ');
+  const action = locals.labelAction || null;
+  const errorActions = (fErr && Array.isArray(locals.errorActions)) ? locals.errorActions : [];
+%>
+<div class="auth-field auth-r<%= locals.span ? ' ' + locals.span : '' %><%= fErr ? ' is-invalid' : '' %><%= action ? ' has-action' : '' %>" style="--i:<%= locals.index || 0 %>" data-field="<%= name %>">
+  <label class="form-label" for="<%= id %>"><%= label %><% if (locals.required) { %> <span class="auth-req" aria-hidden="true">*</span><% } %></label>
+  <div class="auth-input<%= locals.toggle ? ' has-toggle' : '' %>">
+    <input class="form-control<%= fErr ? ' is-invalid' : '' %>" id="<%= id %>" name="<%= name %>" type="<%= fType %>"
+           value="<%= fVal %>"<% if (locals.required) { %> required<% } %>
+           <% if (locals.autocomplete) { %> autocomplete="<%= locals.autocomplete %>"<% } %>
+           <% if (locals.inputmode) { %> inputmode="<%= locals.inputmode %>"<% } %>
+           <% if (fType === 'email') { %> autocapitalize="none" spellcheck="false"<% } %>
+           aria-describedby="<%= describedBy %>"<% if (fErr) { %> aria-invalid="true"<% } %>>
+    <% if (locals.toggle) { %>
+      <button type="button" class="auth-toggle" data-auth-toggle aria-controls="<%= id %>" aria-pressed="false" aria-label="Show password"><i class="bi bi-eye" aria-hidden="true"></i></button>
+    <% } %>
+  </div>
+  <% if (action) { %>
+    <a class="auth-label-link" href="<%= action.href %>"<% if (action.step) { %> data-auth-goto="<%= action.step %>"<% } %>><%= action.text %></a>
+  <% } %>
+  <p class="auth-error" id="<%= id %>-error" aria-live="polite"><%= fErr %></p>
+  <% if (errorActions.length) { %>
+    <p class="auth-error-actions">
+      <% errorActions.forEach(function (a, i) { %><% if (i) { %><span aria-hidden="true">·</span><% } %><a href="<%= a.href %>"><%= a.text %></a><% }) %>
+    </p>
+  <% } %>
+  <% if (locals.suggest) { %>
+    <%# "Did you mean ...?" — collapsed (and out of the Tab order) until there is a suggestion. The fix button needs the
+        script, so it stays hidden without it; the sentence alone still tells a no-JS reader what to change. %>
+    <div class="auth-suggest<%= fSuggestion ? ' is-open' : '' %>" data-auth-suggest>
+      <div class="auth-suggest-inner">
+        <span class="auth-suggest-text" id="<%= id %>-suggest-text" aria-live="polite"><% if (fSuggestion) { %>Did you mean <strong data-suggest-value><%= fSuggestion %></strong>?<% } %></span>
+        <button type="button" class="auth-suggest-btn" data-suggest-apply hidden<% if (fSuggestion) { %> aria-label="Use <%= fSuggestion %>"<% } %>>Use it</button>
+      </div>
+    </div>
+  <% } %>
+</div>

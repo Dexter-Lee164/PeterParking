@@ -1,0 +1,83 @@
+<div class="page-intro">
+  <div>
+    <h2><%= person.full_name %></h2>
+    <p><%= person.email %> · member since <%= fmtDate(person.created_at) %></p>
+  </div>
+  <div class="d-flex flex-wrap gap-2 align-items-center">
+    <%- include('partials/status-badge', { kind: 'user', status: person.role }) %>
+    <%- include('partials/status-badge', { kind: 'user', status: person.is_active ? 'active' : 'inactive' }) %>
+    <% if (person.id !== currentUser.id) { %>
+      <form method="post" action="/admin/drivers/<%= person.id %>/status"
+            <% if (person.is_active) { %>data-confirm="Deactivate <%= person.full_name %>? They will no longer be able to sign in. Their history is kept." data-confirm-title="Deactivate account" data-confirm-label="Deactivate" data-confirm-tone="danger"<% } %>>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="active" value="<%= person.is_active ? '0' : '1' %>">
+        <button class="btn btn-sm <%= person.is_active ? 'btn-outline-danger' : 'btn-outline-success' %>" type="submit">
+          <i class="bi <%= person.is_active ? 'bi-person-dash' : 'bi-person-check' %>" aria-hidden="true"></i> <%= person.is_active ? 'Deactivate' : 'Reactivate' %>
+        </button>
+      </form>
+    <% } %>
+  </div>
+</div>
+
+<% if (formError) { %><div class="alert alert-danger" role="alert"><i class="bi bi-exclamation-octagon me-2" aria-hidden="true"></i><%= formError %></div><% } %>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3"><%- include('partials/stat-card', { label: 'Bookings', value: totals.bookings, icon: 'bi-calendar2-week', tone: 'blue' }) %></div>
+  <div class="col-6 col-lg-3"><%- include('partials/stat-card', { label: 'Completed', value: totals.completed || 0, icon: 'bi-check2-circle', tone: 'green' }) %></div>
+  <div class="col-6 col-lg-3"><%- include('partials/stat-card', { label: 'Cancelled / no-show', value: (totals.cancelled || 0) + ' / ' + (totals.no_shows || 0), icon: 'bi-x-circle', tone: 'gray' }) %></div>
+  <div class="col-6 col-lg-3"><%- include('partials/stat-card', { label: 'Outstanding', value: peso(outstanding), icon: 'bi-wallet2', tone: outstanding > 0 ? 'amber' : 'green' }) %></div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-6">
+    <section class="summary-card">
+      <div class="summary-head"><h3>Account details</h3></div>
+      <div class="p-3">
+        <form method="post" action="/admin/drivers/<%= person.id %>" novalidate>
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="is_active" value="<%= person.is_active ? '1' : '0' %>">
+          <div class="row g-3">
+            <%- include('partials/form-field', { name: 'full_name', label: 'Full name', value: values.full_name, errors: errors, required: true }) %>
+            <%- include('partials/form-field', { name: 'email', label: 'Email address', type: 'email', value: values.email, errors: errors, required: true }) %>
+            <%- include('partials/form-field', { name: 'university_id', label: 'University ID', value: values.university_id, errors: errors, col: 'col-sm-6' }) %>
+            <%- include('partials/form-field', { name: 'phone', label: 'Mobile number', type: 'tel', value: values.phone, errors: errors, col: 'col-sm-6' }) %>
+            <%- include('partials/form-field', { name: 'role', label: 'Role', type: 'select', value: values.role, errors: errors, options: roleOptions, disabled: person.id === currentUser.id }) %>
+            <% if (person.id === currentUser.id) { %><input type="hidden" name="role" value="<%= person.role %>"><% } %>
+            <%- include('partials/form-field', { name: 'new_password', label: 'Reset password (optional)', type: 'password', errors: errors, autocomplete: 'new-password', help: 'Leave blank to keep the current password.' }) %>
+            <div class="col-12"><button class="btn btn-primary" type="submit"><i class="bi bi-check2" aria-hidden="true"></i> Save changes</button></div>
+          </div>
+        </form>
+      </div>
+    </section>
+  </div>
+
+  <div class="col-lg-6">
+    <section class="summary-card mb-3">
+      <div class="summary-head"><h3>Vehicles</h3></div>
+      <div class="summary-body">
+        <% if (!vehicles.length) { %>
+          <p class="text-muted small my-3">No vehicles registered.</p>
+        <% } else { vehicles.forEach(function (v) { %>
+          <div class="summary-row">
+            <span class="k"><span class="plate"><%= v.plate_number %></span><span class="d-block small text-faint"><%= titleCase(v.vehicle_type) %> · <%= vehicleLabel(v) %></span></span>
+            <span class="v"><%- include('partials/status-badge', { kind: 'user', status: v.is_active ? 'active' : 'inactive' }) %></span>
+          </div>
+        <% }) } %>
+      </div>
+    </section>
+
+    <section class="summary-card">
+      <div class="summary-head"><h3>Recent reservations</h3><a class="small" href="/admin/reservations?q=<%= encodeURIComponent(person.email) %>">View all</a></div>
+      <div class="summary-body">
+        <% if (!history.length) { %>
+          <p class="text-muted small my-3">No reservations yet.</p>
+        <% } else { history.forEach(function (h) { %>
+          <div class="summary-row">
+            <span class="k"><a class="font-mono" href="/admin/reservations/<%= h.id %>"><%= h.booking_ref %></a><span class="d-block small text-faint"><%= fmtDate(h.start_at) %> · <%= h.slot_code %> · <%= h.plate_number %></span></span>
+            <span class="v"><%- include('partials/status-badge', { kind: 'reservation', status: h.status }) %></span>
+          </div>
+        <% }) } %>
+      </div>
+    </section>
+  </div>
+</div>

@@ -1,0 +1,42 @@
+<div class="page-intro">
+  <div>
+    <h2>Profile</h2>
+    <p>Keep your contact details current so parking staff can reach you.</p>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <section class="summary-card">
+      <div class="summary-head"><h3>Personal details</h3></div>
+      <div class="p-3">
+        <form method="post" action="/driver/profile" novalidate>
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="row g-3">
+            <%- include('partials/form-field', { name: 'full_name', label: 'Full name', value: values.full_name, errors: errors, required: true, autocomplete: 'name', maxlength: 80, help: 'Letters, spaces and hyphens only.', attrs: { 'data-name-rule': '' } }) %>
+            <%- include('partials/form-field', { name: 'email', label: 'Email address', type: 'email', value: values.email, errors: errors, required: true, autocomplete: 'email' }) %>
+            <%- include('partials/form-field', { name: 'university_id', label: 'University ID', value: values.university_id, errors: errors, col: 'col-sm-6' }) %>
+            <%- include('partials/form-field', { name: 'phone', label: 'Mobile number', type: 'tel', value: values.phone, errors: errors, col: 'col-sm-6', autocomplete: 'tel' }) %>
+            <div class="col-12"><button class="btn btn-primary" type="submit"><i class="bi bi-check2" aria-hidden="true"></i> Save profile</button></div>
+          </div>
+        </form>
+      </div>
+    </section>
+  </div>
+  <div class="col-lg-5">
+    <section class="summary-card">
+      <div class="summary-head"><h3>Change password</h3></div>
+      <div class="p-3">
+        <form method="post" action="/driver/profile/password" novalidate data-password-change>
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="row g-3">
+            <%- include('partials/form-field', { name: 'current_password', label: 'Current password', type: 'password', errors: pwErrors, required: true, autocomplete: 'current-password' }) %>
+            <%- include('partials/form-field', { name: 'new_password', label: 'New password', type: 'password', errors: pwErrors, required: true, autocomplete: 'new-password', help: 'At least 8 characters, with a letter and a number. It must differ from your current password.' }) %>
+            <%- include('partials/form-field', { name: 'confirm_password', label: 'Confirm new password', type: 'password', errors: pwErrors, required: true, autocomplete: 'new-password' }) %>
+            <div class="col-12"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-key" aria-hidden="true"></i> Update password</button></div>
+          </div>
+        </form>
+      </div>
+    </section>
+  </div>
+</div>
