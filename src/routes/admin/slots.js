@@ -50,11 +50,20 @@ router.get('/', (req, res) => {
       notes: s.notes || '', filtered_out: filtering && !matching.has(s.id),
     }))
     : [];
+  // Zone tab counts follow the filters: every zone's slots in brief, so the page can recount as the filters change.
+  const zoneSlots = {};
+  for (const s of parking.listSlots()) {
+    (zoneSlots[s.zone_id] = zoneSlots[s.zone_id] || []).push([s.slot_code, s.notes || '', s.slot_type, s.status]);
+  }
+  const zoneMatches = {};
+  for (const s of filtering ? parking.listSlots({ status, slotType, q }) : []) zoneMatches[s.zone_id] = (zoneMatches[s.zone_id] || 0) + 1;
+  for (const z of zones) z.shown_count = filtering ? zoneMatches[z.id] || 0 : z.slot_count;
   res.view('admin/slots', {
     title: 'Parking Slots',
     nav: 'slots',
     zones,
     zone,
+    zoneSlots,
     mapSlots,
     slots,
     counts,

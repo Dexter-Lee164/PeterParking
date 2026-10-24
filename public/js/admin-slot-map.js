@@ -14,18 +14,28 @@
   if (!form) return;
   var stalls = Array.prototype.slice.call(map.querySelectorAll('.slot[data-slot-id]'));
   var count = map.querySelector('[data-filter-count]');
+  var zoneSlotsEl = document.getElementById('zoneSlots');
+  var zoneSlots = zoneSlotsEl ? JSON.parse(zoneSlotsEl.textContent) : {};
+
+  function matches(code, notes, type, status, f) {
+    return (!f.status || status === f.status) && (!f.type || type === f.type)
+      && (!f.q || code.toLowerCase().indexOf(f.q) >= 0 || (notes || '').toLowerCase().indexOf(f.q) >= 0);
+  }
 
   function apply() {
-    var q = form.elements.q.value.trim().toLowerCase();
-    var status = form.elements.status.value;
-    var type = form.elements.type.value;
-    var filtering = !!(q || status || type);
+    var f = { q: form.elements.q.value.trim().toLowerCase(), status: form.elements.status.value, type: form.elements.type.value };
+    var filtering = !!(f.q || f.status || f.type);
     var shown = 0;
     stalls.forEach(function (s) {
-      var match = (!status || s.dataset.status === status) && (!type || s.dataset.type === type)
-        && (!q || s.dataset.code.toLowerCase().indexOf(q) >= 0 || (s.dataset.notes || '').toLowerCase().indexOf(q) >= 0);
+      var match = matches(s.dataset.code, s.dataset.notes, s.dataset.type, s.dataset.status, f);
       s.classList.toggle('is-filtered-out', filtering && !match);
       if (match) shown += 1;
+    });
+    // Each zone tab shows how many of its slots match the filters.
+    document.querySelectorAll('[data-zone-link]').forEach(function (a) {
+      var badge = a.querySelector('[data-zone-count]');
+      var list = zoneSlots[a.dataset.zoneLink] || [];
+      if (badge) badge.textContent = list.filter(function (s) { return matches(s[0], s[1], s[2], s[3], f); }).length;
     });
     if (count) {
       count.hidden = !filtering;

@@ -22,10 +22,11 @@
   <% const keepFilters = ['q', 'status', 'type'].filter(function (k) { return filters[k]; }).map(function (k) { return '&' + k + '=' + encodeURIComponent(filters[k]); }).join(''); %>
   <% zones.forEach(function (z) { %>
     <a href="/admin/slots?zone=<%= z.id %><%= keepFilters %>" data-zone-link="<%= z.id %>" class="<%= filters.zone === z.id ? 'active' : '' %>" <%- filters.zone === z.id ? 'aria-current="page"' : '' %>>
-      <%= z.name %> <span class="count"><%= z.slot_count %></span><% if (!z.is_active) { %> <span class="small">(inactive)</span><% } %>
+      <%= z.name %> <span class="count" data-zone-count><%= z.shown_count %></span><% if (!z.is_active) { %> <span class="small">(inactive)</span><% } %>
     </a>
   <% }) %>
 </nav>
+<script type="application/json" id="zoneSlots"><%- JSON.stringify(zoneSlots).replace(/</g, '\\u003c') %></script>
 
 <% const activeZone = zones.find(function (z) { return z.id === filters.zone; }); %>
 <% if (activeZone) { %>
