@@ -4,8 +4,7 @@
   <td data-label="Driver"><%= row.driver_name %><span class="sub"><%= row.driver_email %></span></td>
   <td data-label="Vehicle"><span class="plate"><%= row.plate_number %></span></td>
   <td data-label="Slot"><strong><%= row.slot_code %></strong><span class="sub"><%= row.zone_name %></span></td>
-  <% const tier = dayTier(row.start_at); %>
-  <td data-label="When"><span class="day-tier tier-<%= tier %>"><%= { today: 'Today', future: 'Upcoming', past: 'Past' }[tier] %></span> <%= fmtDate(row.start_at) %><span class="sub"><%= fmtTime(row.start_at) %> – <%= fmtTime(row.end_at) %></span></td>
+  <td data-label="When"><%= fmtDate(row.start_at) %><span class="sub"><%= fmtTime(row.start_at) %> – <%= fmtTime(row.end_at) %></span></td>
   <td data-label="Fee" class="text-end"><%= peso(row.due_centavos) %><span class="sub"><%= row.fee_is_final ? 'final' : 'estimated' %></span></td>
   <td data-label="Payment"><%- include('partials/status-badge', { kind: 'balance', status: row.payment_status }) %></td>
   <td data-label="Status"><%- include('partials/status-badge', { kind: 'reservation', status: row.status }) %></td>

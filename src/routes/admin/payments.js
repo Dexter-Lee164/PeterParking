@@ -5,7 +5,7 @@ const payments = require('../../services/payments');
 const reservations = require('../../services/reservations');
 const time = require('../../utils/time');
 const { AppError } = require('../../utils/errors');
-const { toInt, clean, oneOf } = require('../../utils/validate');
+const { toInt, clean } = require('../../utils/validate');
 const { formatPeso } = require('../../utils/money');
 
 const router = express.Router();
@@ -18,12 +18,11 @@ router.get('/', (req, res) => {
   // Only paid bookings with a valid receipt are listed; voided receipts stay on their booking's record.
   const filters = {
     q: clean(req.query.q),
-    method: oneOf(clean(req.query.method), payments.ALL_METHODS, ''),
     from: isDate(clean(req.query.from)) ? clean(req.query.from) : '',
     to: isDate(clean(req.query.to)) ? clean(req.query.to) : '',
   };
   const { rows, pager } = payments.listPayments(
-    { q: filters.q, status: 'valid', method: filters.method, dateFrom: filters.from, dateTo: filters.to },
+    { q: filters.q, status: 'valid', dateFrom: filters.from, dateTo: filters.to },
     { page: req.query.page, perPage: 15 },
   );
   const today = time.todayLocal();
@@ -34,8 +33,6 @@ router.get('/', (req, res) => {
     title: 'Payments',
     nav: 'payments',
     rows, pager, filters, baseQuery: filters,
-    // Older non-cash records can still be found; the filter only offers methods that actually appear.
-    methodOptions: [{ value: '', label: 'Any method' }].concat(payments.methodsInUse().map((m) => ({ value: m, label: payments.methodLabel(m) }))),
     todayTotal,
     monthTotal,
     receiptsToday: todayRows.length,

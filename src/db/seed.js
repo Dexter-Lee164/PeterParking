@@ -167,7 +167,7 @@ function seedDemoData(db) {
         insSession.run(id, chosen.id, driver.vehicleId, checkIn, checkOut, adminId, checkOut ? adminId : null, lateMin > settings.late_arrival_grace_minutes ? lateMin : 0, over.minutes, over.feeCentavos);
       }
       if (final && final > 0 && (status === 'completed' || status === 'cancelled' || status === 'no_show') && payment !== 'none') {
-        const amount = payment === 'partial' ? Math.floor(final / 2 / 100) * 100 || final : final;
+        const amount = final;
         const paidAt = status === 'completed' ? time.addMinutes(end, 15) : time.addMinutes(end, 60);
         const day = paidAt.slice(0, 10).replace(/-/g, '');
         receiptCounters[day] = (receiptCounters[day] || 0) + 1;
@@ -198,7 +198,7 @@ function seedDemoData(db) {
           status,
           lateMin: status === 'completed' && rand() < 0.15 ? 25 : status === 'cancelled' && rand() < 0.3 ? 1 : 0,
           overstayMin: status === 'completed' && rand() < 0.1 ? 40 : 0,
-          payment: payRoll < 0.78 ? 'full' : payRoll < 0.9 ? 'partial' : 'none',
+          payment: payRoll < 0.88 ? 'full' : 'none',
         });
       }
     }

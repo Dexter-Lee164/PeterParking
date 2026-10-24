@@ -206,9 +206,8 @@ describe('3. cash-only payments', () => {
     await c.login('admin@test.local');
     const list = await c.get('/admin/payments');
     assert.match(list.text, /GCash \(legacy record\)/);
-    assert.match(list.text, /<option value="gcash"/, 'history can still be filtered by the old method');
-    const filtered = await c.get('/admin/payments?method=gcash');
-    assert.match(filtered.text, /RCT-OLD-1/);
+    assert.match(list.text, /RCT-OLD-1/);
+    assert.doesNotMatch(list.text, /<select[^>]*name="method"/, 'the list has no method filter');
     const form = await c.get(`/admin/payments/new?reservation_id=${r.id}`);
     assert.match(form.text, /name="method" value="cash"/);
     assert.doesNotMatch(form.text, /<select[^>]*name="method"/);
@@ -363,7 +362,7 @@ describe('6. reservation priority order', () => {
     const order = [...page.text.matchAll(/font-mono fw-semibold" href="\/admin\/reservations\/\d+">([A-Z0-9-]+)</g)].map((m) => m[1]);
     assert.deepEqual(order, [refs.today2, refs.today1, refs.future1, refs.future2, refs.past2, refs.past1]);
     assert.match(page.text, /id="panel-today"[\s\S]*id="panel-upcoming"[\s\S]*id="panel-past"/);
-    assert.match(page.text, /day-tier tier-today/);
+    assert.doesNotMatch(page.text, /day-tier/);
     const search = await c.get(`/admin/reservations?q=${refs.future1}`);
     assert.match(search.text, new RegExp(refs.future1));
     assert.doesNotMatch(search.text, new RegExp(refs.today1));
