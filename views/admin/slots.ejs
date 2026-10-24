@@ -19,8 +19,9 @@
 }) %>
 
 <nav class="nav-pills-tabs mb-3" aria-label="Filter by zone">
+  <% const keepFilters = ['q', 'status', 'type'].filter(function (k) { return filters[k]; }).map(function (k) { return '&' + k + '=' + encodeURIComponent(filters[k]); }).join(''); %>
   <% zones.forEach(function (z) { %>
-    <a href="/admin/slots?zone=<%= z.id %>" class="<%= filters.zone === z.id ? 'active' : '' %>" <%- filters.zone === z.id ? 'aria-current="page"' : '' %>>
+    <a href="/admin/slots?zone=<%= z.id %><%= keepFilters %>" data-zone-link="<%= z.id %>" class="<%= filters.zone === z.id ? 'active' : '' %>" <%- filters.zone === z.id ? 'aria-current="page"' : '' %>>
       <%= z.name %> <span class="count"><%= z.slot_count %></span><% if (!z.is_active) { %> <span class="small">(inactive)</span><% } %>
     </a>
   <% }) %>

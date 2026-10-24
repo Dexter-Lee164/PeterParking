@@ -35,6 +35,11 @@
     var params = new URLSearchParams(new FormData(form));
     Array.from(params.keys()).forEach(function (k) { if (!params.get(k) && k !== 'zone') params.delete(k); });
     window.history.replaceState(null, '', form.action + '?' + params.toString());
+    // Zone tabs carry the current filters so switching zones keeps them.
+    document.querySelectorAll('[data-zone-link]').forEach(function (a) {
+      params.set('zone', a.dataset.zoneLink);
+      a.href = form.action + '?' + params.toString();
+    });
   }
 
   form.addEventListener('input', apply);
