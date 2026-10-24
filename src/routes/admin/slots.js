@@ -38,12 +38,16 @@ router.get('/', (req, res) => {
     unavailable: slots.filter((s) => s.live_state === 'unavailable').length,
   };
   // The selected zone's fixed lot drawing with every slot's state right now (read-only; a stall opens its slot).
+  // The page is the map only: slots that do not match the search / status / type filters are set back on it.
   const zone = zoneId ? zones.find((z) => z.id === zoneId) : null;
+  const filtering = !!(status || slotType || q);
+  const matching = new Set(slots.map((s) => s.id));
   const mapSlots = zone
     ? parking.listSlots({ zoneId }).map((s) => ({
       id: s.id, code: s.slot_code, zone_name: s.zone_name, slot_type: s.slot_type, type_vehicle: s.type_vehicle, type_label: s.type_label,
       type_icon: s.type_icon, operational_status: s.status, hourly_rate_centavos: s.hourly_rate_centavos, est_fee_centavos: 0,
       state: s.live_state, reason: s.status !== 'active' ? `Status: ${s.status}` : `Right now: ${s.live_state}`,
+      notes: s.notes || '', filtered_out: filtering && !matching.has(s.id),
     }))
     : [];
   res.view('admin/slots', {
@@ -54,6 +58,7 @@ router.get('/', (req, res) => {
     mapSlots,
     slots,
     counts,
+    filtering,
     extraScripts: zone ? ['/js/admin-slot-map.js'] : [],
     slotTypes: parking.listSlotTypes(),
     filters: { zone: zoneId || '', status, type: slotType, q },

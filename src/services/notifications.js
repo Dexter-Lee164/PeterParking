@@ -13,8 +13,8 @@ const { nowLocal } = require('../utils/time');
  *
  * Administrators
  *   reservations   a booking was created, cancelled or rescheduled, or marked as a no-show
- *   payments       a payment was recorded or voided, or a booking was finalised with money still owed
- *                  (a check-out, late cancellation or no-show with a fee): a newly outstanding balance
+ *   payments       a payment was recorded (the Payments page lists paid bookings only, so balances owed and voided
+ *                  receipts are not announced there)
  *   reports        a driver submitted a parking etiquette report
  * Drivers (only about their own bookings, payments, reports and vehicles)
  *   reservations   staff cancelled, rescheduled, checked in or out, or marked one of their bookings as a no-show
@@ -26,14 +26,11 @@ const { nowLocal } = require('../utils/time');
  * one page view (see middleware()). A user's first check starts from "now", so the history that existed before the
  * feature does not appear as hundreds of updates.
  */
-const json = (path) => `json_extract(CASE WHEN json_valid(a.details) THEN a.details END, '${path}')`;
 
 const SECTIONS = {
   admin: {
     reservations: `a.action IN ('reservation.create', 'reservation.cancel', 'reservation.reschedule', 'reservation.no_show')`,
-    payments: `(a.action IN ('payment.record', 'payment.void')
-      OR (a.action IN ('reservation.cancel', 'reservation.no_show') AND COALESCE(${json('$.fee')}, 0) > 0)
-      OR (a.action = 'session.check_out' AND COALESCE(${json('$.final_fee')}, 0) > 0))`,
+    payments: `a.action = 'payment.record'`,
     reports: `a.action = 'etiquette.submit'`,
   },
   driver: {

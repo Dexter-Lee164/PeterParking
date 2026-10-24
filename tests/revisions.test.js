@@ -269,12 +269,15 @@ describe('5. sidebar notifications and highlighted records', () => {
     const r = reservations.createReservation({ userId: d.alice.id, vehicleId: d.aliceCar.id, slotId: d.slots[0].id, date: DAY, start: '10:00', end: '12:00' }, { id: d.alice.id });
     reservations.createReservation({ userId: d.bob.id, vehicleId: d.bobCar.id, slotId: d.slots[1].id, date: DAY, start: '10:00', end: '11:00' }, { id: d.bob.id });
     assert.deepEqual(await badges(), { reservations: 2, payments: 0, reports: 0 });
-    // The administrator's own payment does not notify them; a check-out with a fee owed is a newly outstanding balance.
+    // A balance owed is not announced (the Payments page lists paid bookings only); a payment recorded by another
+    // staff member is, and the administrator's own payment does not notify them.
     setNow(`${DAY} 10:00`);
     sessions.checkIn(r.id, admin());
     setNow(`${DAY} 12:00`);
-    sessions.checkOut(r.id, { id: d.bob.id, role: 'admin' }); // another staff member
-    payments.recordPayment({ reservation_id: r.id, amount: '10' }, admin());
+    sessions.checkOut(r.id, admin());
+    assert.equal((await badges()).payments, 0);
+    payments.recordPayment({ reservation_id: r.id, amount: '5' }, admin());
+    payments.recordPayment({ reservation_id: r.id, amount: '5' }, { id: d.bob.id, role: 'admin' }); // another staff member
     assert.deepEqual(await badges(), { reservations: 2, payments: 1, reports: 0 });
   });
 

@@ -692,3 +692,7 @@
     display: none;
   }
 }
+
+/* Admin map: a slot that does not match the current filters is set back (still clickable). */
+.slot.is-filtered-out { opacity: 0.22; filter: grayscale(1); }
+.slot.is-filtered-out:hover, .slot.is-filtered-out:focus-visible { opacity: 0.6; }

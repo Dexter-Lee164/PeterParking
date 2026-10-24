@@ -131,7 +131,7 @@ test('the real server boots, seeds demo data on first run, and keeps data + sess
   server = runServer({ port, dbPath });
   await server.ready;
   try {
-    const dash2 = await admin.get('/admin/slots?q=Persistence');
+    const dash2 = await admin.get('/admin/slots/1/edit');
     assert.equal(dash2.status, 200, 'session cookie still valid after restart');
     assert.match(dash2.text, /Persistence check/);
     assert.match(dash2.text, /₱42.00/);

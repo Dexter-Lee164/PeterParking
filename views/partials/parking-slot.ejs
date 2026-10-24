@@ -23,7 +23,7 @@
     + ', ' + peso(slot.hourly_rate_centavos) + ' per hour. ' + slot.reason;
 %>
 <button type="button"
-        class="slot is-<%= state %><%= isSelected ? ' is-selected' : '' %><%= maintenance ? ' is-maintenance' : '' %><%= otherType ? ' is-other-type' : '' %> kind-<%= stall.kind %> type-<%= slot.slot_type %><%= stall.rot === 180 ? ' faces-up' : '' %>"
+        class="slot is-<%= state %><%= isSelected ? ' is-selected' : '' %><%= maintenance ? ' is-maintenance' : '' %><%= otherType ? ' is-other-type' : '' %><%= slot.filtered_out ? ' is-filtered-out' : '' %> kind-<%= stall.kind %> type-<%= slot.slot_type %><%= stall.rot === 180 ? ' faces-up' : '' %>"
         style="<%= style %>"
         data-slot-id="<%= slot.id %>"
         data-state="<%= state %>"
@@ -33,6 +33,8 @@
         data-type-label="<%= slot.type_label %>"
         data-type-icon="<%= typeIcon %>"
         data-op-status="<%= opLabel %>"
+        data-status="<%= slot.operational_status %>"
+        <% if (slot.notes !== undefined) { %>data-notes="<%= slot.notes %>"<% } %>
         data-rate="<%= slot.hourly_rate_centavos %>"
         data-fee="<%= slot.est_fee_centavos %>"
         data-reason="<%= slot.reason %>"

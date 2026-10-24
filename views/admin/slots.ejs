@@ -9,13 +9,12 @@
   formId: 'slotFilter',
   action: '/admin/slots',
   hideSubmit: true,
-  resetHref: '/admin/slots?zone=' + filters.zone,
   toolbarClass: 'filter-bar mb-3',
   fields: [
     { type: 'hidden', name: 'zone', value: filters.zone },
-    { type: 'search', name: 'q', label: 'Search slot code or note', value: filters.q, placeholder: 'e.g. A-05', col: 'col-12 col-md-4', attrs: { 'data-autosubmit': '' } },
-    { type: 'select', name: 'status', label: 'Status', value: filters.status, col: 'col-6 col-md-3', attrs: { 'data-autosubmit': '' }, options: [{ value: '', label: 'Any status' }].concat(statusOptions) },
-    { type: 'select', name: 'type', label: 'Slot type', value: filters.type, col: 'col-6 col-md-3', attrs: { 'data-autosubmit': '' }, options: [{ value: '', label: 'Any type' }].concat(slotTypes.map(function (t) { return { value: t.code, label: t.label }; })) }
+    { type: 'search', name: 'q', label: 'Search slot code or note', value: filters.q, placeholder: 'e.g. ' + (mapSlots[0] ? mapSlots[0].code : 'MB-05'), col: 'col-12 col-md-4' },
+    { type: 'select', name: 'status', label: 'Status', value: filters.status, col: 'col-6 col-md-3', options: [{ value: '', label: 'Any status' }].concat(statusOptions) },
+    { type: 'select', name: 'type', label: 'Slot type', value: filters.type, col: 'col-6 col-md-3', options: [{ value: '', label: 'Any type' }].concat(slotTypes.map(function (t) { return { value: t.code, label: t.label }; })) }
   ]
 }) %>
 
@@ -29,17 +28,6 @@
 
 <% const activeZone = zones.find(function (z) { return z.id === filters.zone; }); %>
 <% if (activeZone) { %>
-  <section class="summary-card mb-3">
-    <div class="summary-head">
-      <h3><%= activeZone.name %> <span class="chip ms-1"><%= activeZone.code %></span></h3>
-      <span class="small text-muted"><i class="bi bi-lock me-1" aria-hidden="true"></i>Fixed layout</span>
-    </div>
-    <div class="p-3 small text-muted">
-      <%= activeZone.active_slot_count %> of <%= activeZone.slot_count %> slots in service
-      · <%= activeZone.is_active ? 'Visible to drivers' : 'Hidden from drivers' %>
-    </div>
-  </section>
-
   <% if (mapSlots.length) { %>
     <%- include('partials/lot-defs') %>
     <section class="map-card mb-3" aria-label="Lot map for <%= activeZone.name %>" data-admin-slot-map>
@@ -50,24 +38,9 @@
         <span class="lg"><span class="swatch s-occupied"></span> Occupied</span>
         <span class="lg"><span class="swatch s-unavailable"></span> Out of service</span>
         <span class="lg"><span class="swatch s-maintenance"></span> Maintenance</span>
+        <span class="lg" data-filter-count<%- filtering ? '' : ' hidden' %>><%= counts.total %> of <%= mapSlots.length %> slots match the filters</span>
         <span class="map-counts">Choose a slot to change its status, notes or rate.</span>
       </div>
     </section>
   <% } %>
 <% } %>
-
-<div class="d-flex flex-wrap gap-2 mb-3" role="list" aria-label="Live slot counts for the current filter">
-  <span class="chip" role="listitem"><%= counts.total %> slots</span>
-  <span class="badge-status tone-green" role="listitem"><i class="bi bi-check-circle-fill" aria-hidden="true"></i><%= counts.available %> available</span>
-  <span class="badge-status tone-blue" role="listitem"><i class="bi bi-bookmark-fill" aria-hidden="true"></i><%= counts.reserved %> reserved</span>
-  <span class="badge-status tone-red" role="listitem"><i class="bi bi-car-front-fill" aria-hidden="true"></i><%= counts.occupied %> occupied</span>
-  <span class="badge-status tone-gray" role="listitem"><i class="bi bi-slash-circle-fill" aria-hidden="true"></i><%= counts.unavailable %> unavailable</span>
-</div>
-
-<%- include('partials/data-table', {
-  caption: 'Parking slots',
-  columns: [{ label: 'Slot' }, { label: 'Zone' }, { label: 'Type' }, { label: 'Rate / hr', align: 'end' }, { label: 'Status' }, { label: 'Right now' }, { label: '' }],
-  rows: slots,
-  rowPartial: 'partials/rows/admin-slot-row',
-  empty: { icon: 'bi-grid-3x3-gap', title: 'No slots match', text: 'Try clearing the filters.' }
-}) %>

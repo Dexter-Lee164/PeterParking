@@ -30,7 +30,7 @@
   <div class="col-6 col-md-4"><%- include('partials/stat-card', { label: 'Reserved now', value: data.kpis.reserved, hint: 'Booked, not yet arrived', icon: 'bi-bookmark', tone: 'blue' }) %></div>
   <div class="col-6 col-md-4"><%- include('partials/stat-card', { label: 'Occupied now', value: data.kpis.occupied, hint: 'Vehicles checked in', icon: 'bi-car-front-fill', tone: 'red', href: '/admin/operations' }) %></div>
   <div class="col-6 col-md-4"><%- include('partials/stat-card', { label: "Today's bookings", value: data.kpis.todaysReservations, hint: 'Excluding cancelled', icon: 'bi-calendar2-week', tone: 'teal', href: '/admin/reservations' }) %></div>
-  <div class="col-6 col-md-4"><%- include('partials/stat-card', { label: 'Outstanding', value: peso(data.kpis.outstandingCentavos), hint: 'Unpaid final fees', icon: 'bi-wallet2', tone: 'amber', href: '/admin/payments' }) %></div>
+  <div class="col-6 col-md-4"><%- include('partials/stat-card', { label: 'Outstanding', value: peso(data.kpis.outstandingCentavos), hint: 'Unpaid final fees', icon: 'bi-wallet2', tone: 'amber', href: '/admin/reservations?payment=unpaid' }) %></div>
 </div>
 
 <section class="summary-card mb-4" aria-labelledby="occTitle">

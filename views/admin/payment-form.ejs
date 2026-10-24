@@ -70,7 +70,7 @@
               <%- include('partials/form-field', { name: 'notes', label: 'Notes (optional)', type: 'textarea', value: values.notes, errors: errors, rows: 2, maxlength: 300 }) %>
               <div class="col-12 d-flex gap-2">
                 <button class="btn btn-primary" type="submit"><i class="bi bi-check2" aria-hidden="true"></i> Record payment</button>
-                <a class="btn btn-outline-secondary" href="/admin/payments">Cancel</a>
+                <a class="btn btn-outline-secondary" href="<%= reservation ? '/admin/reservations/' + reservation.id : '/admin/payments' %>">Cancel</a>
               </div>
             </div>
           </form>
