@@ -1,0 +1,80 @@
+<div class="page-intro">
+  <div>
+    <h2>Etiquette Reports</h2>
+    <p>Review what drivers reported, verify the vehicle, then approve or dismiss. Penalties are always a separate decision.</p>
+  </div>
+  <a class="btn btn-outline-primary" href="/admin/etiquette/vehicles"><i class="bi bi-search" aria-hidden="true"></i> Vehicle lookup</a>
+</div>
+
+<%- include('partials/unread-banner') %>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3"><%- include('partials/stat-card', { label: 'New reports', value: counts.pending, hint: 'Not looked at yet', icon: 'bi-envelope-exclamation', tone: counts.pending ? 'amber' : 'green', href: '/admin/etiquette?tab=reports&status=pending' }) %></div>
+  <div class="col-6 col-lg-3"><%- include('partials/stat-card', { label: 'Under review', value: counts.under_review, hint: 'Waiting for a decision', icon: 'bi-search', tone: 'blue', href: '/admin/etiquette?tab=reports&status=under_review' }) %></div>
+  <div class="col-6 col-lg-3"><%- include('partials/stat-card', { label: 'Penalties in force', value: inForce, hint: 'Active, scheduled or awaiting charge', icon: 'bi-shield-exclamation', tone: inForce ? 'red' : 'gray', href: '/admin/etiquette?tab=penalties&state=in_force' }) %></div>
+  <div class="col-6 col-lg-3"><%- include('partials/stat-card', { label: 'Appeals to decide', value: pendingAppeals, hint: 'From penalised drivers', icon: 'bi-chat-square-text', tone: pendingAppeals ? 'amber' : 'green', href: '/admin/etiquette?tab=appeals&status=pending' }) %></div>
+</div>
+
+<nav class="nav-pills-tabs mb-3" aria-label="Etiquette sections">
+  <a href="/admin/etiquette?tab=reports" class="<%= tab === 'reports' ? 'active' : '' %>" <%- tab === 'reports' ? 'aria-current="page"' : '' %>>Reports <span class="count"><%= counts.all %></span></a>
+  <a href="/admin/etiquette?tab=penalties" class="<%= tab === 'penalties' ? 'active' : '' %>" <%- tab === 'penalties' ? 'aria-current="page"' : '' %>>Penalties <span class="count"><%= inForce %></span></a>
+  <a href="/admin/etiquette?tab=appeals" class="<%= tab === 'appeals' ? 'active' : '' %>" <%- tab === 'appeals' ? 'aria-current="page"' : '' %>>Appeals <span class="count"><%= pendingAppeals %></span></a>
+</nav>
+
+<% if (tab === 'reports') { %>
+  <%- include('partials/filter-toolbar', {
+    formId: 'reportFilter', action: '/admin/etiquette', submitLabel: 'Filter', toolbarClass: 'filter-bar mb-3',
+    fields: [
+      { type: 'hidden', name: 'tab', value: 'reports' },
+      { type: 'search', name: 'q', label: 'Search', value: filters.q, placeholder: 'Plate, report no., reporter, text', col: 'col-12 col-md-4' },
+      { type: 'select', name: 'status', label: 'Status', value: filters.status, options: statusOptions, col: 'col-6 col-md-2' },
+      { type: 'select', name: 'violation', label: 'Violation', value: filters.violation, options: violationOptions, col: 'col-6 col-md-2' },
+      { type: 'select', name: 'zone_id', label: 'Zone', value: filters.zoneId || '', options: zoneOptions, col: 'col-6 col-md-2' },
+      { type: 'date', name: 'from', label: 'Incident from', value: filters.dateFrom, col: 'col-6 col-md-2' },
+      { type: 'date', name: 'to', label: 'Incident to', value: filters.dateTo, col: 'col-6 col-md-2' }
+    ]
+  }) %>
+  <%- include('partials/data-table', {
+    caption: 'Parking etiquette reports',
+    columns: [{ label: 'Report' }, { label: 'Plate' }, { label: 'Violation' }, { label: 'Incident' }, { label: 'Reported by' }, { label: 'Status' }],
+    rows: rows, rowPartial: 'partials/rows/admin-report-row',
+    pager: pager, baseQuery: baseQuery, noun: 'reports',
+    empty: { icon: 'bi-flag', title: 'No reports found', text: q || filters.status || filters.violation || filters.zoneId || filters.dateFrom || filters.dateTo ? 'Try other filters.' : 'Reports that drivers send appear here.' }
+  }) %>
+<% } %>
+
+<% if (tab === 'penalties') { %>
+  <%- include('partials/filter-toolbar', {
+    formId: 'penaltyFilter', action: '/admin/etiquette', submitLabel: 'Filter', toolbarClass: 'filter-bar mb-3',
+    fields: [
+      { type: 'hidden', name: 'tab', value: 'penalties' },
+      { type: 'search', name: 'q', label: 'Search', value: filters.q, placeholder: 'Plate, driver, reason', col: 'col-12 col-md-5' },
+      { type: 'select', name: 'kind', label: 'Type', value: filters.kind, options: kindOptions, col: 'col-6 col-md-3' },
+      { type: 'select', name: 'state', label: 'State', value: filters.state, options: stateOptions, col: 'col-6 col-md-3' }
+    ]
+  }) %>
+  <%- include('partials/data-table', {
+    caption: 'Penalties',
+    columns: [{ label: 'Penalty' }, { label: 'Driver' }, { label: 'Details' }, { label: 'Issued' }, { label: 'State' }],
+    rows: rows, rowPartial: 'partials/rows/admin-penalty-row',
+    pager: pager, baseQuery: baseQuery, noun: 'penalties',
+    empty: { icon: 'bi-shield-check', title: 'No penalties found', text: 'Penalties are issued from an approved report or from the vehicle lookup.' }
+  }) %>
+<% } %>
+
+<% if (tab === 'appeals') { %>
+  <%- include('partials/filter-toolbar', {
+    formId: 'appealFilter', action: '/admin/etiquette', hideSubmit: true, toolbarClass: 'filter-bar mb-3',
+    fields: [
+      { type: 'hidden', name: 'tab', value: 'appeals' },
+      { type: 'select', name: 'status', label: 'Status', value: filters.status, options: statusOptions, attrs: { 'data-autosubmit': '' } }
+    ]
+  }) %>
+  <%- include('partials/data-table', {
+    caption: 'Penalty appeals',
+    columns: [{ label: 'Appeal' }, { label: 'Driver' }, { label: 'Penalty' }, { label: 'Explanation' }, { label: 'Status' }],
+    rows: rows, rowPartial: 'partials/rows/admin-appeal-row',
+    pager: pager, baseQuery: baseQuery, noun: 'appeals',
+    empty: { icon: 'bi-chat-square-text', title: 'No appeals', text: 'Drivers can appeal a penalty once; their appeals appear here.' }
+  }) %>
+<% } %>

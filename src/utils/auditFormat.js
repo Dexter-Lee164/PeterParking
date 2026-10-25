@@ -49,6 +49,19 @@ const ACTION_TITLES = {
   'slot_type.update': 'Slot Type Updated',
   'slot_type.delete': 'Slot Type Deleted',
   'settings.update': 'Booking Rules Updated',
+  'etiquette.submit': 'Etiquette Report Submitted',
+  'etiquette.under_review': 'Etiquette Report Under Review',
+  'etiquette.resolve': 'Etiquette Report Approved',
+  'etiquette.dismiss': 'Etiquette Report Dismissed',
+  'etiquette.verify_vehicle': 'Reported Vehicle Verified',
+  'penalty.issue': 'Penalty Issued',
+  'penalty.modify': 'Penalty Modified',
+  'penalty.charge': 'Penalty Fee Charged to Booking',
+  'penalty.revoke': 'Penalty Revoked',
+  'appeal.submit': 'Penalty Appeal Submitted',
+  'appeal.decide': 'Penalty Appeal Decided',
+  'reservation.penalty_fee_added': 'Penalty Fee Added to Booking',
+  'reservation.penalty_fee_removed': 'Penalty Fee Removed from Booking',
 };
 
 const LABELS = {
@@ -90,9 +103,23 @@ const LABELS = {
   zone_id: 'Zone ID',
   hourly_rate_centavos: 'Hourly Rate',
   hourly_rate_override_centavos: 'Hourly Rate Override',
+  base_fee: 'Base Parking Fee',
+  penalty_fee: 'Penalty Fee',
+  violation: 'Violation',
+  incident: 'Incident Time',
+  evidence: 'Photo Attached',
+  penalty: 'Penalty',
+  driver: 'Driver',
+  owner: 'Vehicle Owner',
+  until: 'Until (inclusive)',
+  report: 'Report No.',
+  removed_from: 'Fee Removed From',
+  decision: 'Decision',
+  note: 'Change Note',
+  changes: 'Changes',
 };
 
-const MONEY_KEYS = new Set(['fee', 'final_fee', 'overstay_fee', 'amount']);
+const MONEY_KEYS = new Set(['fee', 'final_fee', 'overstay_fee', 'amount', 'base_fee', 'penalty_fee']);
 const MINUTE_KEYS = new Set(['overstay_minutes', 'late_minutes']);
 const DATETIME = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?$/;
 

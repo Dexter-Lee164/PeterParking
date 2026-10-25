@@ -1,0 +1,8 @@
+<% const fresh = isUnread('penalty_appeal', row.id); %>
+<tr class="<%= fresh ? 'is-unread' : '' %>">
+  <td data-label="Appeal"><a class="font-mono fw-semibold" href="/admin/etiquette/penalties/<%= row.penalty_id %>#appeal">#<%= row.id %></a><% if (fresh) { %><span class="new-pill">New</span><% } %><span class="sub"><%= fmtDateTime(row.created_at) %></span></td>
+  <td data-label="Driver"><a href="/admin/drivers/<%= row.user_id %>"><%= row.driver_name %></a><span class="sub"><%= row.driver_email %></span></td>
+  <td data-label="Penalty">#<%= row.penalty_id %> <%= row.kind_label %><span class="sub"><span class="plate"><%= row.plate_number %></span></span></td>
+  <td data-label="Explanation"><span class="text-clamp-2"><%= row.explanation %></span><% if (row.has_evidence) { %> <i class="bi bi-image text-muted" title="Photo attached" aria-label="Photo attached"></i><% } %></td>
+  <td data-label="Status"><%- include('partials/status-badge', { kind: 'appeal', status: row.status }) %></td>
+</tr>

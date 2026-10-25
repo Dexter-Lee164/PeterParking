@@ -34,6 +34,10 @@
       <tr><th scope="row" class="muted" style="font-weight:500">Vehicle plate</th><td class="r"><%= payment.plate_number %></td></tr>
       <tr><th scope="row" class="muted" style="font-weight:500">Payment method</th><td class="r"><%= paymentMethod(payment.method) %></td></tr>
       <% if (payment.reference) { %><tr><th scope="row" class="muted" style="font-weight:500">Reference no.</th><td class="r"><%= payment.reference %></td></tr><% } %>
+      <% if (payment.penalty_centavos) { %>
+        <tr><th scope="row" class="muted" style="font-weight:500">Parking fee</th><td class="r"><%= peso(payment.amount_centavos - payment.penalty_centavos) %></td></tr>
+        <tr><th scope="row" class="muted" style="font-weight:500">Penalty fee (parking etiquette)</th><td class="r"><%= peso(payment.penalty_centavos) %></td></tr>
+      <% } %>
       <tr><th scope="row" style="font-size:1.05rem">Amount received</th><td class="r" style="font-size:1.35rem;font-weight:800"><%= peso(payment.amount_centavos) %></td></tr>
     </tbody>
   </table>

@@ -4,6 +4,7 @@ const express = require('express');
 const reservations = require('../../services/reservations');
 const parking = require('../../services/parking');
 const payments = require('../../services/payments');
+const penalties = require('../../services/penalties');
 const settingsService = require('../../services/settings');
 const fees = require('../../services/fees');
 const ctx = require('../../db/context');
@@ -78,6 +79,7 @@ function detailPage(req, reservation, extra = {}) {
     breadcrumbs: [{ label: 'Reservations', href: '/admin/reservations' }, { label: reservation.booking_ref }],
     r: reservation, session, payRows, rules: settings,
     trail: reservations.auditTrail(reservation.id),
+    penaltyCharges: penalties.chargesForReservation(reservation.id),
     canCancel, canNoShow, canCheckIn, canCheckOut,
     canPay: reservation.balance_centavos > 0,
     cancelPreview: canCancel ? reservations.cancellationFeeFor(reservation, now, settings) : 0,

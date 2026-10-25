@@ -1,0 +1,8 @@
+<% const fresh = isUnread('etiquette_report', row.id); %>
+<tr class="<%= fresh ? 'is-unread' : '' %>">
+  <td data-label="Report"><a class="font-mono fw-semibold" href="/driver/etiquette/reports/<%= row.id %>">#<%= row.id %></a><% if (fresh) { %><span class="new-pill">Updated</span><% } %><span class="sub">Sent <%= fmtDateTime(row.created_at) %></span></td>
+  <td data-label="Plate"><span class="plate"><%= row.plate_number %></span></td>
+  <td data-label="Violation"><%= row.violation_label %><% if (row.has_evidence) { %> <i class="bi bi-image text-muted" title="Photo attached" aria-label="Photo attached"></i><% } %><% if (row.zone_name) { %><span class="sub"><%= row.zone_name %></span><% } %></td>
+  <td data-label="Incident"><%= fmtDateTime(row.incident_at) %></td>
+  <td data-label="Status"><%- include('partials/status-badge', { kind: 'report', status: row.driver_status }) %></td>
+</tr>

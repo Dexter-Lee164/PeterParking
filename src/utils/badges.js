@@ -39,6 +39,25 @@ const MAP = {
     overstay: { label: 'Overstay', tone: 'red', icon: 'bi-alarm' },
     late: { label: 'Late', tone: 'amber', icon: 'bi-clock-history' },
   },
+  report: {
+    pending: { label: 'New', tone: 'amber', icon: 'bi-envelope-exclamation' },
+    under_review: { label: 'Under review', tone: 'blue', icon: 'bi-search' },
+    resolved: { label: 'Resolved', tone: 'green', icon: 'bi-check2-circle' },
+    dismissed: { label: 'Dismissed', tone: 'gray', icon: 'bi-x-circle' },
+  },
+  penalty: {
+    pending: { label: 'Awaiting charge', tone: 'amber', icon: 'bi-hourglass-split' },
+    charged: { label: 'Charged', tone: 'teal', icon: 'bi-receipt' },
+    scheduled: { label: 'Scheduled', tone: 'blue', icon: 'bi-calendar-event' },
+    active: { label: 'Active', tone: 'red', icon: 'bi-shield-exclamation' },
+    expired: { label: 'Expired', tone: 'gray', icon: 'bi-clock-history' },
+    revoked: { label: 'Revoked', tone: 'gray', icon: 'bi-shield-check' },
+  },
+  appeal: {
+    pending: { label: 'Awaiting decision', tone: 'amber', icon: 'bi-hourglass-split' },
+    upheld: { label: 'Upheld', tone: 'red', icon: 'bi-hammer' },
+    revoked: { label: 'Penalty revoked', tone: 'green', icon: 'bi-shield-check' },
+  },
   user: {
     active: { label: 'Active', tone: 'green', icon: 'bi-check-circle' },
     inactive: { label: 'Inactive', tone: 'gray', icon: 'bi-slash-circle' },

@@ -1,0 +1,41 @@
+<div class="page-intro">
+  <div>
+    <h2>Vehicle lookup</h2>
+    <p>Search registered vehicles by plate. Spaces, hyphens and letter case are ignored, so <span class="font-mono">abc-1234</span> finds <span class="plate">ABC 1234</span>.</p>
+  </div>
+  <a class="btn btn-outline-secondary btn-sm" href="/admin/etiquette"><i class="bi bi-arrow-left" aria-hidden="true"></i> Etiquette Reports</a>
+</div>
+
+<%- include('partials/filter-toolbar', {
+  formId: 'vehicleSearch', action: '/admin/etiquette/vehicles', submitLabel: 'Search', toolbarClass: 'filter-bar mb-3',
+  fields: [{ type: 'search', name: 'q', label: 'Plate number', value: q, placeholder: 'e.g. ABC 1234 or part of it', col: 'col-12 col-md-6', attrs: { style: 'text-transform:uppercase', autofocus: '' } }]
+}) %>
+
+<div class="table-wrap">
+  <% if (!q) { %>
+    <%- include('partials/empty-state', { icon: 'bi-car-front', title: 'Search for a plate', text: 'Enter at least two letters or numbers of a plate.' }) %>
+  <% } else if (!rows.length) { %>
+    <%- include('partials/empty-state', { icon: 'bi-question-circle', title: 'No registered vehicle matches', text: 'No vehicle record contains "' + key + '". A plate that is not registered cannot be linked to any account.' }) %>
+  <% } else { %>
+    <div class="table-responsive">
+      <table class="table table-hover table-stack">
+        <caption class="visually-hidden">Registered vehicles matching the search</caption>
+        <thead><tr><th scope="col">Plate</th><th scope="col">Vehicle</th><th scope="col">Registered to</th><th scope="col">Record</th><th scope="col"></th></tr></thead>
+        <tbody>
+          <% rows.forEach(function (v) { %>
+            <tr>
+              <td data-label="Plate"><span class="plate"><%= v.plate_number %></span><% if (v.plate_report_count) { %><span class="sub"><%= v.plate_report_count %> report<%= v.plate_report_count === 1 ? '' : 's' %></span><% } %></td>
+              <td data-label="Vehicle"><i class="<%= vehicleIcon(v.vehicle_type) %> me-1" aria-hidden="true"></i><%= vehicleLabel(v) %><% if (v.color) { %><span class="sub"><%= v.color %></span><% } %></td>
+              <td data-label="Registered to"><a href="/admin/drivers/<%= v.user_id %>"><%= v.owner_name %></a><span class="sub"><%= v.owner_email %><% if (v.owner_university_id) { %> · <%= v.owner_university_id %><% } %></span></td>
+              <td data-label="Record">
+                <%- include('partials/status-badge', { kind: 'user', status: v.is_active ? 'active' : 'inactive', badgeLabel: v.is_active ? 'Registered' : 'Removed' }) %>
+                <% if (v.owner_active_penalties) { %><span class="sub text-danger"><%= v.owner_active_penalties %> active penalt<%= v.owner_active_penalties === 1 ? 'y' : 'ies' %></span><% } %>
+              </td>
+              <td data-label="" class="text-end"><a class="btn btn-sm btn-outline-primary" href="/admin/etiquette/vehicles/<%= v.id %>">History &amp; penalties</a></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>

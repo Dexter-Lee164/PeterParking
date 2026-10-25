@@ -37,7 +37,7 @@ describe('migration 002 on an existing database', () => {
     const before = db.prepare('SELECT id, full_name, email, password_hash, role, university_id FROM users ORDER BY id').all();
     migrate(db);
 
-    assert.deepEqual(versions(db), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    assert.deepEqual(versions(db), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
     for (const name of ['google_id', 'email_verified', 'password_changed_at']) assert.ok(columns(db, 'users').includes(name), name);
     const names = objects(db);
     for (const name of ['pending_registrations', 'password_resets', 'ux_users_email_lower', 'ux_users_google_id', 'ux_users_email']) assert.ok(names.has(name), name);
@@ -53,7 +53,7 @@ describe('migration 002 on an existing database', () => {
     const db = legacyDatabase();
     migrate(db);
     migrate(db);
-    assert.deepEqual(versions(db), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    assert.deepEqual(versions(db), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
 
     // A new, unverified sign-up arrives after the upgrade...
     db.prepare('INSERT INTO users (full_name, email, password_hash) VALUES (?, ?, ?)').run('New Person', 'new@legacy.test', 'hash-new');
@@ -62,7 +62,7 @@ describe('migration 002 on an existing database', () => {
     // ...and even if the migration body is forced to run again (as if its record were lost), nothing changes.
     db.prepare('DELETE FROM schema_migrations WHERE version = 2').run();
     migrate(db);
-    assert.deepEqual(versions(db), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    assert.deepEqual(versions(db), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
     assert.equal(db.prepare(`SELECT email_verified FROM users WHERE email = 'new@legacy.test'`).get().email_verified, 0);
     assert.equal(columns(db, 'users').filter((c) => c === 'google_id').length, 1);
     db.close();
@@ -95,16 +95,19 @@ describe('a fresh database', () => {
     const db = fresh();
     const upgraded = legacyDatabase();
     migrate(upgraded);
-    assert.deepEqual(versions(db), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    assert.deepEqual(versions(db), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
     assert.deepEqual(columns(db, 'users').sort(), columns(upgraded, 'users').sort());
     assert.deepEqual(columns(db, 'pending_registrations'), columns(upgraded, 'pending_registrations'));
     assert.deepEqual(columns(db, 'password_resets'), columns(upgraded, 'password_resets'));
-    // Migration 010 retired parking etiquette reports and plate penalties; old bookings keep their stored surcharge.
+    // Migration 011 (Etiquette Reports & Penalty Management): the same tables and columns either way.
     for (const d of [db, upgraded]) {
       const names = objects(d);
-      for (const name of ['etiquette_reports', 'etiquette_evidence', 'plate_penalties']) assert.ok(!names.has(name), name);
+      for (const name of ['etiquette_reports', 'etiquette_evidence', 'penalties', 'penalty_charges', 'penalty_appeals', 'appeal_evidence', 'penalty_events']) assert.ok(names.has(name), name);
+      for (const name of ['zone_id', 'vehicle_id', 'owner_id', 'verified_by', 'verified_at']) assert.ok(columns(d, 'etiquette_reports').includes(name), name);
       assert.ok(columns(d, 'reservations').includes('surcharge_centavos'));
+      assert.ok(columns(d, 'payments').includes('penalty_centavos'));
     }
+    for (const t of ['etiquette_reports', 'penalties', 'penalty_charges', 'penalty_appeals', 'penalty_events']) assert.deepEqual(columns(db, t), columns(upgraded, t), t);
     db.close();
     upgraded.close();
   });

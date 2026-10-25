@@ -284,10 +284,12 @@ describe('dashboard and settings (deterministic data)', () => {
   });
   after(async () => env.stop());
 
-  test('there is no Reports page any more: analytics reports and parking etiquette reports are both gone', async () => {
+  test('there is no analytics Reports page; parking etiquette reports live under /admin/etiquette', async () => {
     assert.equal((await adminC.get(`/admin/reports/export.csv?type=daily&date=${DAY}`)).status, 404);
     assert.equal((await adminC.get('/admin/reports')).status, 404);
-    assert.doesNotMatch((await adminC.get('/admin')).text, /href="\/admin\/reports"|Etiquette Reports/);
+    const home = (await adminC.get('/admin')).text;
+    assert.doesNotMatch(home, /href="\/admin\/reports"/);
+    assert.match(home, /href="\/admin\/etiquette"[^>]*>[\s\S]*?Etiquette Reports/);
   });
 
   test('admin dashboard KPIs and chart series come from the database', () => {

@@ -1,0 +1,15 @@
+<% const fresh = isUnread('etiquette_report', row.id); %>
+<tr class="<%= fresh ? 'is-unread' : '' %>">
+  <td data-label="Report"><a class="font-mono fw-semibold" href="/admin/etiquette/reports/<%= row.id %>">#<%= row.id %></a><% if (fresh) { %><span class="new-pill">New</span><% } %><span class="sub"><%= fmtDateTime(row.created_at) %></span></td>
+  <td data-label="Plate">
+    <span class="plate"><%= row.plate_number %></span>
+    <span class="sub">
+      <% if (row.vehicle_id) { %><i class="bi bi-patch-check text-success" aria-hidden="true"></i> <%= row.owner_name %><% } else { %>Not verified<% } %>
+      · <%= row.plate_report_count %> report<%= row.plate_report_count === 1 ? '' : 's' %>
+    </span>
+  </td>
+  <td data-label="Violation"><%= row.violation_label %><% if (row.has_evidence) { %> <i class="bi bi-image text-muted" title="Photo attached" aria-label="Photo attached"></i><% } %><% if (row.zone_name) { %><span class="sub"><%= row.zone_name %></span><% } %></td>
+  <td data-label="Incident"><%= fmtDateTime(row.incident_at) %></td>
+  <td data-label="Reported by"><%= row.reporter_name %><span class="sub"><%= row.reporter_email %></span></td>
+  <td data-label="Status"><%- include('partials/status-badge', { kind: 'report', status: row.status }) %><% if (row.active_penalty_count) { %><span class="sub text-danger"><%= row.active_penalty_count %> penalt<%= row.active_penalty_count === 1 ? 'y' : 'ies' %></span><% } %></td>
+</tr>

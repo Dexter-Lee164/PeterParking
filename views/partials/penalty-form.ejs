@@ -1,0 +1,26 @@
+<%# Issue a penalty (admin). Params: action (form URL), vehicle { plate_number, owner_name }, penaltyOptions, penaltyValues,
+    penaltyErrors, maxFee, maxBanDays, today. public/js/penalty-form.js shows only the fields of the chosen type and
+    words the confirmation dialog. %>
+<% const pv = penaltyValues || {}; const pe = penaltyErrors || {}; const show = function (kinds) { return kinds.indexOf(pv.kind) >= 0 ? '' : ' d-none'; }; %>
+<section class="summary-card" id="penalty">
+  <div class="summary-head"><h3><i class="bi bi-shield-exclamation me-1" aria-hidden="true"></i>Issue a penalty</h3></div>
+  <div class="p-3">
+    <p class="small text-muted">To <strong><%= vehicle.owner_name %></strong>'s account, through vehicle <span class="plate"><%= vehicle.plate_number %></span>. The driver is notified and sees the type, amount or dates, and your reason — never who reported them.</p>
+    <form method="post" action="<%= action %>" novalidate data-penalty-form data-plate="<%= vehicle.plate_number %>" data-driver="<%= vehicle.owner_name %>"
+          data-confirm="Issue this penalty?" data-confirm-title="Issue penalty" data-confirm-label="Issue penalty" data-confirm-tone="danger">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="row g-3">
+        <%- include('partials/form-field', { name: 'kind', id: 'penalty-kind', label: 'Penalty type', type: 'select', value: pv.kind, errors: pe, required: true, options: penaltyOptions }) %>
+        <%- include('partials/form-field', { name: 'amount', id: 'penalty-amount', label: 'Fee amount', value: pv.amount, errors: pe, prefix: '₱', placeholder: '100.00', col: 'col-sm-6' + show(['fee_once', 'surcharge']), help: 'Up to ' + peso(maxFee) + '.', attrs: { 'data-penalty-for': 'fee_once surcharge', inputmode: 'decimal' } }) %>
+        <%- include('partials/form-field', { name: 'expires_on', id: 'penalty-expires', label: 'Surcharge ends on (optional)', type: 'date', value: pv.expires_on, errors: pe, min: today, col: 'col-sm-6' + show(['surcharge']), help: 'Last day it applies. Empty: until revoked.', attrs: { 'data-penalty-for': 'surcharge' } }) %>
+        <%- include('partials/form-field', { name: 'start_date', id: 'penalty-start', label: 'Ban starts', type: 'date', value: pv.start_date || today, errors: pe, min: today, col: 'col-sm-6' + show(['temp_ban']), attrs: { 'data-penalty-for': 'temp_ban' } }) %>
+        <%- include('partials/form-field', { name: 'end_date', id: 'penalty-end', label: 'Ban ends (last day)', type: 'date', value: pv.end_date, errors: pe, min: today, col: 'col-sm-6' + show(['temp_ban']), help: 'At most ' + maxBanDays + ' days.', attrs: { 'data-penalty-for': 'temp_ban' } }) %>
+        <%- include('partials/form-field', { name: 'reason', id: 'penalty-reason', label: 'Reason (shown to the driver)', type: 'textarea', value: pv.reason, errors: pe, required: true, rows: 3, maxlength: 1000, placeholder: 'e.g. Parked across two slots in Main Building on 12 Oct (confirmed report).' }) %>
+        <div class="col-12">
+          <p class="small text-muted mb-2">Fees apply to <em>new</em> reservations only (a one-time fee to the next one); existing and paid bookings are not changed. Bans stop new reservations and reschedules but never cancel bookings already made.</p>
+          <button class="btn btn-danger" type="submit"><i class="bi bi-shield-exclamation" aria-hidden="true"></i> Issue penalty</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</section>

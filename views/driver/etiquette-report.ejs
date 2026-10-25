@@ -1,0 +1,44 @@
+<div class="page-intro">
+  <div>
+    <h2>Report #<%= report.id %></h2>
+    <p>Sent <%= fmtDateTime(report.created_at) %>. Parking administration decides separately on any penalty for the reported vehicle.</p>
+  </div>
+  <a class="btn btn-outline-secondary btn-sm" href="/driver/etiquette?tab=reports"><i class="bi bi-arrow-left" aria-hidden="true"></i> My Reports</a>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <section class="summary-card">
+      <div class="summary-head"><h3>What you reported</h3><%- include('partials/status-badge', { kind: 'report', status: report.driver_status }) %></div>
+      <div class="p-3">
+        <dl class="kv-list mb-0">
+          <dt>Plate number</dt><dd><span class="plate"><%= report.plate_number %></span></dd>
+          <dt>Violation</dt><dd><%= report.violation_label %></dd>
+          <dt>Incident</dt><dd><%= fmtDateTime(report.incident_at) %></dd>
+          <dt>Parking zone</dt><dd><%= report.zone_name || '—' %></dd>
+          <dt>What happened</dt><dd class="text-prewrap"><%= report.description %></dd>
+        </dl>
+      </div>
+    </section>
+    <% if (report.has_evidence) { %>
+      <section class="summary-card mt-3">
+        <div class="summary-head"><h3>Photo evidence</h3></div>
+        <div class="p-3"><a href="/driver/etiquette/reports/<%= report.id %>/evidence" target="_blank" rel="noopener"><img class="evidence-image" src="/driver/etiquette/reports/<%= report.id %>/evidence" alt="Photo attached to report #<%= report.id %>"></a></div>
+      </section>
+    <% } %>
+  </div>
+  <div class="col-lg-5">
+    <section class="summary-card">
+      <div class="summary-head"><h3>Review</h3></div>
+      <div class="summary-body">
+        <div class="summary-row"><span class="k">Status</span><span class="v"><%- include('partials/status-badge', { kind: 'report', status: report.driver_status }) %></span></div>
+        <% if (report.status === 'resolved' || report.status === 'dismissed') { %>
+          <div class="summary-row"><span class="k">Decided</span><span class="v"><%= fmtDateTime(report.reviewed_at) %></span></div>
+          <% if (report.admin_notes) { %><div class="summary-row"><span class="k">Reason from parking administration</span><span class="v text-prewrap"><%= report.admin_notes %></span></div><% } %>
+        <% } else { %>
+          <div class="summary-row"><span class="k text-muted">Parking administration is reviewing this report. You will be notified when it is decided.</span></div>
+        <% } %>
+      </div>
+    </section>
+  </div>
+</div>

@@ -40,7 +40,12 @@ function createApp({ loginRateLimit, sessionSecret, authLimits } = {}) {
   app.get('/healthz', (req, res) => res.json({ status: 'ok' }));
 
   app.use(view);
-  app.use(express.urlencoded({ extended: false, limit: '100kb' }));
+  // Forms stay small, except the two that may carry one photo (at most 2 MB, sent base64-encoded by
+  // public/js/evidence-input.js and checked again in src/services/evidence.js): an etiquette report and an appeal.
+  const smallForms = express.urlencoded({ extended: false, limit: '100kb' });
+  const evidenceForms = express.urlencoded({ extended: false, limit: '4mb' });
+  const carriesEvidence = (req) => req.method === 'POST' && /^\/driver\/etiquette\/(reports|penalties\/\d+\/appeal)$/.test(req.path);
+  app.use((req, res, next) => (carriesEvidence(req) ? evidenceForms : smallForms)(req, res, next));
   app.use(express.json({ limit: '100kb' }));
 
   const store = new SqliteSessionStore(db, { ttlMs: config.sessionMaxAgeHours * 3600 * 1000 });

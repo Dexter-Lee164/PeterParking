@@ -42,7 +42,6 @@
           <dt>Date</dt><dd><%= fmtDate(r.start_at) %></dd>
           <dt>Time</dt><dd><%= fmtTime(r.start_at) %> – <%= fmtTime(r.end_at) %> (<%= fmtDuration(r.duration_minutes) %>)</dd>
           <dt>Hourly rate</dt><dd><%= peso(r.hourly_rate_centavos) %> (locked at booking)</dd>
-          <% if (r.surcharge_centavos) { %><dt>Additional fee</dt><dd><%= peso(r.surcharge_centavos) %> <span class="text-muted small">(parking etiquette penalty on <%= r.plate_number %>, included in the fee)</span></dd><% } %>
           <dt>Booked on</dt><dd><%= fmtDateTime(r.created_at) %></dd>
           <% if (session) { %>
             <dt>Checked in</dt><dd><%= fmtDateTime(session.check_in_at) %><% if (session.in_by) { %> by <%= session.in_by %><% } %>
@@ -79,13 +78,17 @@
     <%- include('partials/summary-card', {
       title: 'Fees & payment',
       badgeHtml: include('partials/status-badge', { kind: 'balance', status: r.payment_status }),
-      items: [
+      items: (r.surcharge_centavos ? [
+        { label: 'Base parking fee', value: peso(r.fee_estimated_centavos - r.surcharge_centavos) },
+        { label: 'Additional penalty fee', value: '+' + peso(r.surcharge_centavos) }
+      ] : []).concat([
         { label: 'Estimated fee', value: peso(r.fee_estimated_centavos) },
         { label: 'Final fee', value: r.fee_is_final ? peso(r.fee_final_centavos) : 'After check-out' },
         { label: 'Paid so far', value: peso(r.paid_centavos) }
-      ],
+      ]),
       total: { label: r.balance_centavos < 0 ? 'Credit' : 'Balance', value: peso(Math.abs(r.balance_centavos)) }
     }) %>
+    <%- include('partials/penalty-charges', { list: penaltyCharges, admin: true }) %>
 
     <section class="summary-card mt-3">
       <div class="summary-head"><h3>Payment records</h3></div>

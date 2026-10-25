@@ -15,9 +15,12 @@ const { nowLocal } = require('../utils/time');
  *   reservations   a booking was created, cancelled or rescheduled, or marked as a no-show
  *   payments       a payment was recorded (the Payments page lists paid bookings only, so balances owed and voided
  *                  receipts are not announced there)
- * Drivers (only about their own bookings and payments)
+ *   etiquette      a driver submitted a parking etiquette report, or appealed a penalty
+ * Drivers (only about their own bookings, payments, reports and penalties)
  *   reservations   staff cancelled, rescheduled, checked in or out, or marked one of their bookings as a no-show
  *   payments       a payment of theirs was recorded or voided
+ *   etiquette      a report they sent changed status; a penalty on their account was issued, modified, charged to a
+ *                  booking or revoked; their appeal was decided. Never anything about who reported them.
  *
  * Opening the section marks everything up to now as reviewed; the records that were unread stay highlighted on that
  * one page view (see middleware()). A user's first check starts from "now", so the history that existed before the
@@ -28,6 +31,7 @@ const SECTIONS = {
   admin: {
     reservations: `a.action IN ('reservation.create', 'reservation.cancel', 'reservation.reschedule', 'reservation.no_show')`,
     payments: `a.action = 'payment.record'`,
+    etiquette: `a.action IN ('etiquette.submit', 'appeal.submit')`,
   },
   driver: {
     reservations: `a.entity_type = 'reservation'
@@ -35,6 +39,12 @@ const SECTIONS = {
       AND EXISTS (SELECT 1 FROM reservations r WHERE r.id = a.entity_id AND r.user_id = @me)`,
     payments: `a.entity_type = 'payment' AND a.action IN ('payment.record', 'payment.void')
       AND EXISTS (SELECT 1 FROM payments p WHERE p.id = a.entity_id AND p.user_id = @me)`,
+    etiquette: `((a.entity_type = 'etiquette_report' AND a.action IN ('etiquette.under_review', 'etiquette.resolve', 'etiquette.dismiss')
+        AND EXISTS (SELECT 1 FROM etiquette_reports e WHERE e.id = a.entity_id AND e.reporter_id = @me))
+      OR (a.entity_type = 'penalty' AND a.action IN ('penalty.issue', 'penalty.modify', 'penalty.charge', 'penalty.revoke')
+        AND EXISTS (SELECT 1 FROM penalties p WHERE p.id = a.entity_id AND p.user_id = @me))
+      OR (a.entity_type = 'penalty_appeal' AND a.action = 'appeal.decide'
+        AND EXISTS (SELECT 1 FROM penalty_appeals pa WHERE pa.id = a.entity_id AND pa.user_id = @me)))`,
   },
 };
 
@@ -95,7 +105,9 @@ function markSeen(user, section) {
 function middleware(req, res, next) {
   const user = req.user;
   const sections = Object.keys(sectionsFor(user.role));
-  const section = req.method === 'GET' && ((new RegExp(`^/(${sections.join('|')})(/|$)`)).exec(req.path) || [])[1];
+  // A page view, not a file it loads (an evidence image), opens the section.
+  const page = req.method === 'GET' && !/\/evidence$/.test(req.path);
+  const section = page && ((new RegExp(`^/(${sections.join('|')})(/|$)`)).exec(req.path) || [])[1];
   if (section) {
     const unread = unreadRecords(user, section);
     res.locals.isUnread = (type, id) => !!(unread[type] && unread[type].has(Number(id)));

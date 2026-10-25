@@ -89,6 +89,13 @@
   </div>
 <% } %>
 
+<% if (ban) { %>
+  <div class="alert alert-danger d-flex gap-2 align-items-start" role="alert">
+    <i class="bi bi-slash-circle-fill mt-1" aria-hidden="true"></i>
+    <div><%= ban.message %> <a href="/driver/etiquette/penalties/<%= ban.penalty.id %>">See the penalty</a>.</div>
+  </div>
+<% } %>
+
 <% if (!zones.length) { %>
   <%- include('partials/empty-state', { icon: 'bi-p-square', title: 'No parking zones yet', text: 'Parking administration has not set up any zones. Please check back soon.' }) %>
 <% } else { %>

@@ -3,6 +3,7 @@
 const express = require('express');
 const users = require('../../services/users');
 const reservations = require('../../services/reservations');
+const penalties = require('../../services/penalties');
 const ctx = require('../../db/context');
 const { AppError } = require('../../utils/errors');
 const { toInt, clean, oneOf } = require('../../utils/validate');
@@ -80,6 +81,9 @@ function detailPage(person, extra = {}) {
     breadcrumbs: [{ label: 'Drivers', href: '/admin/drivers' }, { label: person.full_name }],
     person,
     vehicles: users.listVehicles(person.id, { includeInactive: true }),
+    // Etiquette penalties on the account (any state), and the ban in force right now.
+    accountPenalties: penalties.penaltiesForUser(person.id),
+    ban: penalties.activeBan(person.id, null),
     history: history.rows,
     totals,
     roleOptions: ROLE_FORM_OPTIONS,

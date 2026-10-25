@@ -22,7 +22,7 @@ const methodLabel = (method) => METHOD_LABELS[method] || String(method || '');
  * reservation's or a slot's status. Balance = assessed (or estimated) fee − valid payments.
  */
 const PAYMENT_SELECT = `
-  SELECT p.*, r.booking_ref, r.fee_estimated_centavos, r.fee_final_centavos, r.status AS reservation_status,
+  SELECT p.*, r.booking_ref, r.fee_estimated_centavos, r.fee_final_centavos, r.surcharge_centavos, r.status AS reservation_status,
          u.full_name AS driver_name, u.email AS driver_email,
          rb.full_name AS recorded_by_name, vb.full_name AS voided_by_name,
          s.slot_code, z.name AS zone_name, v.plate_number
@@ -73,17 +73,30 @@ function recordPayment(input, admin) {
 
     const paidAt = time.nowLocal();
     const receiptNo = nextReceiptNo(db, paidAt);
+    const penaltyPart = penaltyShare(db, res, amount);
     const info = db
       .prepare(
-        `INSERT INTO payments (receipt_no, reservation_id, user_id, amount_centavos, method, reference, notes, status, paid_at, recorded_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'valid', ?, ?)`,
+        `INSERT INTO payments (receipt_no, reservation_id, user_id, amount_centavos, penalty_centavos, method, reference, notes, status, paid_at, recorded_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'valid', ?, ?)`,
       )
-      .run(receiptNo, res.id, res.user_id, amount, method, reference || null, notes || null, paidAt, admin.id);
+      .run(receiptNo, res.id, res.user_id, amount, penaltyPart, method, reference || null, notes || null, paidAt, admin.id);
     audit.log(admin, 'payment.record', 'payment', info.lastInsertRowid, {
-      receipt: receiptNo, ref: res.booking_ref, amount, method, reference,
+      receipt: receiptNo, ref: res.booking_ref, amount, method, reference, ...(penaltyPart ? { penalty_fee: penaltyPart } : {}),
     });
     return getPayment(info.lastInsertRowid);
   });
+}
+
+/**
+ * How much of a payment settles penalty fees (recorded on the payment so receipts show the parking fee and the penalty
+ * fee apart). A booking that is charged at all owes its penalty fees in full (see reservations.cancellationFeeFor);
+ * whatever earlier valid payments did not cover yet is settled first by this one.
+ */
+function penaltyShare(db, res, amount) {
+  const penaltyDue = res.due_centavos > 0 ? Math.min(res.surcharge_centavos || 0, res.due_centavos) : 0;
+  if (!penaltyDue) return 0;
+  const paid = db.prepare(`SELECT COALESCE(SUM(penalty_centavos), 0) AS t FROM payments WHERE reservation_id = ? AND status = 'valid'`).get(res.id).t;
+  return Math.min(amount, Math.max(0, penaltyDue - paid));
 }
 
 function voidPayment(id, admin, reason) {

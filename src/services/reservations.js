@@ -8,6 +8,7 @@ const availability = require('./availability');
 const parking = require('./parking');
 const fees = require('./fees');
 const audit = require('./audit');
+const penalties = require('./penalties');
 const time = require('../utils/time');
 const { AppError } = require('../utils/errors');
 const { clean, normalizePlate } = require('../utils/validate');
@@ -95,9 +96,9 @@ function translateDbError(err) {
 }
 
 /**
- * Late-cancellation and no-show fees are a percentage of the reserved fee without the additional fee some older
- * bookings carry (surcharge_centavos, from the retired plate penalties; 0 for new bookings); when such a fee applies
- * at all, the additional fee is charged in full on top. A free cancellation costs nothing.
+ * Late-cancellation and no-show fees are a percentage of the base parking fee, without the penalty fees the booking
+ * carries (surcharge_centavos: an account's recurring surcharge and one-time penalty fees, src/services/penalties.js);
+ * when such a fee applies at all, the penalty fees are charged in full on top. A free cancellation costs nothing.
  */
 function cancellationFeeFor(res, now, settings, opts) {
   const fee = fees.cancellationFee(res.fee_estimated_centavos - res.surcharge_centavos, res.start_at, now, settings, opts);
@@ -149,6 +150,8 @@ function createReservation({ userId, vehicleId, slotId, date, start, end }, acto
       if (!parking.vehicleFitsSlotType(slot.type_vehicle, vehicle.vehicle_type)) {
         throw new AppError(`A ${vehicle.vehicle_type} cannot use a ${slot.type_label} slot.`, { code: 'VEHICLE_MISMATCH', fields: { vehicle_id: 'This vehicle does not fit the selected slot type.' } });
       }
+      // A temporary or permanent ban on the account or on this plate stops new bookings here, whatever the page showed.
+      penalties.assertCanBook(userId, vehicle.plate_number, db);
 
       const activeCount = db
         .prepare(`SELECT COUNT(*) AS n FROM reservations WHERE user_id = ? AND status IN ('confirmed','checked_in')`)
@@ -172,17 +175,23 @@ function createReservation({ userId, vehicleId, slotId, date, start, end }, acto
       }
 
       const rate = slot.hourly_rate_centavos;
-      const fee = fees.estimatedFee(rate, range.durationMinutes, settings);
+      const baseFee = fees.estimatedFee(rate, range.durationMinutes, settings);
+      // Penalty fees the account carries now (an active recurring surcharge, one-time fees not yet charged) are part
+      // of this booking's fee from the start, stored apart in surcharge_centavos and recorded in penalty_charges.
+      const charges = penalties.bookingCharges(userId, db);
+      const surcharge = charges.reduce((sum, c) => sum + c.amount_centavos, 0);
+      const fee = baseFee + surcharge;
       const ref = generateRef(db);
       const info = db
         .prepare(
           `INSERT INTO reservations (booking_ref, user_id, vehicle_id, slot_id, start_at, end_at, duration_minutes,
-             hourly_rate_centavos, fee_estimated_centavos, status, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', ?, ?)`,
+             hourly_rate_centavos, fee_estimated_centavos, surcharge_centavos, status, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', ?, ?)`,
         )
-        .run(ref, userId, vehicleId, slotId, range.startAt, range.endAt, range.durationMinutes, rate, fee, time.nowLocal(), time.nowLocal());
+        .run(ref, userId, vehicleId, slotId, range.startAt, range.endAt, range.durationMinutes, rate, fee, surcharge, time.nowLocal(), time.nowLocal());
+      penalties.applyCharges(db, info.lastInsertRowid, charges, actor || userId);
       audit.log(actor || userId, 'reservation.create', 'reservation', info.lastInsertRowid, {
-        ref, slot: slot.slot_code, zone: slot.zone_name, start: range.startAt, end: range.endAt, fee,
+        ref, slot: slot.slot_code, zone: slot.zone_name, start: range.startAt, end: range.endAt, fee, ...(surcharge ? { base_fee: baseFee, penalty_fee: surcharge } : {}),
       });
       return getReservation(info.lastInsertRowid);
     });
@@ -221,6 +230,8 @@ function cancelReservation(id, user, { reason = '', waiveFee = null, actor = nul
         `UPDATE reservations SET status = 'cancelled', cancelled_at = ?, cancelled_by = ?, cancel_reason = ?,
            fee_final_centavos = ?, updated_at = ? WHERE id = ?`,
       ).run(now, user.id, cleanReason || (isAdmin ? null : 'Cancelled by driver'), fee, now, id);
+      // Nothing is collected for this booking, so a one-time penalty fee on it waits for the next booking instead.
+      if (fee === 0 && res.surcharge_centavos) penalties.releaseCharges(db, id, actor || user);
       audit.log(actor || user, 'reservation.cancel', 'reservation', id, {
         ref: res.booking_ref, by: isAdmin ? 'admin' : 'driver', reason: cleanReason, fee, waived: waive,
       });
@@ -264,8 +275,9 @@ function rescheduleReservation(id, user, { date, start, end }, actor = null) {
         )
         .get(res.vehicle_id, id, range.endAt, range.startAt);
       if (vehicleClash) throw new AppError(`This vehicle already has reservation ${vehicleClash.booking_ref} at that time.`, { code: 'VEHICLE_CLASH', status: 409 });
+      penalties.assertCanBook(res.user_id, res.plate_number, db);
 
-      // The booking keeps the additional fee it was made with.
+      // The booking keeps the penalty fees it was made with.
       const fee = fees.estimatedFee(res.hourly_rate_centavos, range.durationMinutes, settings) + res.surcharge_centavos;
       db.prepare(
         `UPDATE reservations SET start_at = ?, end_at = ?, duration_minutes = ?, fee_estimated_centavos = ?, updated_at = ? WHERE id = ?`,

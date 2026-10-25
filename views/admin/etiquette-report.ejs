@@ -1,0 +1,155 @@
+<div class="page-intro">
+  <div>
+    <h2>Report #<%= report.id %></h2>
+    <p>Sent <%= fmtDateTime(report.created_at) %> by <%= report.reporter_name %> (<%= report.reporter_email %>). The reporter is never shown to the reported driver.</p>
+  </div>
+  <div class="d-flex flex-wrap gap-2 align-items-center">
+    <%- include('partials/status-badge', { kind: 'report', status: report.status }) %>
+    <a class="btn btn-outline-secondary btn-sm" href="/admin/etiquette"><i class="bi bi-arrow-left" aria-hidden="true"></i> All reports</a>
+  </div>
+</div>
+
+<% if (formError) { %><div class="alert alert-danger" role="alert"><i class="bi bi-exclamation-octagon me-2" aria-hidden="true"></i><%= formError %></div><% } %>
+
+<div class="row g-3">
+  <div class="col-xl-7">
+    <section class="summary-card">
+      <div class="summary-head"><h3>Reported violation</h3><%- include('partials/status-badge', { kind: 'report', status: report.status }) %></div>
+      <div class="p-3">
+        <dl class="kv-list mb-0">
+          <dt>Plate (as reported)</dt><dd><span class="plate"><%= report.plate_number %></span> <span class="small text-muted">normalized <span class="font-mono"><%= report.plate_key %></span></span></dd>
+          <dt>Violation</dt><dd><%= report.violation_label %></dd>
+          <dt>Incident</dt><dd><%= fmtDateTime(report.incident_at) %></dd>
+          <dt>Parking zone</dt><dd><%= report.zone_name || '—' %></dd>
+          <dt>What happened</dt><dd class="text-prewrap"><%= report.description %></dd>
+          <dt>Decision</dt><dd><% if (report.reviewed_at) { %><%= report.status_label %> · <%= fmtDateTime(report.reviewed_at) %> by <%= report.reviewer_name %><% } else { %><span class="text-muted">Not reviewed yet</span><% } %></dd>
+          <% if (report.admin_notes) { %><dt>Documented reason</dt><dd class="text-prewrap"><%= report.admin_notes %></dd><% } %>
+        </dl>
+      </div>
+    </section>
+
+    <% if (report.has_evidence) { %>
+      <section class="summary-card mt-3">
+        <div class="summary-head"><h3>Photo evidence</h3></div>
+        <div class="p-3"><a href="/admin/etiquette/reports/<%= report.id %>/evidence" target="_blank" rel="noopener"><img class="evidence-image" src="/admin/etiquette/reports/<%= report.id %>/evidence" alt="Photo attached to report #<%= report.id %>"></a></div>
+      </section>
+    <% } %>
+
+    <%# ------------------------------------------------ decision %>
+    <section class="summary-card mt-3" id="decision">
+      <div class="summary-head"><h3><i class="bi bi-clipboard-check me-1" aria-hidden="true"></i>Decision</h3></div>
+      <div class="p-3">
+        <% if (report.can_decide) { %>
+          <div class="d-flex flex-wrap gap-2">
+            <% if (report.can_mark_review) { %>
+              <form method="post" action="/admin/etiquette/reports/<%= report.id %>/review" data-confirm="Mark report #<%= report.id %> as under review? The reporter sees that it is being reviewed." data-confirm-title="Mark under review" data-confirm-label="Mark under review">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <button class="btn btn-outline-primary" type="submit"><i class="bi bi-search" aria-hidden="true"></i> Mark under review</button>
+              </form>
+            <% } %>
+            <form method="post" action="/admin/etiquette/reports/<%= report.id %>/approve"
+                  data-confirm="Approve report #<%= report.id %>: the violation by <%= report.plate_number %> is confirmed. No penalty is applied until you issue one. The reporter sees your reason."
+                  data-confirm-title="Approve report" data-confirm-label="Approve" data-confirm-reason="Why is the report approved?">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button class="btn btn-success" type="submit"><i class="bi bi-check2-circle" aria-hidden="true"></i> Approve</button>
+            </form>
+            <% if (!report.active_penalty_count) { %>
+              <form method="post" action="/admin/etiquette/reports/<%= report.id %>/dismiss"
+                    data-confirm="Dismiss report #<%= report.id %> about <%= report.plate_number %>? The reporter sees your reason."
+                    data-confirm-title="Dismiss report" data-confirm-label="Dismiss" data-confirm-tone="danger" data-confirm-reason="Why is the report dismissed?">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <button class="btn btn-outline-danger" type="submit"><i class="bi bi-x-circle" aria-hidden="true"></i> Dismiss</button>
+              </form>
+            <% } %>
+          </div>
+          <p class="small text-muted mt-2 mb-0">Approving confirms the violation. A penalty is a separate step, after the vehicle is verified.</p>
+        <% } else { %>
+          <p class="small text-muted mb-0">This report is <%= report.status_label.toLowerCase() %>.<% if (report.status === 'resolved' && !report.vehicle_id) { %> Verify the vehicle to issue a penalty.<% } %></p>
+        <% } %>
+      </div>
+    </section>
+
+    <div class="mt-3">
+      <% if (report.can_penalise) { %>
+        <%- include('partials/penalty-form', { action: '/admin/etiquette/reports/' + report.id + '/penalties', vehicle: { plate_number: report.vehicle_plate, owner_name: report.owner_name } }) %>
+      <% } else if (report.status !== 'dismissed') { %>
+        <section class="summary-card" id="penalty">
+          <div class="summary-head"><h3><i class="bi bi-shield-exclamation me-1" aria-hidden="true"></i>Penalty</h3></div>
+          <div class="p-3 small text-muted">
+            <% if (report.status !== 'resolved') { %>Approve the report first.<% } %>
+            <% if (!report.vehicle_id) { %> Verify which registered vehicle it is about (Vehicle ownership, on the right).<% } %>
+          </div>
+        </section>
+      <% } %>
+    </div>
+
+    <% if (linked.length) { %><div class="mt-3"><%- include('partials/penalty-list', { title: 'Penalties issued for this report', list: linked }) %></div><% } %>
+  </div>
+
+  <div class="col-xl-5">
+    <%# ------------------------------------------------ vehicle ownership %>
+    <section class="summary-card mb-3" id="vehicle">
+      <div class="summary-head">
+        <h3>Vehicle ownership</h3>
+        <% if (report.vehicle_id) { %><span class="badge-status tone-green"><i class="bi bi-patch-check-fill" aria-hidden="true"></i>Verified</span><% } else { %><span class="badge-status tone-amber"><i class="bi bi-question-circle" aria-hidden="true"></i>Not verified</span><% } %>
+      </div>
+      <div class="summary-body">
+        <% if (report.vehicle_id) { %>
+          <div class="summary-row">
+            <span class="k"><span class="plate"><%= report.vehicle_plate %></span> <%= vehicleLabel(report) %><% if (!report.vehicle_active) { %> <span class="text-faint">(removed)</span><% } %>
+              <span class="d-block small text-faint">Verified <%= fmtDateTime(report.verified_at) %> by <%= report.verified_by_name %></span></span>
+            <span class="v"><a href="/admin/drivers/<%= report.owner_id %>"><%= report.owner_name %></a><span class="d-block small text-faint"><%= report.owner_email %></span></span>
+          </div>
+        <% } %>
+        <% if (!matches.length) { %>
+          <div class="summary-row"><span class="k text-muted">No registered vehicle has the plate <span class="plate"><%= report.plate_number %></span>. Nobody is penalised from an unmatched plate. Check for a typo with the <a href="/admin/etiquette/vehicles?q=<%= encodeURIComponent(report.plate_number) %>">vehicle lookup</a>.</span></div>
+        <% } %>
+        <% matches.filter(function (v) { return v.id !== report.vehicle_id; }).forEach(function (v) { %>
+          <div class="summary-row">
+            <span class="k"><span class="plate"><%= v.plate_number %></span> <%= vehicleLabel(v) %><% if (v.color) { %> · <%= v.color %><% } %><% if (!v.is_active) { %> <span class="text-faint">(removed)</span><% } %>
+              <span class="d-block small text-faint">Registered to <a href="/admin/drivers/<%= v.user_id %>"><%= v.owner_name %></a> · <%= v.owner_email %><% if (v.owner_active_penalties) { %> · <span class="text-danger"><%= v.owner_active_penalties %> active penalt<%= v.owner_active_penalties === 1 ? 'y' : 'ies' %></span><% } %></span></span>
+            <% if (report.can_verify) { %>
+              <span class="v">
+                <form method="post" action="/admin/etiquette/reports/<%= report.id %>/verify" data-confirm="Confirm that report #<%= report.id %> is about <%= v.plate_number %>, registered to <%= v.owner_name %>? Only then can a penalty be issued to that account." data-confirm-title="Verify vehicle" data-confirm-label="Verify">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <input type="hidden" name="vehicle_id" value="<%= v.id %>">
+                  <button class="btn btn-sm btn-outline-primary" type="submit"><i class="bi bi-patch-check" aria-hidden="true"></i> <%= report.vehicle_id ? 'Use this one' : 'Verify' %></button>
+                </form>
+              </span>
+            <% } %>
+          </div>
+        <% }) %>
+      </div>
+    </section>
+
+    <% if (duplicates.length) { %>
+      <section class="summary-card mb-3">
+        <div class="summary-head"><h3>Possibly the same incident</h3><span class="small text-muted">same plate, within 3 hours</span></div>
+        <div class="summary-body">
+          <% duplicates.forEach(function (d) { %>
+            <div class="summary-row">
+              <span class="k"><a class="font-mono" href="/admin/etiquette/reports/<%= d.id %>">#<%= d.id %></a> <%= d.violation_label %><span class="d-block small text-faint"><%= fmtDateTime(d.incident_at) %> · <%= d.zone_name || '—' %> · by <%= d.reporter_name %></span></span>
+              <span class="v"><%- include('partials/status-badge', { kind: 'report', status: d.status }) %></span>
+            </div>
+          <% }) %>
+        </div>
+      </section>
+    <% } %>
+
+    <% if (report.owner_id) { %>
+      <%- include('partials/penalty-list', { title: 'Penalties on ' + report.owner_name + '\'s account', list: ownerPenalties, emptyText: 'No previous penalties.' }) %>
+      <section class="summary-card">
+        <div class="summary-head"><h3>Other violations</h3><span class="small text-muted"><%= ownerReports.length %> report<%= ownerReports.length === 1 ? '' : 's' %> verified to this account</span></div>
+        <div class="summary-body">
+          <% if (!ownerReports.length) { %><div class="summary-row"><span class="k text-muted">No other reports.</span></div><% } %>
+          <% ownerReports.forEach(function (r) { %>
+            <div class="summary-row">
+              <span class="k"><a class="font-mono" href="/admin/etiquette/reports/<%= r.id %>">#<%= r.id %></a> <%= r.violation_label %><span class="d-block small text-faint"><%= fmtDateTime(r.incident_at) %></span></span>
+              <span class="v"><%- include('partials/status-badge', { kind: 'report', status: r.status }) %></span>
+            </div>
+          <% }) %>
+        </div>
+      </section>
+    <% } %>
+  </div>
+</div>

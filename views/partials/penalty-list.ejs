@@ -1,0 +1,17 @@
+<%# Previous and current penalties (admin). Params: title, list (penalties.decorate rows), emptyText, showDriver (bool). %>
+<section class="summary-card mb-3">
+  <div class="summary-head"><h3><%= title %></h3><span class="small text-muted"><%= list.length %> on record</span></div>
+  <div class="summary-body">
+    <% if (!list.length) { %><div class="summary-row"><span class="k text-muted"><%= locals.emptyText || 'No penalties.' %></span></div><% } %>
+    <% list.forEach(function (p) { %>
+      <div class="summary-row">
+        <span class="k">
+          <a class="font-mono" href="/admin/etiquette/penalties/<%= p.id %>">#<%= p.id %></a> <strong><%= p.kind_label %></strong>
+          <% if (locals.showDriver) { %><span class="small"> · <%= p.driver_name %></span><% } %>
+          <span class="d-block small text-faint"><%= p.summary %> · <span class="plate"><%= p.plate_number %></span> · <%= fmtDate(p.issued_at) %><% if (p.report_id) { %> · report #<%= p.report_id %><% } %></span>
+        </span>
+        <span class="v"><%- include('partials/status-badge', { kind: 'penalty', status: p.state }) %></span>
+      </div>
+    <% }) %>
+  </div>
+</section>

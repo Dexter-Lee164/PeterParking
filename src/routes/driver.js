@@ -11,11 +11,14 @@ const dashboard = require('../services/dashboard');
 const users = require('../services/users');
 const fees = require('../services/fees');
 const notifications = require('../services/notifications');
+const etiquette = require('../services/etiquette');
+const penalties = require('../services/penalties');
+const evidence = require('../services/evidence');
 const vehicleCatalog = require('../../public/js/vehicle-catalog');
 const ctx = require('../db/context');
 const time = require('../utils/time');
 const { AppError } = require('../utils/errors');
-const { clean, toInt } = require('../utils/validate');
+const { clean, toInt, oneOf } = require('../utils/validate');
 const { formatPeso } = require('../utils/money');
 
 const router = express.Router();
@@ -26,7 +29,7 @@ const VEHICLE_TYPE_OPTIONS = [
   { value: 'motorcycle', label: 'Motorcycle' },
 ];
 
-// Sidebar badges (My Reservations, Payments) and the unread records highlighted on those pages.
+// Sidebar badges (My Reservations, Payments, Etiquette Reports) and the unread records highlighted on those pages.
 router.use(notifications.middleware);
 
 // Polled by public/js/app.js so the badges update while a page stays open.
@@ -105,6 +108,8 @@ router.get('/find-parking', async (req, res, next) => {
 
     const nowStr = time.nowLocal();
     const options = availability.timeOptions(settings);
+    // Shown on the page; booking is refused by reservations.createReservation whatever the page shows.
+    const ban = penalties.activeBan(req.user.id, null);
     const config = {
       step: settings.time_step_minutes,
       open: settings.open_time,
@@ -133,6 +138,7 @@ router.get('/find-parking', async (req, res, next) => {
       minDate: config.today,
       maxDate: config.maxDate,
       rules: settings,
+      ban: ban ? { penalty: ban, message: penalties.banMessage(ban, req.user.id) } : null,
       extraScripts: ['/js/reservation-form.js', '/js/vehicle-art.js', '/js/parking-slots.js'],
     });
   } catch (err) {
@@ -166,13 +172,23 @@ function buildReservePage(req, { slotId, params, values = {}, errors = {}, formE
   if (!slot) throw new AppError('That parking slot does not exist.', { status: 404 });
   const avail = availability.getAvailability({ startAt: range.startAt, endAt: range.endAt, userId: req.user.id });
   const live = avail.slots.find((s) => s.id === slot.id);
-  const vehicles = users.listVehicles(req.user.id).filter((v) => parking.vehicleFitsSlotType(slot.type_vehicle, v.vehicle_type));
+  // A vehicle (or the account) under a ban is flagged; the penalty fees a new booking would carry are listed apart.
+  const vehicles = users.listVehicles(req.user.id)
+    .filter((v) => parking.vehicleFitsSlotType(slot.type_vehicle, v.vehicle_type))
+    .map((v) => {
+      const ban = penalties.activeBan(req.user.id, v.plate_number);
+      return Object.assign(v, { ban: ban ? penalties.banMessage(ban, req.user.id) : null });
+    });
+  const baseFee = fees.estimatedFee(slot.hourly_rate_centavos, range.durationMinutes, settings);
+  const penaltyCharges = penalties.bookingCharges(req.user.id);
+  const penaltyFee = penaltyCharges.reduce((sum, c) => sum + c.amount_centavos, 0);
   return {
     title: 'Confirm Reservation',
     nav: 'find-parking',
     breadcrumbs: [{ label: 'Dashboard', href: '/driver' }, { label: 'Find Parking', href: backToSearch(params, slot.id) }, { label: 'Confirm' }],
     slot, range, live, vehicles,
-    fee: fees.estimatedFee(slot.hourly_rate_centavos, range.durationMinutes, settings),
+    fee: baseFee + penaltyFee,
+    baseFee, penaltyFee, penaltyCharges,
     policy: fees.cancellationPolicyText(settings),
     values, errors, formError,
     params,
@@ -213,7 +229,7 @@ router.post('/reserve', (req, res) => {
     return res.redirect(`/driver/reservations/${created.id}`);
   } catch (err) {
     if (!(err instanceof AppError)) throw err;
-    if (['CONFLICT', 'SLOT_NOT_ACTIVE', 'NOT_FOUND', 'VEHICLE_CLASH'].includes(err.code) || (err.code === 'VALIDATION' && !(err.fields && err.fields.vehicle_id))) {
+    if (['CONFLICT', 'SLOT_NOT_ACTIVE', 'NOT_FOUND', 'VEHICLE_CLASH', 'BANNED'].includes(err.code) || (err.code === 'VALIDATION' && !(err.fields && err.fields.vehicle_id))) {
       req.flash('error', err.message);
       return res.redirect(slotId ? backToSearch(params, slotId) : '/driver/find-parking');
     }
@@ -257,6 +273,7 @@ function reservationPage(req, res, reservation, extra = {}) {
     nav: 'reservations',
     breadcrumbs: [{ label: 'Dashboard', href: '/driver' }, { label: 'My Reservations', href: '/driver/reservations' }, { label: reservation.booking_ref }],
     r: reservation, session, payRows, rules: settings, canCancel, canReschedule, justBooked,
+    penaltyCharges: penalties.chargesForReservation(reservation.id),
     cancelFee: canCancel ? reservations.cancellationFeeFor(reservation, now, settings) : 0,
     policy: fees.cancellationPolicyText(settings),
     options: availability.timeOptions(settings),
@@ -387,6 +404,117 @@ router.post('/vehicles/:id/delete', (req, res) => {
     req.flash('error', err.message);
   }
   return res.redirect('/driver/vehicles');
+});
+
+// --------------------------------------------------------- etiquette reports
+
+const ETIQUETTE_TABS = ['report', 'reports', 'penalties'];
+
+function etiquettePage(req, { tab = null, values = {}, errors = {}, formError = null } = {}) {
+  const now = time.nowLocal();
+  const status = oneOf(clean(req.query.status), ['under_review', 'resolved', 'dismissed'], '');
+  // The reporter sees a new report as under review too.
+  const filter = status === 'under_review' ? 'open' : status;
+  const { rows, pager } = etiquette.listReports({ reporterId: req.user.id, status: filter }, { page: req.query.page, perPage: 10 });
+  const counts = etiquette.countByStatus({ reporterId: req.user.id });
+  const myPenalties = penalties.penaltiesForUser(req.user.id);
+  const chosen = tab || oneOf(clean(req.query.tab), ETIQUETTE_TABS, 'report');
+  return {
+    title: 'Etiquette Reports', nav: 'etiquette', tab: chosen, rows, pager, status,
+    counts: { under_review: counts.pending + counts.under_review, resolved: counts.resolved, dismissed: counts.dismissed, all: counts.all },
+    penalties: myPenalties,
+    inForce: myPenalties.filter((p) => p.in_force).length,
+    ban: penalties.activeBan(req.user.id, null),
+    violationOptions: [{ value: '', label: 'Choose a violation…' }].concat(etiquette.VIOLATIONS),
+    zoneOptions: [{ value: '', label: 'Choose a zone…' }].concat(etiquette.activeZones().map((z) => ({ value: z.id, label: `${z.name} (${z.code})` }))),
+    values: Object.assign({ incident_date: now.slice(0, 10), incident_time: now.slice(11, 16) }, values),
+    errors, formError,
+    minDate: time.addDays(now, -etiquette.REPORT_WINDOW_DAYS).slice(0, 10),
+    maxDate: now.slice(0, 10),
+    maxEvidenceBytes: evidence.MAX_BYTES,
+    extraScripts: ['/js/evidence-input.js'],
+  };
+}
+
+router.get('/etiquette', (req, res) => res.view('driver/etiquette', etiquettePage(req)));
+
+router.post('/etiquette/reports', (req, res) => {
+  try {
+    const report = etiquette.submitReport(req.user.id, req.body || {}, req.actor);
+    req.flash('success', `Report #${report.id} about ${report.plate_number} was sent. Parking administration reviews every report; the other driver never sees who reported them.`);
+    return res.redirect('/driver/etiquette?tab=reports');
+  } catch (err) {
+    if (!(err instanceof AppError)) throw err;
+    // The photo is not sent back to the form: the driver attaches it again.
+    const values = Object.assign({}, req.body, { evidence_data: '' });
+    return res.status(err.fields ? 422 : err.status).view('driver/etiquette', etiquettePage(req, { tab: 'report', values, errors: err.fields || {}, formError: err.message }));
+  }
+});
+
+function ownReport(req) {
+  const report = etiquette.getReport(toInt(req.params.id));
+  // Someone else's report looks like any missing page.
+  if (!report || report.reporter_id !== req.user.id) throw new AppError('Report not found.', { status: 404 });
+  return report;
+}
+
+router.get('/etiquette/reports/:id', (req, res) => {
+  const report = ownReport(req);
+  res.view('driver/etiquette-report', {
+    title: `Report #${report.id}`, nav: 'etiquette', report,
+    breadcrumbs: [{ label: 'Etiquette Reports', href: '/driver/etiquette?tab=reports' }, { label: `Report #${report.id}` }],
+  });
+});
+
+router.get('/etiquette/reports/:id/evidence', (req, res) => {
+  const report = ownReport(req);
+  const file = etiquette.getEvidence(report.id);
+  if (!file) throw new AppError('No photo was attached to this report.', { status: 404 });
+  evidence.send(res, file, `report-${report.id}`);
+});
+
+function ownPenalty(req) {
+  const penalty = penalties.getPenalty(toInt(req.params.id));
+  if (!penalty || penalty.user_id !== req.user.id) throw new AppError('Penalty not found.', { status: 404 });
+  return penalty;
+}
+
+function penaltyPage(req, penalty, { values = {}, errors = {}, formError = null } = {}) {
+  return {
+    title: `Penalty #${penalty.id}`, nav: 'etiquette', penalty,
+    appeal: penalties.appealForPenalty(penalty.id),
+    values, errors, formError,
+    maxEvidenceBytes: evidence.MAX_BYTES,
+    breadcrumbs: [{ label: 'Etiquette Reports', href: '/driver/etiquette?tab=penalties' }, { label: `Penalty #${penalty.id}` }],
+    extraScripts: ['/js/evidence-input.js'],
+  };
+}
+
+router.get('/etiquette/penalties/:id', (req, res) => res.view('driver/etiquette-penalty', penaltyPage(req, ownPenalty(req))));
+
+router.post('/etiquette/penalties/:id/appeal', (req, res) => {
+  const penalty = ownPenalty(req);
+  try {
+    penalties.submitAppeal(req.user.id, penalty.id, req.body || {}, req.actor);
+    req.flash('success', 'Your appeal was sent. Parking administration will review it and you will be notified of the decision.');
+    return res.redirect(`/driver/etiquette/penalties/${penalty.id}`);
+  } catch (err) {
+    if (!(err instanceof AppError) || err.status === 404) throw err;
+    if (!err.fields) {
+      req.flash('error', err.message);
+      return res.redirect(`/driver/etiquette/penalties/${penalty.id}`);
+    }
+    const values = Object.assign({}, req.body, { evidence_data: '' });
+    return res.status(422).view('driver/etiquette-penalty', penaltyPage(req, penalty, { values, errors: err.fields, formError: err.message }));
+  }
+});
+
+router.get('/etiquette/appeals/:id/evidence', (req, res) => {
+  const appeal = penalties.getAppeal(toInt(req.params.id));
+  if (!appeal || appeal.user_id !== req.user.id) throw new AppError('Appeal not found.', { status: 404 });
+  const file = penalties.getAppealEvidence(appeal.id);
+  if (!file) throw new AppError('No photo was attached to this appeal.', { status: 404 });
+  evidence.send(res, file, `appeal-${appeal.id}`);
 });
 
 // ------------------------------------------------------------------- profile

@@ -5,7 +5,7 @@ const notifications = require('../../services/notifications');
 
 const router = express.Router();
 
-// Sidebar badges (Reservations, Payments) and the unread records highlighted on those pages.
+// Sidebar badges (Reservations, Payments, Etiquette Reports) and the unread records highlighted on those pages.
 // Opening a section acknowledges its updates before the counts are taken, so the badge disappears on the page that
 // shows them.
 router.use(notifications.middleware);
@@ -22,6 +22,7 @@ router.use('/reservations', require('./reservations'));
 router.use('/operations', require('./operations'));
 router.use('/payments', require('./payments'));
 router.use('/drivers', require('./drivers'));
+router.use('/etiquette', require('./etiquette'));
 router.use('/settings', require('./settings'));
 
 module.exports = router;

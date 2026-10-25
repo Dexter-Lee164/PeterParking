@@ -43,9 +43,13 @@
           { label: 'Driver', value: reservation.driver_name },
           { label: 'Vehicle', value: reservation.plate_number },
           { label: 'Slot', value: reservation.slot_code + ' · ' + reservation.zone_name },
-          { label: reservation.fee_is_final ? 'Final fee' : 'Estimated fee', value: peso(reservation.due_centavos) },
+          { label: reservation.fee_is_final ? 'Final fee' : 'Estimated fee', value: peso(reservation.due_centavos) }
+        ].concat(reservation.surcharge_centavos && reservation.due_centavos > 0 ? [
+          { label: '· Parking fee', value: peso(reservation.due_centavos - Math.min(reservation.surcharge_centavos, reservation.due_centavos)) },
+          { label: '· Penalty fee', value: peso(Math.min(reservation.surcharge_centavos, reservation.due_centavos)) }
+        ] : []).concat([
           { label: 'Paid so far', value: peso(reservation.paid_centavos) }
-        ],
+        ]),
         total: { label: 'Remaining balance', value: peso(Math.max(0, reservation.balance_centavos)) }
       }) %>
       <% if (!reservation.fee_is_final) { %><p class="small text-muted mt-2">The fee is not final yet. It is finalized at check-out, cancellation or no-show. A prepayment cannot exceed the estimate.</p><% } %>

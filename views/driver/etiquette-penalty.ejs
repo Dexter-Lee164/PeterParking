@@ -1,0 +1,84 @@
+<div class="page-intro">
+  <div>
+    <h2><%= penalty.kind_label %> <span class="text-muted fs-5">#<%= penalty.id %></span></h2>
+    <p>Issued <%= fmtDateTime(penalty.issued_at) %> by parking administration on vehicle <span class="plate"><%= penalty.plate_number %></span>.</p>
+  </div>
+  <a class="btn btn-outline-secondary btn-sm" href="/driver/etiquette?tab=penalties"><i class="bi bi-arrow-left" aria-hidden="true"></i> My Penalties</a>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <section class="summary-card">
+      <div class="summary-head"><h3>Penalty</h3><%- include('partials/status-badge', { kind: 'penalty', status: penalty.state }) %></div>
+      <div class="p-3">
+        <dl class="kv-list mb-0">
+          <dt>Penalty type</dt><dd><%= penalty.kind_label %></dd>
+          <dt>What it means</dt><dd><%= penalty.summary %></dd>
+          <% if (penalty.is_fee) { %>
+            <dt>Additional fee</dt><dd><%= peso(penalty.amount_centavos) %><%= penalty.kind === 'surcharge' ? ' on every new reservation' : ', once' %></dd>
+            <% if (penalty.kind === 'surcharge') { %><dt>Applies until</dt><dd><%= penalty.expires_date ? fmtDate(penalty.expires_date) + ' (inclusive)' : 'Revoked by parking administration' %></dd><% } %>
+            <% if (penalty.kind === 'fee_once') { %><dt>Charged to</dt><dd><%= penalty.charged_ref ? penalty.charged_ref : 'Your next reservation' %></dd><% } %>
+          <% } %>
+          <% if (penalty.is_ban) { %>
+            <dt>Ban period</dt><dd><%= penalty.kind === 'temp_ban' ? fmtDate(penalty.starts_at) + ' – ' + fmtDate(penalty.end_date) + ' (' + penalty.duration_text + ')' : 'From ' + fmtDate(penalty.starts_at) + ', until revoked' %></dd>
+            <dt>Effect</dt><dd>No new reservations or reschedules while the ban is active. Bookings you already have are kept.</dd>
+          <% } %>
+          <dt>Reason</dt><dd class="text-prewrap"><%= penalty.reason %></dd>
+          <dt>Status</dt><dd><%- include('partials/status-badge', { kind: 'penalty', status: penalty.state }) %></dd>
+          <% if (penalty.status === 'revoked') { %>
+            <dt>Revoked</dt><dd><%= fmtDateTime(penalty.revoked_at) %> — <span class="text-prewrap"><%= penalty.revoke_reason %></span></dd>
+          <% } %>
+        </dl>
+      </div>
+    </section>
+
+    <% if (penalty.report_id) { %>
+      <section class="summary-card mt-3">
+        <div class="summary-head"><h3>Violation</h3></div>
+        <div class="p-3">
+          <dl class="kv-list mb-0">
+            <dt>Violation</dt><dd><%= penalty.violation_label %></dd>
+            <dt>When</dt><dd><%= fmtDateTime(penalty.incident_at) %></dd>
+            <dt>Where</dt><dd><%= penalty.zone_name || '—' %></dd>
+          </dl>
+          <p class="small text-muted mt-2 mb-0">The violation was reported to and confirmed by parking administration. Who reported it is not shared.</p>
+        </div>
+      </section>
+    <% } %>
+  </div>
+
+  <div class="col-lg-5">
+    <section class="summary-card" id="appeal">
+      <div class="summary-head"><h3><i class="bi bi-chat-square-text me-1" aria-hidden="true"></i>Appeal</h3><% if (appeal) { %><%- include('partials/status-badge', { kind: 'appeal', status: appeal.status }) %><% } %></div>
+      <div class="p-3">
+        <% if (appeal) { %>
+          <dl class="kv-list mb-0">
+            <dt>Sent</dt><dd><%= fmtDateTime(appeal.created_at) %></dd>
+            <dt>Your explanation</dt><dd class="text-prewrap"><%= appeal.explanation %></dd>
+            <% if (appeal.has_evidence) { %><dt>Photo</dt><dd><a href="/driver/etiquette/appeals/<%= appeal.id %>/evidence" target="_blank" rel="noopener">View attached photo</a></dd><% } %>
+            <% if (appeal.status !== 'pending') { %>
+              <dt>Decision</dt><dd><%= appeal.status_label %> · <%= fmtDateTime(appeal.decided_at) %></dd>
+              <dt>Reason</dt><dd class="text-prewrap"><%= appeal.decision_reason %></dd>
+            <% } else { %>
+              <dt>Decision</dt><dd class="text-muted">Waiting for parking administration.</dd>
+            <% } %>
+          </dl>
+        <% } else if (penalty.can_appeal) { %>
+          <% if (formError) { %><div class="alert alert-danger small" role="alert"><%= formError %></div><% } %>
+          <p class="small text-muted">If you think this penalty is wrong, explain why. Each penalty can be appealed once; the penalty stays in force until it is decided.</p>
+          <form method="post" action="/driver/etiquette/penalties/<%= penalty.id %>/appeal" novalidate data-evidence-form
+                data-confirm="Send your appeal? It can be sent only once for this penalty." data-confirm-title="Send appeal" data-confirm-label="Send appeal">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <div class="row g-3">
+              <%- include('partials/form-field', { name: 'explanation', label: 'Your explanation', type: 'textarea', value: values.explanation, errors: errors, required: true, rows: 5, maxlength: 2000 }) %>
+              <%- include('partials/evidence-field', { errors: errors, maxBytes: maxEvidenceBytes, id: 'appealEvidence', label: 'Supporting photo (optional)' }) %>
+              <div class="col-12"><button class="btn btn-primary" type="submit"><i class="bi bi-send" aria-hidden="true"></i> Send appeal</button></div>
+            </div>
+          </form>
+        <% } else { %>
+          <p class="small text-muted mb-0">This penalty was revoked, so there is nothing to appeal.</p>
+        <% } %>
+      </div>
+    </section>
+  </div>
+</div>

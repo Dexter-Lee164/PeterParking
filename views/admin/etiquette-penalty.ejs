@@ -1,0 +1,185 @@
+<%
+  const EVENT_TITLES = { issued: 'Issued', modified: 'Modified', charged: 'Charged to a booking', released: 'Released (booking cancelled free)',
+    appealed: 'Appealed by the driver', appeal_upheld: 'Appeal decided: upheld', appeal_granted: 'Appeal decided: penalty revoked', revoked: 'Revoked', migrated: 'Carried over from the plate penalties' };
+%>
+<div class="page-intro">
+  <div>
+    <h2><%= penalty.kind_label %> <span class="text-muted fs-5">#<%= penalty.id %></span></h2>
+    <p><a href="/admin/drivers/<%= penalty.user_id %>"><%= penalty.driver_name %></a> (<%= penalty.driver_email %>) · vehicle <span class="plate"><%= penalty.plate_number %></span><% if (report) { %> · <a href="/admin/etiquette/reports/<%= report.id %>">report #<%= report.id %></a><% } %></p>
+  </div>
+  <div class="d-flex flex-wrap gap-2 align-items-center">
+    <%- include('partials/status-badge', { kind: 'penalty', status: penalty.state }) %>
+    <% if (penalty.vehicle_id) { %><a class="btn btn-outline-secondary btn-sm" href="/admin/etiquette/vehicles/<%= penalty.vehicle_id %>"><i class="bi bi-car-front" aria-hidden="true"></i> Vehicle history</a><% } %>
+  </div>
+</div>
+
+<% if (formError) { %><div class="alert alert-danger" role="alert"><i class="bi bi-exclamation-octagon me-2" aria-hidden="true"></i><%= formError %></div><% } %>
+
+<div class="row g-3">
+  <div class="col-xl-7">
+    <section class="summary-card">
+      <div class="summary-head"><h3>Penalty</h3><%- include('partials/status-badge', { kind: 'penalty', status: penalty.state }) %></div>
+      <div class="p-3">
+        <dl class="kv-list mb-0">
+          <dt>Type</dt><dd><%= penalty.kind_label %></dd>
+          <dt>Effect</dt><dd><%= penalty.summary %></dd>
+          <% if (penalty.is_fee) { %><dt>Amount</dt><dd><%= peso(penalty.amount_centavos) %><% if (penalty.charged_total) { %> <span class="small text-muted">· <%= peso(penalty.charged_total) %> on <%= penalty.charge_count %> booking<%= penalty.charge_count === 1 ? '' : 's' %> so far</span><% } %></dd><% } %>
+          <% if (penalty.is_ban) { %><dt>Duration</dt><dd><%= penalty.kind === 'temp_ban' ? fmtDate(penalty.starts_at) + ' – ' + fmtDate(penalty.end_date) + ' (' + penalty.duration_text + ')' : penalty.duration_text %></dd><% } %>
+          <dt>Reason</dt><dd class="text-prewrap"><%= penalty.reason %></dd>
+          <dt>Issued</dt><dd><%= fmtDateTime(penalty.issued_at) %> by <%= penalty.issued_by_name || 'system' %></dd>
+          <% if (penalty.status === 'revoked') { %><dt>Revoked</dt><dd><%= fmtDateTime(penalty.revoked_at) %> by <%= penalty.revoked_by_name || '—' %> — <span class="text-prewrap"><%= penalty.revoke_reason %></span></dd><% } %>
+          <% if (report) { %><dt>Violation</dt><dd><%= report.violation_label %> · <%= fmtDateTime(report.incident_at) %> · <%= report.zone_name || '—' %></dd><% } %>
+        </dl>
+      </div>
+    </section>
+
+    <% if (penalty.can_modify) { %>
+      <section class="summary-card mt-3" id="modify">
+        <div class="summary-head"><h3><i class="bi bi-pencil-square me-1" aria-hidden="true"></i>Modify</h3></div>
+        <div class="p-3">
+          <form method="post" action="/admin/etiquette/penalties/<%= penalty.id %>" novalidate
+                data-confirm="Save the changes to penalty #<%= penalty.id %>? The driver is notified. Bookings already made keep their fee." data-confirm-title="Modify penalty" data-confirm-label="Save changes">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <div class="row g-3">
+              <% if (penalty.is_fee) { %>
+                <%- include('partials/form-field', { name: 'amount', label: 'Fee amount', value: values.amount, errors: errors, prefix: '₱', col: 'col-sm-6', readonly: penalty.state === 'charged', help: penalty.state === 'charged' ? 'Already charged to ' + penalty.charged_ref + '.' : 'Up to ' + peso(maxFee) + '.', attrs: { inputmode: 'decimal' } }) %>
+              <% } %>
+              <% if (penalty.kind === 'surcharge') { %>
+                <%- include('partials/form-field', { name: 'expires_on', label: 'Surcharge ends on (optional)', type: 'date', value: values.expires_on, errors: errors, min: today, col: 'col-sm-6', help: 'Empty: until revoked.' }) %>
+              <% } %>
+              <% if (penalty.kind === 'temp_ban') { %>
+                <%- include('partials/form-field', { name: 'start_date', label: 'Ban starts', type: 'date', value: values.start_date, errors: errors, col: 'col-sm-6' }) %>
+                <%- include('partials/form-field', { name: 'end_date', label: 'Ban ends (last day)', type: 'date', value: values.end_date, errors: errors, min: today, col: 'col-sm-6', help: 'At most ' + maxBanDays + ' days in total.' }) %>
+              <% } %>
+              <%- include('partials/form-field', { name: 'reason', label: 'Reason (shown to the driver)', type: 'textarea', value: values.reason, errors: errors, required: true, rows: 3, maxlength: 1000 }) %>
+              <%- include('partials/form-field', { name: 'change_note', label: 'What changed and why', type: 'textarea', value: values.change_note, errors: errors, required: true, rows: 2, maxlength: 500, help: 'Kept in the penalty history and the audit log.' }) %>
+              <div class="col-12"><button class="btn btn-primary" type="submit"><i class="bi bi-check2" aria-hidden="true"></i> Save changes</button></div>
+            </div>
+          </form>
+        </div>
+      </section>
+    <% } %>
+
+    <% if (penalty.kind === 'fee_once' && penalty.state === 'pending') { %>
+      <section class="summary-card mt-3">
+        <div class="summary-head"><h3><i class="bi bi-receipt me-1" aria-hidden="true"></i>Charge now</h3></div>
+        <div class="p-3">
+          <p class="small text-muted">This fee is added to the driver's next new reservation. You can instead add it now to one of their upcoming bookings that has no payment yet.</p>
+          <% if (!chargeable.length) { %>
+            <p class="small mb-0">No upcoming unpaid booking.</p>
+          <% } else { %>
+            <form method="post" action="/admin/etiquette/penalties/<%= penalty.id %>/charge" class="row g-2 align-items-end"
+                  data-confirm="Add the <%= peso(penalty.amount_centavos) %> one-time fee to the chosen booking? Its fee goes up by that amount." data-confirm-title="Charge one-time fee" data-confirm-label="Add to booking">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <%- include('partials/form-field', { name: 'reservation_id', label: 'Booking', type: 'select', col: 'col-sm-8', options: chargeable.map(function (r) { return { value: r.id, label: r.booking_ref + ' — ' + fmtDateTime(r.start_at) + ' — ' + peso(r.fee_estimated_centavos) }; }) }) %>
+              <div class="col-sm-4"><button class="btn btn-outline-primary w-100" type="submit">Add to booking</button></div>
+            </form>
+          <% } %>
+        </div>
+      </section>
+    <% } %>
+
+    <section class="summary-card mt-3">
+      <div class="summary-head"><h3>History</h3></div>
+      <div class="p-3">
+        <ul class="timeline mb-0">
+          <% events.forEach(function (e) { %>
+            <li>
+              <span class="when"><%= fmtDateTime(e.created_at) %></span> <strong><%= EVENT_TITLES[e.action] || titleCase(e.action) %></strong> by <%= e.actor_name || 'system' %>
+              <% if (e.data.note) { %><span class="d-block small text-muted"><%= e.data.note %></span><% } %>
+              <% if (e.data.changes) { Object.keys(e.data.changes).forEach(function (k) { const c = e.data.changes[k]; %>
+                <span class="d-block small text-faint"><%= titleCase(k) %>: <%= k === 'amount' ? peso(c[0]) : c[0] %> → <%= k === 'amount' ? peso(c[1]) : c[1] %></span>
+              <% }) } %>
+              <% if (e.data.reason && e.action !== 'issued') { %><span class="d-block small text-muted"><%= e.data.reason %></span><% } %>
+              <% if (e.data.removed_from) { %><span class="d-block small text-faint">Fee removed from <%= e.data.removed_from.join(', ') %></span><% } %>
+            </li>
+          <% }) %>
+        </ul>
+      </div>
+    </section>
+  </div>
+
+  <div class="col-xl-5">
+    <%# ------------------------------------------------ appeal %>
+    <section class="summary-card mb-3" id="appeal">
+      <div class="summary-head"><h3><i class="bi bi-chat-square-text me-1" aria-hidden="true"></i>Appeal</h3><% if (appeal) { %><%- include('partials/status-badge', { kind: 'appeal', status: appeal.status }) %><% } %></div>
+      <div class="p-3">
+        <% if (!appeal) { %>
+          <p class="small text-muted mb-0">The driver has not appealed this penalty.</p>
+        <% } else { %>
+          <dl class="kv-list">
+            <dt>Sent</dt><dd><%= fmtDateTime(appeal.created_at) %></dd>
+            <dt>Explanation</dt><dd class="text-prewrap"><%= appeal.explanation %></dd>
+            <% if (appeal.has_evidence) { %><dt>Photo</dt><dd><a href="/admin/etiquette/appeals/<%= appeal.id %>/evidence" target="_blank" rel="noopener"><img class="evidence-image" src="/admin/etiquette/appeals/<%= appeal.id %>/evidence" alt="Photo attached to the appeal"></a></dd><% } %>
+            <% if (appeal.status !== 'pending') { %>
+              <dt>Decision</dt><dd><%= appeal.status_label %> · <%= fmtDateTime(appeal.decided_at) %><% if (appeal.decided_by_name) { %> by <%= appeal.decided_by_name %><% } %></dd>
+              <dt>Reason</dt><dd class="text-prewrap"><%= appeal.decision_reason %></dd>
+            <% } %>
+          </dl>
+          <% if (appeal.status === 'pending') { %>
+            <div class="d-flex flex-wrap gap-2">
+              <form method="post" action="/admin/etiquette/appeals/<%= appeal.id %>/decide" data-confirm="Uphold penalty #<%= penalty.id %>? It stays in force. The driver sees your reason." data-confirm-title="Uphold penalty" data-confirm-label="Uphold" data-confirm-reason="Reason for upholding the penalty">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="decision" value="uphold">
+                <button class="btn btn-outline-danger" type="submit"><i class="bi bi-hammer" aria-hidden="true"></i> Uphold penalty</button>
+              </form>
+              <form method="post" action="/admin/etiquette/appeals/<%= appeal.id %>/decide" data-confirm="Grant the appeal and revoke penalty #<%= penalty.id %>? It stops applying straight away. The driver sees your reason." data-confirm-title="Revoke penalty" data-confirm-label="Revoke penalty" data-confirm-reason="Reason for revoking the penalty">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="decision" value="revoke">
+                <% if (penalty.is_fee) { %>
+                  <div class="form-check small mb-2"><input class="form-check-input" type="checkbox" name="remove_unpaid" value="1" id="appealRemoveUnpaid"><label class="form-check-label" for="appealRemoveUnpaid">Also take the fee off upcoming unpaid bookings</label></div>
+                <% } %>
+                <button class="btn btn-success" type="submit"><i class="bi bi-shield-check" aria-hidden="true"></i> Revoke penalty</button>
+              </form>
+            </div>
+          <% } %>
+        <% } %>
+      </div>
+    </section>
+
+    <% if (penalty.can_revoke) { %>
+      <section class="summary-card mb-3">
+        <div class="summary-head"><h3><i class="bi bi-shield-check me-1" aria-hidden="true"></i>Revoke</h3></div>
+        <div class="p-3">
+          <form method="post" action="/admin/etiquette/penalties/<%= penalty.id %>/revoke" data-confirm="Revoke penalty #<%= penalty.id %> (<%= penalty.kind_label.toLowerCase() %>)? It stops applying straight away. The driver is notified and sees your reason." data-confirm-title="Revoke penalty" data-confirm-label="Revoke penalty" data-confirm-tone="danger" data-confirm-reason="Why is it revoked?">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <% if (penalty.is_fee) { %>
+              <div class="form-check small mb-2"><input class="form-check-input" type="checkbox" name="remove_unpaid" value="1" id="removeUnpaid"><label class="form-check-label" for="removeUnpaid">Also take the fee off upcoming bookings that have no payment yet</label></div>
+              <p class="small text-muted">Paid, finished and cancelled bookings are never changed.</p>
+            <% } %>
+            <button class="btn btn-outline-danger" type="submit"><i class="bi bi-shield-x" aria-hidden="true"></i> Revoke penalty</button>
+          </form>
+        </div>
+      </section>
+    <% } %>
+
+    <section class="summary-card mb-3">
+      <div class="summary-head"><h3>Bookings with this fee</h3></div>
+      <div class="summary-body">
+        <% if (!charges.length) { %><div class="summary-row"><span class="k text-muted"><%= penalty.is_fee ? 'Not charged to any booking yet.' : 'Bans add no fee.' %></span></div><% } %>
+        <% charges.forEach(function (c) { %>
+          <div class="summary-row">
+            <span class="k"><a class="font-mono" href="/admin/reservations/<%= c.reservation_id %>"><%= c.booking_ref %></a><span class="d-block small text-faint"><%= fmtDateTime(c.start_at) %> · <%= titleCase(c.reservation_status) %> · <%= c.status === 'applied' ? 'charged' : c.status %></span></span>
+            <span class="v"><%= peso(c.amount_centavos) %></span>
+          </div>
+        <% }) %>
+      </div>
+    </section>
+
+    <% if (penalty.is_ban && penalty.in_force) { %>
+      <section class="summary-card">
+        <div class="summary-head"><h3>Existing bookings</h3><span class="small text-muted">kept by the ban</span></div>
+        <div class="summary-body">
+          <% if (!upcoming.length) { %><div class="summary-row"><span class="k text-muted">No upcoming or active bookings.</span></div><% } %>
+          <% upcoming.forEach(function (r) { %>
+            <div class="summary-row">
+              <span class="k"><a class="font-mono" href="/admin/reservations/<%= r.id %>"><%= r.booking_ref %></a><span class="d-block small text-faint"><%= fmtDateTime(r.start_at) %> · <%= titleCase(r.status) %></span></span>
+              <span class="v"><a class="btn btn-sm btn-outline-secondary" href="/admin/reservations/<%= r.id %>">Open</a></span>
+            </div>
+          <% }) %>
+        </div>
+        <div class="summary-foot small text-muted">A ban never cancels bookings by itself. Cancel one from its page if needed.</div>
+      </section>
+    <% } %>
+  </div>
+</div>

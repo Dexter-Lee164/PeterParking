@@ -1,0 +1,39 @@
+<div class="page-intro">
+  <div>
+    <h2>Vehicle <span class="plate"><%= vehicle.plate_number %></span></h2>
+    <p><%= vehicleLabel(vehicle) %><% if (vehicle.color) { %> · <%= vehicle.color %><% } %> · registered to <a href="/admin/drivers/<%= vehicle.user_id %>"><%= vehicle.owner_name %></a> (<%= vehicle.owner_email %>)<% if (!vehicle.is_active) { %> · <strong>removed by the driver</strong><% } %></p>
+  </div>
+  <a class="btn btn-outline-secondary btn-sm" href="/admin/etiquette/vehicles?q=<%= encodeURIComponent(vehicle.plate_number) %>"><i class="bi bi-arrow-left" aria-hidden="true"></i> Lookup</a>
+</div>
+
+<% if (formError) { %><div class="alert alert-danger" role="alert"><i class="bi bi-exclamation-octagon me-2" aria-hidden="true"></i><%= formError %></div><% } %>
+
+<div class="row g-3">
+  <div class="col-xl-6">
+    <% if (owner && owner.role === 'driver') { %>
+      <%- include('partials/penalty-form', { action: '/admin/etiquette/vehicles/' + vehicle.id + '/penalties', vehicle: vehicle }) %>
+      <p class="small text-muted mt-2">Issuing from here is for a violation staff confirmed themselves. For a driver's report, approve the report and issue the penalty from it, so it stays linked.</p>
+    <% } else { %>
+      <div class="alert alert-info" role="note">This vehicle belongs to an administrator account, which cannot be penalised.</div>
+    <% } %>
+  </div>
+  <div class="col-xl-6">
+    <%- include('partials/penalty-list', { title: 'Penalties on ' + vehicle.owner_name + '\'s account', list: accountPenalties, emptyText: 'No penalties on this account.' }) %>
+    <% if (platePenalties.length) { %>
+      <%- include('partials/penalty-list', { title: 'Penalties on this plate under other accounts', list: platePenalties, showDriver: true }) %>
+    <% } %>
+    <section class="summary-card">
+      <div class="summary-head"><h3>Reports about this plate</h3><span class="small text-muted"><%= plateReports.length %> in total</span></div>
+      <div class="summary-body">
+        <% if (!plateReports.length) { %><div class="summary-row"><span class="k text-muted">No reports.</span></div><% } %>
+        <% plateReports.forEach(function (r) { %>
+          <div class="summary-row">
+            <span class="k"><a class="font-mono" href="/admin/etiquette/reports/<%= r.id %>">#<%= r.id %></a> <%= r.violation_label %>
+              <span class="d-block small text-faint"><%= fmtDateTime(r.incident_at) %> · <%= r.zone_name || '—' %><% if (r.vehicle_id && r.vehicle_id !== vehicle.id) { %> · verified to another record<% } %></span></span>
+            <span class="v"><%- include('partials/status-badge', { kind: 'report', status: r.status }) %></span>
+          </div>
+        <% }) %>
+      </div>
+    </section>
+  </div>
+</div>

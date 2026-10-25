@@ -1,28 +1,17 @@
 'use strict';
 
 /**
- * 010 — parking etiquette reports and plate penalties are retired.
+ * 010 — kept as a no-op.
  *
- *   etiquette_evidence, plate_penalties, etiquette_reports   dropped with their rows (children first, so foreign keys
- *                              hold while they go).
- *   notification_reads         the 'reports' section's read markers are removed; the section no longer exists.
+ * This migration used to retire parking etiquette reports and plate penalties by dropping etiquette_evidence,
+ * plate_penalties and etiquette_reports with their rows. The feature is back (migration 011, Etiquette Reports &
+ * Penalty Management), so nothing is dropped any more: a database that has not reached 010 yet keeps its reports,
+ * evidence and penalties, and 011 carries them forward. A database that already ran the old version simply gets the
+ * tables created again by 011.
  *
- * Kept on purpose: reservations.surcharge_centavos (bookings made under a penalty keep the fee they were made with,
- * and cancellation and no-show fees still read it; new bookings store 0), and the audit log entries of past
- * etiquette decisions.
- *
- * Idempotent: running it again finds nothing to drop.
+ * The version number stays taken so the migration history keeps its order.
  */
 
-const tableExists = (db, name) => !!db.prepare(`SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?`).get(name);
-
-function up(db) {
-  db.exec(`
-    DROP TABLE IF EXISTS etiquette_evidence;
-    DROP TABLE IF EXISTS plate_penalties;
-    DROP TABLE IF EXISTS etiquette_reports;
-  `);
-  if (tableExists(db, 'notification_reads')) db.prepare(`DELETE FROM notification_reads WHERE section = 'reports'`).run();
-}
+function up() {}
 
 module.exports = { up };

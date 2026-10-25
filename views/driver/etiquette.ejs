@@ -1,0 +1,128 @@
+<div class="page-intro">
+  <div>
+    <h2>Etiquette Reports</h2>
+    <p>Report a vehicle that broke the parking rules and follow what happens. Parking administration reviews every report; the other driver never sees who reported them.</p>
+  </div>
+</div>
+
+<%- include('partials/unread-banner') %>
+
+<% if (ban) { %>
+  <div class="alert alert-danger d-flex gap-2 align-items-start" role="alert">
+    <i class="bi bi-slash-circle-fill mt-1" aria-hidden="true"></i>
+    <div>
+      <strong><%= ban.kind === 'perm_ban' ? 'Your account is banned from new reservations until parking administration lifts the ban.' : 'Your account is banned from new reservations until ' + fmtDate(ban.end_date) + '.' %></strong>
+      Bookings you already have are kept. <a href="/driver/etiquette/penalties/<%= ban.id %>">See the penalty</a><% if (ban.can_appeal) { %> — you can appeal it<% } %>.
+    </div>
+  </div>
+<% } %>
+
+<%
+  const newIn = function (type, list) { return list.filter(function (x) { return isUnread(type, x.id); }).length; };
+  const tabs = [
+    { key: 'report', label: 'Report a violation', icon: 'bi-flag' },
+    { key: 'reports', label: 'My Reports', count: counts.all, fresh: newIn('etiquette_report', rows) },
+    { key: 'penalties', label: 'My Penalties', count: penalties.length, fresh: newIn('penalty', penalties) }
+  ];
+%>
+<nav class="nav-pills-tabs mb-3" aria-label="Etiquette report sections">
+  <% tabs.forEach(function (t) { %>
+    <a href="/driver/etiquette?tab=<%= t.key %>" class="<%= tab === t.key ? 'active' : '' %>" <%- tab === t.key ? 'aria-current="page"' : '' %>>
+      <% if (t.icon) { %><i class="bi <%= t.icon %>" aria-hidden="true"></i> <% } %><%= t.label %>
+      <% if (t.count !== undefined) { %><span class="count"><%= t.count %></span><% } %>
+      <% if (t.fresh) { %><span class="new-pill"><%= t.fresh %> new</span><% } %>
+    </a>
+  <% }) %>
+</nav>
+
+<% if (tab === 'report') { %>
+  <div class="row g-3">
+    <div class="col-lg-7">
+      <section class="summary-card">
+        <div class="summary-head"><h3><i class="bi bi-flag me-1" aria-hidden="true"></i>Report a violation</h3></div>
+        <div class="p-3">
+          <% if (formError) { %><div class="alert alert-danger small" role="alert"><%= formError %></div><% } %>
+          <form method="post" action="/driver/etiquette/reports" novalidate data-evidence-form
+                data-confirm="Send this report to parking administration? Reports cannot be edited after they are sent." data-confirm-title="Send report" data-confirm-label="Send report">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <div class="row g-3">
+              <%- include('partials/form-field', { name: 'plate_number', label: 'Plate number of the vehicle', value: values.plate_number, errors: errors, required: true, placeholder: 'ABC 1234', maxlength: 12, autocomplete: 'off', col: 'col-sm-6', attrs: { style: 'text-transform:uppercase' }, help: 'As you saw it. It does not have to be registered here.' }) %>
+              <%- include('partials/form-field', { name: 'violation_type', label: 'Violation', type: 'select', value: values.violation_type, errors: errors, required: true, options: violationOptions, col: 'col-sm-6' }) %>
+              <%- include('partials/form-field', { name: 'incident_date', label: 'Date', type: 'date', value: values.incident_date, errors: errors, required: true, col: 'col-sm-4', min: minDate, max: maxDate }) %>
+              <%- include('partials/form-field', { name: 'incident_time', label: 'Time', type: 'time', value: values.incident_time, errors: errors, required: true, col: 'col-sm-4' }) %>
+              <%- include('partials/form-field', { name: 'zone_id', label: 'Parking zone', type: 'select', value: values.zone_id, errors: errors, required: true, options: zoneOptions, col: 'col-sm-4' }) %>
+              <%- include('partials/form-field', { name: 'description', label: 'What happened', type: 'textarea', value: values.description, errors: errors, required: true, rows: 4, maxlength: 1000, placeholder: 'Where exactly and what you saw, e.g. "Parked across MB-14 and MB-15 from 9 to 11 AM."' }) %>
+              <%- include('partials/evidence-field', { errors: errors, maxBytes: maxEvidenceBytes }) %>
+              <div class="col-12">
+                <button class="btn btn-primary" type="submit"><i class="bi bi-send" aria-hidden="true"></i> Send report</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+    <div class="col-lg-5">
+      <section class="summary-card">
+        <div class="summary-head"><h3>How reports are handled</h3></div>
+        <div class="p-3 small">
+          <ol class="mb-0 ps-3">
+            <li class="mb-2">Your report is reviewed by parking administration. It does not penalise anyone by itself.</li>
+            <li class="mb-2">An administrator checks the plate against registered vehicles and verifies the owner.</li>
+            <li class="mb-2">The report is approved or dismissed with a reason you can read under <em>My Reports</em>.</li>
+            <li class="mb-0">Any penalty is decided separately by an administrator. Your name is never shown to the reported driver.</li>
+          </ol>
+          <p class="text-muted mt-3 mb-0">Incidents can be reported up to 30 days later. Please report each incident once; repeated reports of the same incident are refused.</p>
+        </div>
+      </section>
+    </div>
+  </div>
+<% } %>
+
+<% if (tab === 'reports') { %>
+  <%- include('partials/filter-toolbar', {
+    formId: 'myReportFilter', action: '/driver/etiquette', hideSubmit: true, toolbarClass: 'filter-bar mb-3',
+    fields: [
+      { type: 'hidden', name: 'tab', value: 'reports' },
+      { type: 'select', name: 'status', label: 'Status', value: status, attrs: { 'data-autosubmit': '' }, options: [
+        { value: '', label: 'All (' + counts.all + ')' },
+        { value: 'under_review', label: 'Under review (' + counts.under_review + ')' },
+        { value: 'resolved', label: 'Resolved (' + counts.resolved + ')' },
+        { value: 'dismissed', label: 'Dismissed (' + counts.dismissed + ')' }
+      ] }
+    ]
+  }) %>
+  <%- include('partials/data-table', {
+    caption: 'Etiquette reports you sent',
+    columns: [{ label: 'Report' }, { label: 'Plate' }, { label: 'Violation' }, { label: 'Incident' }, { label: 'Status' }],
+    rows: rows,
+    rowPartial: 'partials/rows/driver-report-row',
+    pager: pager, baseQuery: { tab: 'reports', status: status }, noun: 'reports',
+    empty: { icon: 'bi-flag', title: status ? 'No reports with this status' : 'No reports yet', text: 'Reports you send appear here with their status.', actionHref: '/driver/etiquette?tab=report', actionLabel: 'Report a violation' }
+  }) %>
+<% } %>
+
+<% if (tab === 'penalties') { %>
+  <% if (!penalties.length) { %>
+    <%- include('partials/empty-state', { icon: 'bi-shield-check', title: 'No penalties', text: 'Your account has no parking etiquette penalties.' }) %>
+  <% } else { %>
+    <div class="row g-3">
+      <% penalties.forEach(function (p) { const fresh = isUnread('penalty', p.id); %>
+        <div class="col-md-6 col-xl-4">
+          <a class="penalty-card<%= fresh ? ' is-unread' : '' %>" href="/driver/etiquette/penalties/<%= p.id %>">
+            <span class="d-flex justify-content-between align-items-start gap-2 mb-2">
+              <strong><%= p.kind_label %></strong>
+              <%- include('partials/status-badge', { kind: 'penalty', status: p.state }) %>
+            </span>
+            <span class="d-block small mb-1"><%= p.summary %></span>
+            <span class="d-block small text-faint">Vehicle <span class="plate"><%= p.plate_number %></span> · issued <%= fmtDate(p.issued_at) %></span>
+            <% if (p.violation_label) { %><span class="d-block small text-faint"><%= p.violation_label %></span><% } %>
+            <span class="d-flex gap-2 mt-2 flex-wrap">
+              <% if (fresh) { %><span class="new-pill">Updated</span><% } %>
+              <% if (p.appeal_status) { %><%- include('partials/status-badge', { kind: 'appeal', status: p.appeal_status, badgeLabel: 'Appeal: ' + badge('appeal', p.appeal_status).label.toLowerCase() }) %><% } else if (p.can_appeal) { %><span class="small text-muted">You can appeal this penalty</span><% } %>
+            </span>
+          </a>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+<% } %>

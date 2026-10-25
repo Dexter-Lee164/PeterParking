@@ -23,9 +23,14 @@
         { label: 'Time', value: fmtTime(range.startAt) + ' – ' + fmtTime(range.endAt) },
         { label: 'Duration', value: fmtDuration(range.durationMinutes) },
         { label: 'Hourly rate', value: peso(slot.hourly_rate_centavos) + ' / hour' }
-      ],
+      ].concat(penaltyFee ? [{ label: 'Base parking fee', value: peso(baseFee) }].concat(penaltyCharges.map(function (c) {
+        return { label: c.kind_label + ' (penalty)', value: '+' + peso(c.amount_centavos) };
+      })) : []),
       total: { label: 'Estimated fee', value: peso(fee) }
     }) %>
+    <% if (penaltyFee) { %>
+      <p class="small text-muted mt-2"><i class="bi bi-shield-exclamation me-1" aria-hidden="true"></i>Parking etiquette penalties on your account add <%= peso(penaltyFee) %> to this booking. <a href="/driver/etiquette?tab=penalties">See your penalties</a>.</p>
+    <% } %>
   </div>
 
   <div class="col-lg-6">
@@ -49,9 +54,17 @@
             <div class="row g-3">
               <%- include('partials/form-field', {
                 name: 'vehicle_id', label: 'Vehicle', type: 'select', required: true, errors: errors, value: values.vehicle_id,
-                options: vehicles.map(function (v) { return { value: v.id, label: vehicleGlyph(v.vehicle_type) + ' ' + v.plate_number + ' — ' + vehicleLabel(v) + (v.color ? ' (' + v.color + ')' : '') }; })
+                options: vehicles.map(function (v) { return { value: v.id, label: vehicleGlyph(v.vehicle_type) + ' ' + v.plate_number + ' — ' + vehicleLabel(v) + (v.color ? ' (' + v.color + ')' : '') + (v.ban ? ' — banned' : '') }; })
               }) %>
             </div>
+            <% const banned = vehicles.filter(function (v) { return v.ban; }); %>
+            <% if (banned.length) { %>
+              <div class="alert alert-danger small mt-3 mb-0" role="alert">
+                <i class="bi bi-slash-circle-fill me-1" aria-hidden="true"></i><%= banned[0].ban %>
+                <% if (banned.length < vehicles.length) { %> Choose another vehicle.<% } %>
+                <a href="/driver/etiquette?tab=penalties">Details</a>
+              </div>
+            <% } %>
 
             <div class="alert alert-info small mt-3 mb-3" role="note">
               <strong>Cancellation policy.</strong> <%= policy %>

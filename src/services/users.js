@@ -365,7 +365,11 @@ function removeVehicle(userId, id, actor) {
   const db = ctx.get();
   const active = db.prepare(`SELECT COUNT(*) AS n FROM reservations WHERE vehicle_id = ? AND status IN ('confirmed','checked_in')`).get(id).n;
   if (active) throw new AppError('This vehicle has active reservations. Cancel them before removing the vehicle.', { code: 'VEHICLE_IN_USE', status: 409 });
-  const history = db.prepare('SELECT COUNT(*) AS n FROM reservations WHERE vehicle_id = ?').get(id).n;
+  // Bookings, verified etiquette reports and penalties keep pointing at the vehicle, so it is archived, not deleted.
+  const history = db.prepare(
+    `SELECT (SELECT COUNT(*) FROM reservations WHERE vehicle_id = @id) + (SELECT COUNT(*) FROM etiquette_reports WHERE vehicle_id = @id)
+       + (SELECT COUNT(*) FROM penalties WHERE vehicle_id = @id) AS n`,
+  ).get({ id }).n;
   if (history) db.prepare(`UPDATE vehicles SET is_active = 0, updated_at = datetime('now','localtime') WHERE id = ?`).run(id);
   else db.prepare('DELETE FROM vehicles WHERE id = ?').run(id);
   audit.log(actor, 'vehicle.remove', 'vehicle', id, { archived: !!history });

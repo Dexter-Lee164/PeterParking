@@ -1,0 +1,18 @@
+<%# Penalty fees carried by one booking. Params: list (penalties.chargesForReservation), admin (bool), href (optional). %>
+<% if (list && list.length) { %>
+  <section class="summary-card mt-3">
+    <div class="summary-head"><h3><i class="bi bi-shield-exclamation me-1" aria-hidden="true"></i>Penalty fees on this booking</h3></div>
+    <div class="summary-body">
+      <% list.forEach(function (c) { %>
+        <div class="summary-row">
+          <span class="k">
+            <% if (locals.admin) { %><a href="/admin/etiquette/penalties/<%= c.penalty_id %>"><%= c.kind_label %> #<%= c.penalty_id %></a><% } else { %><%= c.kind_label %><% } %>
+            <span class="d-block small text-faint"><%= c.status === 'applied' ? 'Included in the fee' : c.status === 'released' ? 'Not charged: the booking was cancelled free of charge' : 'Removed by parking administration' %></span>
+          </span>
+          <span class="v<%= c.status === 'applied' ? '' : ' text-decoration-line-through text-muted' %>"><%= peso(c.amount_centavos) %></span>
+        </div>
+      <% }) %>
+    </div>
+    <% if (locals.href) { %><div class="summary-foot small"><a href="<%= href %>">See your penalties</a></div><% } %>
+  </section>
+<% } %>

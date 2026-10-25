@@ -67,6 +67,26 @@
       </div>
     </section>
 
+    <% if (accountPenalties.length) { %>
+      <section class="summary-card mb-3" aria-labelledby="driver-penalties">
+        <div class="summary-head">
+          <h3 id="driver-penalties">Etiquette penalties</h3>
+          <% if (ban) { %><span class="badge-status tone-red"><i class="bi bi-slash-circle-fill" aria-hidden="true"></i><%= ban.kind === 'perm_ban' ? 'Banned until revoked' : 'Banned until ' + fmtDate(ban.end_date) %></span><% } %>
+        </div>
+        <div class="summary-body">
+          <% accountPenalties.forEach(function (p) { %>
+            <div class="summary-row">
+              <span class="k">
+                <a class="font-mono" href="/admin/etiquette/penalties/<%= p.id %>">#<%= p.id %></a> <strong><%= p.kind_label %></strong> <span class="plate ms-1"><%= p.plate_number %></span>
+                <span class="d-block small text-faint"><%= p.summary %></span>
+              </span>
+              <span class="v"><%- include('partials/status-badge', { kind: 'penalty', status: p.state }) %></span>
+            </div>
+          <% }) %>
+        </div>
+      </section>
+    <% } %>
+
     <section class="summary-card">
       <div class="summary-head"><h3>Recent reservations</h3><a class="small" href="/admin/reservations?q=<%= encodeURIComponent(person.email) %>">View all</a></div>
       <div class="summary-body">

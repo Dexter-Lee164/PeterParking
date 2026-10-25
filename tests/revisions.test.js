@@ -264,10 +264,10 @@ describe('5. sidebar notifications and highlighted records', () => {
   const badges = async () => JSON.parse((await adminC.get('/admin/notifications', { headers: { Accept: 'application/json' } })).text);
 
   test('start empty, then count real driver activity', async () => {
-    assert.deepEqual(await badges(), { reservations: 0, payments: 0 });
+    assert.deepEqual(await badges(), { reservations: 0, payments: 0, etiquette: 0 });
     const r = reservations.createReservation({ userId: d.alice.id, vehicleId: d.aliceCar.id, slotId: d.slots[0].id, date: DAY, start: '10:00', end: '12:00' }, { id: d.alice.id });
     const b = reservations.createReservation({ userId: d.bob.id, vehicleId: d.bobCar.id, slotId: d.slots[1].id, date: DAY, start: '10:00', end: '11:00' }, { id: d.bob.id });
-    assert.deepEqual(await badges(), { reservations: 2, payments: 0 });
+    assert.deepEqual(await badges(), { reservations: 2, payments: 0, etiquette: 0 });
     // A balance owed is not announced (the Payments page lists paid bookings only); a payment recorded by another
     // staff member is, and the administrator's own payment does not notify them.
     setNow(`${DAY} 10:00`);
@@ -278,23 +278,23 @@ describe('5. sidebar notifications and highlighted records', () => {
     const full = (id) => (reservations.getReservation(id).balance_centavos / 100).toFixed(2);
     payments.recordPayment({ reservation_id: r.id, amount: full(r.id) }, admin());
     payments.recordPayment({ reservation_id: b.id, amount: full(b.id) }, { id: d.bob.id, role: 'admin' }); // another staff member
-    assert.deepEqual(await badges(), { reservations: 2, payments: 1 });
+    assert.deepEqual(await badges(), { reservations: 2, payments: 1, etiquette: 0 });
   });
 
   test('the sidebar shows badges on Reservations and Payments; reviewing a section highlights then clears it', async () => {
     const dash = await adminC.get('/admin');
     assert.match(dash.text, /data-badge-for="reservations"><span aria-hidden="true">2<\/span>/);
     assert.match(dash.text, /data-badge-for="payments"><span aria-hidden="true">1<\/span>/);
-    assert.equal((dash.text.match(/data-badge-for=/g) || []).length, 2);
+    assert.equal((dash.text.match(/data-badge-for=/g) || []).length, 3, 'Reservations, Payments and Etiquette Reports');
     const list = await adminC.get('/admin/reservations');
     assert.equal((list.text.match(/<tr class="is-unread">/g) || []).length, 2, 'the two new bookings are highlighted');
     assert.match(list.text, /class="unread-banner"/);
     const again = await adminC.get('/admin/reservations');
     assert.doesNotMatch(again.text, /<tr class="is-unread">|unread-banner/, 'the highlight goes once the page has been seen');
-    assert.deepEqual(await badges(), { reservations: 0, payments: 1 }, 'acknowledged, and it does not come back');
-    assert.deepEqual(await badges(), { reservations: 0, payments: 1 });
+    assert.deepEqual(await badges(), { reservations: 0, payments: 1, etiquette: 0 }, 'acknowledged, and it does not come back');
+    assert.deepEqual(await badges(), { reservations: 0, payments: 1, etiquette: 0 });
     await adminC.get('/admin/payments');
-    assert.deepEqual(await badges(), { reservations: 0, payments: 0 });
+    assert.deepEqual(await badges(), { reservations: 0, payments: 0, etiquette: 0 });
     // A new cancellation shows up again.
     setNow(`${DAY} 07:00`);
     const later = reservations.createReservation({ userId: d.alice.id, vehicleId: d.aliceCar2.id, slotId: d.slots[2].id, date: DAY, start: '15:00', end: '16:00' }, { id: d.alice.id });
@@ -306,20 +306,20 @@ describe('5. sidebar notifications and highlighted records', () => {
     const c = env.client();
     await c.login('alice@test.local');
     const driverBadges = async () => JSON.parse((await c.get('/driver/notifications', { headers: { Accept: 'application/json' } })).text);
-    assert.deepEqual(await driverBadges(), { reservations: 0, payments: 0 });
+    assert.deepEqual(await driverBadges(), { reservations: 0, payments: 0, etiquette: 0 });
     assert.match((await c.get('/driver')).text, /data-nav-badges="\/driver\/notifications"/);
     assert.notEqual((await c.get('/admin/notifications')).status, 200);
-    assert.deepEqual(notifications.SECTIONS, { admin: ['reservations', 'payments'], driver: ['reservations', 'payments'] });
+    assert.deepEqual(notifications.SECTIONS, { admin: ['reservations', 'payments', 'etiquette'], driver: ['reservations', 'payments', 'etiquette'] });
     // Staff cancel one of Alice's bookings: she is notified; her own booking and Bob's activity do not count.
     setNow(`${DAY} 07:00`);
     const mine = reservations.createReservation({ userId: d.alice.id, vehicleId: d.aliceCar.id, slotId: d.slots[3].id, date: DAY, start: '17:00', end: '18:00' }, { id: d.alice.id });
     reservations.createReservation({ userId: d.bob.id, vehicleId: d.bobCar.id, slotId: d.slots[4].id, date: DAY, start: '17:00', end: '18:00' }, { id: d.bob.id });
-    assert.deepEqual(await driverBadges(), { reservations: 0, payments: 0 });
+    assert.deepEqual(await driverBadges(), { reservations: 0, payments: 0, etiquette: 0 });
     reservations.cancelReservation(mine.id, { id: d.admin.id, role: 'admin' }, { reason: 'Lot closed for an event', actor: { id: d.admin.id } });
-    assert.deepEqual(await driverBadges(), { reservations: 1, payments: 0 });
+    assert.deepEqual(await driverBadges(), { reservations: 1, payments: 0, etiquette: 0 });
     const list = await c.get('/driver/reservations?tab=all');
     assert.equal((list.text.match(/<tr class="is-unread">/g) || []).length, 1);
-    assert.deepEqual(await driverBadges(), { reservations: 0, payments: 0 });
+    assert.deepEqual(await driverBadges(), { reservations: 0, payments: 0, etiquette: 0 });
   });
 });
 
