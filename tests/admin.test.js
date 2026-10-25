@@ -284,12 +284,10 @@ describe('dashboard and settings (deterministic data)', () => {
   });
   after(async () => env.stop());
 
-  test('the old analytics Reports page and its CSV export are gone; Reports now means parking etiquette reports', async () => {
+  test('there is no Reports page any more: analytics reports and parking etiquette reports are both gone', async () => {
     assert.equal((await adminC.get(`/admin/reports/export.csv?type=daily&date=${DAY}`)).status, 404);
-    const page = await adminC.get('/admin/reports');
-    assert.equal(page.status, 200);
-    assert.match(page.text, /Parking Etiquette Reports/);
-    assert.doesNotMatch(page.text, /Reports &amp; CSV|chartReportDaily/);
+    assert.equal((await adminC.get('/admin/reports')).status, 404);
+    assert.doesNotMatch((await adminC.get('/admin')).text, /href="\/admin\/reports"|Etiquette Reports/);
   });
 
   test('admin dashboard KPIs and chart series come from the database', () => {

@@ -158,11 +158,6 @@
       var el = document.getElementById(id);
       if (el) el.className = iconClass(type) + (id === 'vehicleTypeIcon' ? ' me-1' : '');
     });
-    var notice = document.getElementById('banNotice');
-    if (notice) {
-      notice.hidden = !(v && v.ban);
-      set('banText', v && v.ban ? v.ban.message : '');
-    }
   }
 
   // ---- the driver's vehicle card ----------------------------------------------------

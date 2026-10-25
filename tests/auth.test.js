@@ -68,16 +68,16 @@ describe('authentication, roles and ownership', () => {
 
   test('return-to after login stays inside the user\'s own area', async () => {
     const c = env.client();
-    await c.get('/admin/reports');
+    await c.get('/admin/payments');
     await c.get('/login');
     const res = await c.post('/login', { email: 'admin@test.local', password: PASSWORD });
-    assert.equal(res.location, '/admin/reports');
+    assert.equal(res.location, '/admin/payments');
   });
 
   test('role separation: drivers cannot reach admin pages and vice versa', async () => {
     const driver = env.client();
     await driver.login('alice@test.local');
-    for (const url of ['/admin', '/admin/slots', '/admin/payments', '/admin/settings/rules', '/admin/reports/export.csv']) {
+    for (const url of ['/admin', '/admin/slots', '/admin/payments', '/admin/settings/rules', '/admin/drivers']) {
       const res = await driver.get(url);
       assert.equal(res.status, 302, url);
       assert.equal(res.location, '/driver', url);

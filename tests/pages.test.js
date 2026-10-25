@@ -52,7 +52,7 @@ test('driver can open every driver page', async () => {
   assert.equal(login.status, 302);
   const pages = [
     '/driver', '/driver/find-parking', '/driver/reservations', '/driver/reservations?tab=all', '/driver/reservations?tab=completed',
-    '/driver/reservations?tab=cancelled', '/driver/payments', '/driver/vehicles', '/driver/profile', '/driver/reports',
+    '/driver/reservations?tab=cancelled', '/driver/payments', '/driver/vehicles', '/driver/profile',
   ];
   for (const url of pages) ok(await c.get(url), url);
 
@@ -74,7 +74,6 @@ test('admin can open every admin page', async () => {
     '/admin/operations', '/admin/operations?q=ABC%201234',
     '/admin/payments', '/admin/payments/new', '/admin/payments?status=valid&method=cash',
     '/admin/drivers', '/admin/drivers/new', '/admin/drivers?role=all',
-    '/admin/reports', '/admin/reports?status=pending', '/admin/reports?q=ABC', '/admin/reports/plate/ABC1234',
     '/admin/settings/rules', '/admin/settings/rates', '/admin/settings/rates?edit=1', '/admin/settings/types', '/admin/settings/types?edit=regular', '/admin/settings/audit',
   ];
   for (const url of pages) ok(await c.get(url), url);

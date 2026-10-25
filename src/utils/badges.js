@@ -39,22 +39,6 @@ const MAP = {
     overstay: { label: 'Overstay', tone: 'red', icon: 'bi-alarm' },
     late: { label: 'Late', tone: 'amber', icon: 'bi-clock-history' },
   },
-  report: {
-    under_review: { label: 'Under review', tone: 'blue', icon: 'bi-search' },
-    resolved: { label: 'Resolved', tone: 'green', icon: 'bi-check2-circle' },
-    dismissed: { label: 'Dismissed', tone: 'gray', icon: 'bi-x-circle' },
-  },
-  severity: {
-    minor: { label: 'Minor', tone: 'teal', icon: 'bi-info-circle' },
-    moderate: { label: 'Moderate', tone: 'amber', icon: 'bi-exclamation-circle' },
-    major: { label: 'Major', tone: 'red', icon: 'bi-exclamation-triangle' },
-    severe: { label: 'Severe', tone: 'red', icon: 'bi-exclamation-octagon-fill' },
-  },
-  penalty: {
-    active: { label: 'Active', tone: 'red', icon: 'bi-shield-exclamation' },
-    expired: { label: 'Ended', tone: 'gray', icon: 'bi-clock-history' },
-    lifted: { label: 'Lifted', tone: 'gray', icon: 'bi-shield-check' },
-  },
   user: {
     active: { label: 'Active', tone: 'green', icon: 'bi-check-circle' },
     inactive: { label: 'Inactive', tone: 'gray', icon: 'bi-slash-circle' },

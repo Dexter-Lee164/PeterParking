@@ -110,11 +110,6 @@
       <button type="button" class="btn btn-sm btn-outline-warning ms-1 py-0" id="retrySearch">Try again</button>
     </div>
 
-    <div class="alert alert-danger py-2 small" id="banNotice" role="alert"<%= vehicle && config.vehicles.find(function (v) { return v.id === vehicle.id && v.ban; }) ? '' : ' hidden' %>>
-      <i class="bi bi-shield-exclamation me-1" aria-hidden="true"></i><span id="banText"><%= vehicle ? ((config.vehicles.find(function (v) { return v.id === vehicle.id; }) || {}).ban || {}).message || '' : '' %></span>
-      <a href="/driver/reports#penalties">Details</a>
-    </div>
-
     <%# The map is the only way to pick a slot: every bay of the zone is drawn with its state, whatever the vehicle filter. %>
     <section class="map-card" aria-label="Parking map">
       <div id="mapContainer">

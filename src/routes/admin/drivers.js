@@ -3,7 +3,6 @@
 const express = require('express');
 const users = require('../../services/users');
 const reservations = require('../../services/reservations');
-const etiquette = require('../../services/etiquette');
 const ctx = require('../../db/context');
 const { AppError } = require('../../utils/errors');
 const { toInt, clean, oneOf } = require('../../utils/validate');
@@ -80,13 +79,9 @@ function detailPage(person, extra = {}) {
     nav: 'drivers',
     breadcrumbs: [{ label: 'Drivers', href: '/admin/drivers' }, { label: person.full_name }],
     person,
-    // A vehicle whose plate is banned right now shows the ban instead of "Active".
-    vehicles: users.listVehicles(person.id, { includeInactive: true }).map((v) => Object.assign(v, { ban: v.is_active ? etiquette.activeBan(v.plate_number) : null })),
+    vehicles: users.listVehicles(person.id, { includeInactive: true }),
     history: history.rows,
     totals,
-    // Etiquette violations on the driver's plates: reports not dismissed, and penalties in force right now.
-    violationReports: etiquette.reportsForDriver(person.id),
-    activePenalties: etiquette.penaltiesForDriver(person.id).filter((p) => p.state === 'active'),
     roleOptions: ROLE_FORM_OPTIONS,
     values: Object.assign({}, person, { is_active: String(person.is_active) }),
     errors: {},

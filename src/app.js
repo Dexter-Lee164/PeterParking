@@ -40,11 +40,7 @@ function createApp({ loginRateLimit, sessionSecret, authLimits } = {}) {
   app.get('/healthz', (req, res) => res.json({ status: 'ok' }));
 
   app.use(view);
-  // Forms stay small, except a parking etiquette report: it may carry one image (at most 2 MB, sent base64-encoded by
-  // public/js/etiquette-form.js and checked again in src/services/etiquette.js).
-  const smallForms = express.urlencoded({ extended: false, limit: '100kb' });
-  const reportForms = express.urlencoded({ extended: false, limit: '4mb' });
-  app.use((req, res, next) => (req.method === 'POST' && req.path === '/driver/reports' ? reportForms : smallForms)(req, res, next));
+  app.use(express.urlencoded({ extended: false, limit: '100kb' }));
   app.use(express.json({ limit: '100kb' }));
 
   const store = new SqliteSessionStore(db, { ttlMs: config.sessionMaxAgeHours * 3600 * 1000 });

@@ -15,12 +15,9 @@ const { nowLocal } = require('../utils/time');
  *   reservations   a booking was created, cancelled or rescheduled, or marked as a no-show
  *   payments       a payment was recorded (the Payments page lists paid bookings only, so balances owed and voided
  *                  receipts are not announced there)
- *   reports        a driver submitted a parking etiquette report
- * Drivers (only about their own bookings, payments, reports and vehicles)
+ * Drivers (only about their own bookings and payments)
  *   reservations   staff cancelled, rescheduled, checked in or out, or marked one of their bookings as a no-show
  *   payments       a payment of theirs was recorded or voided
- *   reports        a report they submitted was reviewed (status changed), or a penalty on one of their vehicles'
- *                  plates was applied or lifted (additional fee, temporary or permanent ban)
  *
  * Opening the section marks everything up to now as reviewed; the records that were unread stay highlighted on that
  * one page view (see middleware()). A user's first check starts from "now", so the history that existed before the
@@ -31,7 +28,6 @@ const SECTIONS = {
   admin: {
     reservations: `a.action IN ('reservation.create', 'reservation.cancel', 'reservation.reschedule', 'reservation.no_show')`,
     payments: `a.action = 'payment.record'`,
-    reports: `a.action = 'etiquette.submit'`,
   },
   driver: {
     reservations: `a.entity_type = 'reservation'
@@ -39,10 +35,6 @@ const SECTIONS = {
       AND EXISTS (SELECT 1 FROM reservations r WHERE r.id = a.entity_id AND r.user_id = @me)`,
     payments: `a.entity_type = 'payment' AND a.action IN ('payment.record', 'payment.void')
       AND EXISTS (SELECT 1 FROM payments p WHERE p.id = a.entity_id AND p.user_id = @me)`,
-    reports: `((a.action = 'etiquette.review' AND EXISTS (SELECT 1 FROM etiquette_reports e WHERE e.id = a.entity_id AND e.reporter_id = @me))
-      OR (a.action IN ('penalty.apply', 'penalty.lift') AND EXISTS (
-        SELECT 1 FROM plate_penalties p JOIN vehicles v ON replace(v.plate_number, ' ', '') = p.plate_key
-        WHERE p.id = a.entity_id AND v.user_id = @me AND v.is_active = 1)))`,
   },
 };
 
@@ -103,9 +95,7 @@ function markSeen(user, section) {
 function middleware(req, res, next) {
   const user = req.user;
   const sections = Object.keys(sectionsFor(user.role));
-  // A page view, not a file it loads (a report's evidence image), opens the section.
-  const page = req.method === 'GET' && !/\/evidence$/.test(req.path);
-  const section = page && ((new RegExp(`^/(${sections.join('|')})(/|$)`)).exec(req.path) || [])[1];
+  const section = req.method === 'GET' && ((new RegExp(`^/(${sections.join('|')})(/|$)`)).exec(req.path) || [])[1];
   if (section) {
     const unread = unreadRecords(user, section);
     res.locals.isUnread = (type, id) => !!(unread[type] && unread[type].has(Number(id)));

@@ -10,7 +10,6 @@ const payments = require('../services/payments');
 const dashboard = require('../services/dashboard');
 const users = require('../services/users');
 const fees = require('../services/fees');
-const etiquette = require('../services/etiquette');
 const notifications = require('../services/notifications');
 const vehicleCatalog = require('../../public/js/vehicle-catalog');
 const ctx = require('../db/context');
@@ -27,7 +26,7 @@ const VEHICLE_TYPE_OPTIONS = [
   { value: 'motorcycle', label: 'Motorcycle' },
 ];
 
-// Sidebar badges (My Reservations, Payments, Etiquette Reports) and the unread records highlighted on those pages.
+// Sidebar badges (My Reservations, Payments) and the unread records highlighted on those pages.
 router.use(notifications.middleware);
 
 // Polled by public/js/app.js so the badges update while a page stays open.
@@ -61,9 +60,6 @@ router.get('/find-parking', async (req, res, next) => {
   try {
     const settings = settingsService.getAll();
     const vehicles = users.listVehicles(req.user.id);
-    // Banned plates are flagged on the page (booking them is refused by reservations.createReservation).
-    const bans = new Map(vehicles.map((v) => [v.id, etiquette.activeBan(v.plate_number)]).filter(([, ban]) => ban)
-      .map(([id, ban]) => [id, { kind: ban.kind, message: etiquette.banMessage(vehicles.find((v) => v.id === id).plate_number, ban) }]));
     const search = availability.parseSearch(req.query, settings);
     // The vehicle drawn into the chosen slot: the one asked for, else the first that matches the vehicle-type filter.
     const askedVehicle = vehicles.find((v) => String(v.id) === String(req.query.vehicle_id || ''));
@@ -125,7 +121,7 @@ router.get('/find-parking', async (req, res, next) => {
       zoneId: zone ? zone.id : null,
       searchedKey: range.ok ? [search.date, search.start, search.end, search.vehicleType].join('|') : '',
       vehicleId: vehicle ? vehicle.id : null,
-      vehicles: vehicles.map((v) => ({ id: v.id, plate_number: v.plate_number, vehicle_type: v.vehicle_type, make: v.make, model: v.model, color: v.color, ban: bans.get(v.id) || null })),
+      vehicles: vehicles.map((v) => ({ id: v.id, plate_number: v.plate_number, vehicle_type: v.vehicle_type, make: v.make, model: v.model, color: v.color })),
     };
 
     return res.view('driver/find-parking', {
@@ -170,10 +166,7 @@ function buildReservePage(req, { slotId, params, values = {}, errors = {}, formE
   if (!slot) throw new AppError('That parking slot does not exist.', { status: 404 });
   const avail = availability.getAvailability({ startAt: range.startAt, endAt: range.endAt, userId: req.user.id });
   const live = avail.slots.find((s) => s.id === slot.id);
-  // Each vehicle with the penalties on its plate: a banned one cannot be chosen, a surcharge is added to the fee.
-  const vehicles = users.listVehicles(req.user.id)
-    .filter((v) => parking.vehicleFitsSlotType(slot.type_vehicle, v.vehicle_type))
-    .map((v) => Object.assign(v, { ban: etiquette.activeBan(v.plate_number), surcharge: etiquette.activeSurcharge(v.plate_number) }));
+  const vehicles = users.listVehicles(req.user.id).filter((v) => parking.vehicleFitsSlotType(slot.type_vehicle, v.vehicle_type));
   return {
     title: 'Confirm Reservation',
     nav: 'find-parking',
@@ -394,64 +387,6 @@ router.post('/vehicles/:id/delete', (req, res) => {
     req.flash('error', err.message);
   }
   return res.redirect('/driver/vehicles');
-});
-
-// --------------------------------------------------------- etiquette reports
-
-function reportsPage(req, { values = {}, errors = {}, formError = null } = {}) {
-  const now = time.nowLocal();
-  const { rows, pager } = etiquette.listReports({ reporterId: req.user.id }, { page: req.query.page, perPage: 10 });
-  return {
-    title: 'Etiquette Reports', nav: 'reports', rows, pager,
-    penalties: etiquette.penaltiesForDriver(req.user.id),
-    violationOptions: [{ value: '', label: 'Choose a violation…' }].concat(etiquette.VIOLATIONS),
-    values: Object.assign({ incident_date: now.slice(0, 10), incident_time: now.slice(11, 16) }, values),
-    errors, formError,
-    minDate: time.addDays(now, -30).slice(0, 10),
-    maxDate: now.slice(0, 10),
-    maxEvidenceBytes: etiquette.MAX_EVIDENCE_BYTES,
-    extraScripts: ['/js/etiquette-form.js'],
-  };
-}
-
-router.get('/reports', (req, res) => res.view('driver/reports', reportsPage(req)));
-
-router.post('/reports', (req, res) => {
-  try {
-    const report = etiquette.submitReport(req.user.id, req.body || {}, req.actor);
-    req.flash('success', `Your report about ${report.plate_number} was sent. Parking administration will review it; you can follow its status here.`);
-    return res.redirect('/driver/reports');
-  } catch (err) {
-    if (err instanceof AppError && err.fields) {
-      // The image is not sent back to the form: the driver attaches it again.
-      const values = Object.assign({}, req.body, { evidence_data: '' });
-      return res.status(422).view('driver/reports', reportsPage(req, { values, errors: err.fields, formError: err.message }));
-    }
-    throw err;
-  }
-});
-
-function ownReport(req) {
-  const report = etiquette.getReport(toInt(req.params.id));
-  // Someone else's report looks like any missing page.
-  if (!report || report.reporter_id !== req.user.id) throw new AppError('Report not found.', { status: 404 });
-  return report;
-}
-
-router.get('/reports/:id', (req, res) => {
-  const report = ownReport(req);
-  res.view('driver/report-detail', {
-    title: `Report #${report.id}`, nav: 'reports', report,
-    breadcrumbs: [{ label: 'Etiquette Reports', href: '/driver/reports' }, { label: `Report #${report.id}` }],
-  });
-});
-
-router.get('/reports/:id/evidence', (req, res) => {
-  const report = ownReport(req);
-  const file = etiquette.getEvidence(report.id);
-  if (!file) throw new AppError('No image was attached to this report.', { status: 404 });
-  res.set({ 'Content-Type': file.mime, 'Cache-Control': 'private, max-age=300', 'Content-Disposition': 'inline' });
-  res.send(file.data);
 });
 
 // ------------------------------------------------------------------- profile

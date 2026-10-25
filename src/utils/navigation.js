@@ -8,7 +8,6 @@ const ADMIN_NAV = [
   { key: 'operations', label: 'Check-in / Check-out', href: '/admin/operations', icon: 'bi-arrow-left-right' },
   { key: 'payments', label: 'Payments', href: '/admin/payments', icon: 'bi-cash-stack' },
   { key: 'drivers', label: 'Drivers', href: '/admin/drivers', icon: 'bi-people' },
-  { key: 'reports', label: 'Etiquette Reports', href: '/admin/reports', icon: 'bi-flag' },
   { key: 'settings', label: 'Settings', href: '/admin/settings', icon: 'bi-gear' },
 ];
 
@@ -17,7 +16,6 @@ const DRIVER_NAV = [
   { key: 'find-parking', label: 'Find Parking', href: '/driver/find-parking', icon: 'bi-geo-alt' },
   { key: 'reservations', label: 'My Reservations', href: '/driver/reservations', icon: 'bi-calendar2-check' },
   { key: 'payments', label: 'Payments', href: '/driver/payments', icon: 'bi-wallet2' },
-  { key: 'reports', label: 'Etiquette Reports', href: '/driver/reports', icon: 'bi-flag' },
   { key: 'vehicles', label: 'My Vehicles', href: '/driver/vehicles', icon: 'bi-car-front' },
   { key: 'profile', label: 'Profile', href: '/driver/profile', icon: 'bi-person-circle' },
 ];

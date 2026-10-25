@@ -49,20 +49,9 @@
             <div class="row g-3">
               <%- include('partials/form-field', {
                 name: 'vehicle_id', label: 'Vehicle', type: 'select', required: true, errors: errors, value: values.vehicle_id,
-                options: vehicles.map(function (v) { return { value: v.id, label: vehicleGlyph(v.vehicle_type) + ' ' + v.plate_number + ' — ' + vehicleLabel(v) + (v.color ? ' (' + v.color + ')' : '') + (v.ban ? ' — banned' : '') }; })
+                options: vehicles.map(function (v) { return { value: v.id, label: vehicleGlyph(v.vehicle_type) + ' ' + v.plate_number + ' — ' + vehicleLabel(v) + (v.color ? ' (' + v.color + ')' : '') }; })
               }) %>
             </div>
-            <% vehicles.filter(function (v) { return v.ban || v.surcharge; }).forEach(function (v) { %>
-              <div class="alert <%= v.ban ? 'alert-danger' : 'alert-warning' %> small mt-3 mb-0" role="note">
-                <i class="bi bi-shield-exclamation me-1" aria-hidden="true"></i>
-                <% if (v.ban) { %>
-                  <strong><%= v.plate_number %></strong> cannot be used: <%= v.ban.kind === 'perm_ban' ? 'it is permanently banned from parking reservations' : 'it is banned from parking reservations until ' + fmtDateTime(v.ban.ends_at) %>.
-                <% } else { %>
-                  <strong><%= v.plate_number %></strong> carries an additional fee of <%= peso(v.surcharge) %> on every reservation (a parking etiquette penalty), so its estimated fee is <%= peso(fee + v.surcharge) %>.
-                <% } %>
-                <a href="/driver/reports#penalties">Details</a>
-              </div>
-            <% }) %>
 
             <div class="alert alert-info small mt-3 mb-3" role="note">
               <strong>Cancellation policy.</strong> <%= policy %>

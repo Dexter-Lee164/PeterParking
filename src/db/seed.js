@@ -222,29 +222,6 @@ function seedDemoData(db) {
     addReservation({ driver: drivers[5], date: time.addDays(`${today} 00:00:00`, 3).slice(0, 10), startHour: 10, hours: 5, status: 'confirmed' });
     addReservation({ driver: demoDriver, date: time.addDays(`${today} 00:00:00`, -2).slice(0, 10), startHour: 8, hours: 2, status: 'completed', payment: 'none' });
     addReservation({ driver: demoDriver, date: time.addDays(`${today} 00:00:00`, -5).slice(0, 10), startHour: 14, hours: 3, status: 'completed' });
-
-    // --- parking etiquette: drivers' reports about other plates; one is resolved with an additional fee on the plate
-    // (from now on, so the bookings above keep the fee they were made with).
-    const at = (daysBack, hhmm) => `${time.addDays(`${today} 00:00:00`, -daysBack).slice(0, 10)} ${hhmm}:00`;
-    const insReport = db.prepare(
-      `INSERT INTO etiquette_reports (reporter_id, plate_number, plate_key, violation_type, description, incident_at, status, severity,
-         admin_notes, reviewed_by, reviewed_at, created_at, updated_at)
-       VALUES (@reporter, @plate, replace(@plate, ' ', ''), @type, @text, @incident, @status, @severity, @notes, @reviewer, @reviewed, @created, @updated)`,
-    );
-    const report = (r) => insReport.run(Object.assign({ severity: null, notes: null, reviewer: null, reviewed: null }, r, { updated: r.reviewed || r.created })).lastInsertRowid;
-    report({ reporter: drivers[0].userId, plate: 'GHT 4410', type: 'improper_parking', text: 'Parked across two slots near the Engineering entrance most of the morning.', incident: at(1, '08:40'), status: 'under_review', created: at(1, '09:05') });
-    report({
-      reporter: drivers[3].userId, plate: 'NBD 5521', type: 'blocking', text: 'Left the car in the Main Building exit lane for about 20 minutes.', incident: at(3, '16:10'),
-      status: 'under_review', severity: 'moderate', notes: 'Checking the gate camera footage.', reviewer: adminId, reviewed: at(2, '10:00'), created: at(3, '16:30'),
-    });
-    const resolved = report({
-      reporter: drivers[1].userId, plate: 'GHT 4410', type: 'accessible_misuse', text: 'Parked in the accessible bay at Science without a permit.', incident: at(6, '13:20'),
-      status: 'resolved', severity: 'major', notes: 'Confirmed by the staff on duty. An additional fee now applies to this plate.', reviewer: adminId, reviewed: now, created: at(6, '13:45'),
-    });
-    db.prepare(
-      `INSERT INTO plate_penalties (plate_number, plate_key, report_id, kind, amount_centavos, starts_at, reason, created_by, created_at)
-       VALUES ('GHT 4410', 'GHT4410', ?, 'surcharge', 5000, ?, ?, ?, ?)`,
-    ).run(resolved, now, `Accessible bay used without a permit (report #${resolved}).`, adminId, now);
   })();
 }
 

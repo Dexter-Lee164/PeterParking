@@ -1,8 +1,8 @@
 # University Parking — Reserve. Park. Go.
 
 A parking-slot reservation system for a school or university facility. Drivers find a free slot on a live map and
-reserve it by the hour, and report vehicles that break the parking rules; parking staff manage how slots operate,
-check vehicles in and out, record manual payments and penalise plates for etiquette violations. Everything is stored in a **local SQLite file** — there is no other database and no payment gateway.
+reserve it by the hour; parking staff manage how slots operate, check vehicles in and out and record manual
+payments. Everything is stored in a **local SQLite file** — there is no other database and no payment gateway.
 
 * **Stack:** Node.js · Express 5 · EJS · Bootstrap 5 · SQLite (`better-sqlite3`)
 * **Roles:** Driver and Administrator
@@ -65,21 +65,17 @@ default when `NODE_ENV=production`.
   change; there is no search button (one appears only without JavaScript). The **map is the only view**: every bay of
   the zone stays on it with its state (available, reserved, occupied, unavailable, maintenance) whatever the vehicle
   filter, and bays for the other kind of vehicle are shown greyed out and cannot be chosen. A car or motorcycle icon
-  follows the chosen vehicle (dropdown, vehicle card), and a banned plate is flagged. Choose a green slot on the map,
+  follows the chosen vehicle (dropdown, vehicle card). Choose a green slot on the map,
   review the slot details and the summary panel, then continue to a confirmation page. Refreshes go through AJAX (only the newest answer is applied); the page also works as plain server-rendered HTML.
 * **My Reservations** — filter by upcoming / active / completed / cancelled, open details, **reschedule** (re-checked
   against availability) or **cancel** (a late-cancel fee applies inside the free-cancellation window).
 * **Payments** — balances and payment history, receipts.
-* **Etiquette Reports** — report another vehicle by plate number: type of violation, what happened, date and time,
-  and an optional image (JPEG/PNG/WebP/GIF, up to 2 MB, stored in SQLite). Follow each report's status (pending, under
-  review, resolved, dismissed) and the administrator's notes, and see any penalties on your own vehicles' plates.
 * **My Vehicles** — add, edit and remove vehicles (plate numbers are unique). A vehicle is a **car or a motorcycle**
   (vans and SUVs are registered as cars). Manufacturer and model are dropdowns that follow the vehicle type
   (`public/js/vehicle-catalog.js`, shared with the server), each with an **Other** choice for typing a name that is
   not listed.
-* **Sidebar badges** on My Reservations, Payments and Etiquette Reports count updates about your own records made by
-  others (a booking cancelled, rescheduled, checked in/out or marked no-show by staff; a payment recorded or voided; a
-  report reviewed; a penalty applied to or lifted from your plate). The records behind them are highlighted on the page
+* **Sidebar badges** on My Reservations and Payments count updates about your own records made by others (a booking
+  cancelled, rescheduled, checked in/out or marked no-show by staff; a payment recorded or voided). The records behind them are highlighted on the page
   you open until you have seen it once.
 * **Profile** — update contact details and change the password. Full names allow letters (any alphabet), spaces and
   hyphens only (`public/js/name-rules.js`, also used at sign-up); a new password must differ from the current one.
@@ -97,9 +93,8 @@ default when `NODE_ENV=production`.
 * **Reservations** — listed by priority: today's first, then future (soonest first), then past (most recent first),
   by campus date. Search and filter, view the full history of one booking, cancel (reason required, fee can be
   waived) or mark no-show.
-* **Sidebar badges** on Reservations, Payments and Etiquette Reports count updates made by others since you last
-  opened that section (new, cancelled, rescheduled or missed bookings; payments recorded or voided; balances newly owed;
-  new etiquette reports). They refresh every 30 seconds, and the records behind them are highlighted on the page you
+* **Sidebar badges** on Reservations and Payments count updates made by others since you last opened that section
+  (new, cancelled, rescheduled or missed bookings; payments recorded or voided; balances newly owed). They refresh every 30 seconds, and the records behind them are highlighted on the page you
   open (with a "New" pill) until you have seen it once. Read state is stored per user (`notification_reads`).
 * **Check-in / Check-out** — search by booking reference or plate; arrivals and parked vehicles are listed. Occupancy
   changes **only** when staff confirm an arrival or departure — "reserved" never silently becomes "occupied".
@@ -107,12 +102,6 @@ default when `NODE_ENV=production`.
   records are kept and still count), print receipts, void a payment (reason required; voided payments stop counting
   but stay in the history).
 * **Drivers** — create, edit, deactivate and reset the password of drivers (and create further administrators); see their vehicles and history.
-* **Etiquette Reports** (replaces the former analytics Reports page) — every report drivers submitted, open ones first,
-  with the plate's report count and active penalties. Review a report (status, severity, notes for the reporter) and
-  penalise the plate: a **permanent additional fee** added to every new reservation with that plate, a **temporary
-  ban** (1–365 days) or a **permanent ban** from reservations and reschedules. A plate page shows who has it registered
-  and all its reports and penalties. Penalties belong to the plate (re-registering the vehicle does not escape them),
-  can be lifted with a reason but never deleted, ask for confirmation first, and are written to the audit log.
 * **Settings** — booking rules, rates and slot types, and the searchable **audit log** (each entry's details shown as a
   labelled list).
 
@@ -139,10 +128,10 @@ All of these are editable under *Settings → Booking rules* (defaults shown).
 
 * **Rates** — most specific wins: slot override → zone + slot type → zone → slot type → default. Seeded: ₱20 default,
   ₱30 regular, ₱20 accessible, ₱15 motorcycle per hour. A reservation **locks its rate when it is booked**.
-* **Etiquette penalties** — an additional fee on a plate is added to the estimated fee of every reservation made with
-  that plate from then on (stored on the booking, so later changes do not alter it). Late-cancellation and no-show
-  fees are a percentage of the reserved fee without it, plus the additional fee in full; a free cancellation costs
-  nothing. A banned plate cannot book or reschedule; bookings made before the ban are kept.
+* **Additional fee on older bookings** — parking etiquette reports and plate penalties were retired (migration 010
+  dropped their tables). Bookings made while a plate carried an additional fee keep it (`reservations.surcharge_centavos`,
+  0 for new bookings); their late-cancellation and no-show fees are a percentage of the reserved fee without it, plus
+  the additional fee in full.
 * **Zones** — cars (vans and SUVs included) park in Main Building, Engineering, Science and Administration (accessible bays included);
   motorcycles park in Motorcycle Parking (MC) and in the few motorcycle bays of Engineering (EN-21..30), Science
   (SC-31..38) and Administration (AD-17..22). There are no EV charging slots. A slot taken out of a lot but with
@@ -165,7 +154,7 @@ src/
   config.js               environment configuration
   app.js                  Express app: security middleware, sessions, static assets, routes
   db/                     better-sqlite3 setup, migrations/, seed, CLI, SQLite session store
-  services/               business logic (availability, reservations, fees, sessions, payments, etiquette, …);
+  services/               business logic (availability, reservations, fees, sessions, payments, …);
                           mail.js (outgoing e-mail: console or SMTP) and mailTemplates.js (the three e-mails);
                           registration.js (sign-up codes), passwordReset.js (reset links)
   routes/                 auth.js, driver.js, admin/*.js  (thin: parse → call service → render/redirect)
@@ -398,7 +387,7 @@ public/js/auth.js                         progressive enhancement: history, iner
   `bcrypt` could not be installed in the environment the project was built in. `bcryptjs` produces standard bcrypt hashes.
 * **One time zone, fixed offset** (no daylight-saving handling) and **single-process** operation.
 * Browser support: current Chrome, Edge, Firefox and Safari; choosing a slot on the map requires JavaScript (a
-  server-rendered fallback shows availability without it). Attaching an image to an etiquette report also needs it.
+  server-rendered fallback shows availability without it).
 
 ---
 

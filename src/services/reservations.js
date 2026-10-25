@@ -8,7 +8,6 @@ const availability = require('./availability');
 const parking = require('./parking');
 const fees = require('./fees');
 const audit = require('./audit');
-const etiquette = require('./etiquette');
 const time = require('../utils/time');
 const { AppError } = require('../utils/errors');
 const { clean, normalizePlate } = require('../utils/validate');
@@ -95,15 +94,10 @@ function translateDbError(err) {
   return err;
 }
 
-/** A plate under an active ban (src/services/etiquette.js) cannot be used to book or reschedule. */
-function assertNotBanned(plate) {
-  const ban = etiquette.activeBan(plate);
-  if (ban) throw new AppError(etiquette.banMessage(plate, ban), { code: 'VEHICLE_BANNED', status: 403 });
-}
-
 /**
- * Late-cancellation and no-show fees are a percentage of the reserved fee without the plate's additional fee; when
- * such a fee applies at all, the additional fee is charged in full on top. A free cancellation costs nothing.
+ * Late-cancellation and no-show fees are a percentage of the reserved fee without the additional fee some older
+ * bookings carry (surcharge_centavos, from the retired plate penalties; 0 for new bookings); when such a fee applies
+ * at all, the additional fee is charged in full on top. A free cancellation costs nothing.
  */
 function cancellationFeeFor(res, now, settings, opts) {
   const fee = fees.cancellationFee(res.fee_estimated_centavos - res.surcharge_centavos, res.start_at, now, settings, opts);
@@ -155,7 +149,6 @@ function createReservation({ userId, vehicleId, slotId, date, start, end }, acto
       if (!parking.vehicleFitsSlotType(slot.type_vehicle, vehicle.vehicle_type)) {
         throw new AppError(`A ${vehicle.vehicle_type} cannot use a ${slot.type_label} slot.`, { code: 'VEHICLE_MISMATCH', fields: { vehicle_id: 'This vehicle does not fit the selected slot type.' } });
       }
-      assertNotBanned(vehicle.plate_number);
 
       const activeCount = db
         .prepare(`SELECT COUNT(*) AS n FROM reservations WHERE user_id = ? AND status IN ('confirmed','checked_in')`)
@@ -179,19 +172,17 @@ function createReservation({ userId, vehicleId, slotId, date, start, end }, acto
       }
 
       const rate = slot.hourly_rate_centavos;
-      // An administrator's additional fee on this plate is part of the booking's fee from the start.
-      const surcharge = etiquette.activeSurcharge(vehicle.plate_number);
-      const fee = fees.estimatedFee(rate, range.durationMinutes, settings) + surcharge;
+      const fee = fees.estimatedFee(rate, range.durationMinutes, settings);
       const ref = generateRef(db);
       const info = db
         .prepare(
           `INSERT INTO reservations (booking_ref, user_id, vehicle_id, slot_id, start_at, end_at, duration_minutes,
-             hourly_rate_centavos, fee_estimated_centavos, surcharge_centavos, status, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', ?, ?)`,
+             hourly_rate_centavos, fee_estimated_centavos, status, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', ?, ?)`,
         )
-        .run(ref, userId, vehicleId, slotId, range.startAt, range.endAt, range.durationMinutes, rate, fee, surcharge, time.nowLocal(), time.nowLocal());
+        .run(ref, userId, vehicleId, slotId, range.startAt, range.endAt, range.durationMinutes, rate, fee, time.nowLocal(), time.nowLocal());
       audit.log(actor || userId, 'reservation.create', 'reservation', info.lastInsertRowid, {
-        ref, slot: slot.slot_code, zone: slot.zone_name, start: range.startAt, end: range.endAt, fee, ...(surcharge ? { surcharge } : {}),
+        ref, slot: slot.slot_code, zone: slot.zone_name, start: range.startAt, end: range.endAt, fee,
       });
       return getReservation(info.lastInsertRowid);
     });
@@ -274,7 +265,6 @@ function rescheduleReservation(id, user, { date, start, end }, actor = null) {
         .get(res.vehicle_id, id, range.endAt, range.startAt);
       if (vehicleClash) throw new AppError(`This vehicle already has reservation ${vehicleClash.booking_ref} at that time.`, { code: 'VEHICLE_CLASH', status: 409 });
 
-      assertNotBanned(res.plate_number);
       // The booking keeps the additional fee it was made with.
       const fee = fees.estimatedFee(res.hourly_rate_centavos, range.durationMinutes, settings) + res.surcharge_centavos;
       db.prepare(
