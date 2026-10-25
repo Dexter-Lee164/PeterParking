@@ -11,8 +11,9 @@ const { paginate } = require('../utils/paginate');
 /**
  * Parking etiquette reports and the penalties that follow them.
  *
- * A driver reports another vehicle by plate number. An administrator reviews the report (status, severity, notes) and
- * may penalise the plate:
+ * A driver reports another registered vehicle by plate number. A report is under review until an administrator resolves
+ * it (applying a penalty resolves it; at most one penalty per report) or dismisses it with a reason. The plate can be
+ * penalised:
  *   surcharge   a permanent additional fee added to every new reservation made with that plate (stored on the booking
  *               as reservations.surcharge_centavos and included in its estimated fee)
  *   temp_ban    the plate cannot be used for new reservations or reschedules until ends_at
@@ -31,7 +32,6 @@ const VIOLATIONS = [
   { value: 'other', label: 'Other' },
 ];
 const STATUSES = [
-  { value: 'pending', label: 'Pending' },
   { value: 'under_review', label: 'Under review' },
   { value: 'resolved', label: 'Resolved' },
   { value: 'dismissed', label: 'Dismissed' },
@@ -85,7 +85,8 @@ const REPORT_SELECT = `
   SELECT r.*, u.full_name AS reporter_name, u.email AS reporter_email, rv.full_name AS reviewer_name,
          EXISTS (SELECT 1 FROM etiquette_evidence e WHERE e.report_id = r.id) AS has_evidence,
          (SELECT COUNT(*) FROM etiquette_reports o WHERE o.plate_key = r.plate_key) AS plate_report_count,
-         (SELECT COUNT(*) FROM plate_penalties p WHERE p.plate_key = r.plate_key AND p.status = 'active') AS plate_active_penalties
+         (SELECT COUNT(*) FROM plate_penalties p WHERE p.plate_key = r.plate_key AND p.status = 'active') AS plate_active_penalties,
+         (SELECT COUNT(*) FROM plate_penalties p WHERE p.report_id = r.id) AS penalty_count
   FROM etiquette_reports r
   JOIN users u ON u.id = r.reporter_id
   LEFT JOIN users rv ON rv.id = r.reviewed_by`;
@@ -95,6 +96,9 @@ const decorate = (r) => r && Object.assign(r, {
   status_label: label(STATUSES, r.status),
   severity_label: r.severity ? label(SEVERITIES, r.severity) : null,
   has_evidence: !!r.has_evidence,
+  // One penalty per report, never on a dismissed one; a report that led to a penalty cannot be dismissed.
+  can_penalise: r.status !== 'dismissed' && !r.penalty_count,
+  can_dismiss: r.status !== 'dismissed' && !r.penalty_count,
 });
 
 const getReport = (id) => decorate(ctx.get().prepare(`${REPORT_SELECT} WHERE r.id = ?`).get(id));
@@ -112,6 +116,8 @@ function submitReport(reporterId, input, actor) {
   if (!PLATE.test(plate)) fields.plate_number = 'Enter the plate number you saw (3–12 letters/numbers, e.g. ABC 1234).';
   else if (db.prepare(`SELECT 1 FROM vehicles WHERE user_id = ? AND is_active = 1 AND replace(plate_number, ' ', '') = ?`).get(reporterId, plateKey(plate))) {
     fields.plate_number = 'That plate is one of your own vehicles.';
+  } else if (!db.prepare(`SELECT 1 FROM vehicles WHERE is_active = 1 AND replace(plate_number, ' ', '') = ?`).get(plateKey(plate))) {
+    fields.plate_number = 'That plate number is not registered in the system. Check it and try again.';
   }
   if (!violation) fields.violation_type = 'Choose the type of violation.';
   if (description.length < 10) fields.description = 'Describe what happened in at least 10 characters.';
@@ -135,8 +141,8 @@ function submitReport(reporterId, input, actor) {
   return db.transaction(() => {
     const id = db
       .prepare(
-        `INSERT INTO etiquette_reports (reporter_id, plate_number, plate_key, violation_type, description, incident_at, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO etiquette_reports (reporter_id, plate_number, plate_key, violation_type, description, incident_at, status, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, 'under_review', ?, ?)`,
       )
       .run(reporterId, plate, plateKey(plate), violation, description, incidentAt, now, now).lastInsertRowid;
     if (evidence) db.prepare('INSERT INTO etiquette_evidence (report_id, mime, size_bytes, data) VALUES (?, ?, ?, ?)').run(id, evidence.mime, evidence.data.length, evidence.data);
@@ -168,11 +174,11 @@ function listReports({ reporterId = null, status = '', q = '', plate = '' } = {}
   const db = ctx.get();
   const total = db.prepare(`SELECT COUNT(*) AS n FROM etiquette_reports r JOIN users u ON u.id = r.reporter_id ${whereSql}`).get(...params).n;
   const pager = paginate(total, page, perPage);
-  // Open reports first (pending, then under review), newest first within each status.
+  // Open reports (under review) first, newest first within each status.
   const rows = db
     .prepare(
       `${REPORT_SELECT} ${whereSql}
-       ORDER BY CASE r.status WHEN 'pending' THEN 0 WHEN 'under_review' THEN 1 ELSE 2 END, r.created_at DESC, r.id DESC
+       ORDER BY CASE r.status WHEN 'under_review' THEN 0 ELSE 1 END, r.created_at DESC, r.id DESC
        LIMIT ? OFFSET ?`,
     )
     .all(...params, pager.perPage, pager.offset)
@@ -196,6 +202,7 @@ function reviewReport(id, input, admin) {
   if (severityIn && !severity) fields.severity = 'Choose a severity.';
   if (notes.length > 1000) fields.admin_notes = 'Keep notes under 1,000 characters.';
   if (status === 'dismissed' && !notes) fields.admin_notes = 'Say why the report is dismissed.';
+  else if (status === 'dismissed' && report.penalty_count) fields.status = 'A penalty was applied for this report, so it cannot be dismissed.';
   if (Object.keys(fields).length) throw new AppError('Please correct the highlighted fields.', { code: 'VALIDATION', fields });
   const now = time.nowLocal();
   db.prepare(
@@ -206,6 +213,25 @@ function reviewReport(id, input, admin) {
     status: report.status === status ? label(STATUSES, status) : [label(STATUSES, report.status), label(STATUSES, status)],
     severity: severity ? label(SEVERITIES, severity) : null,
     notes: notes || null,
+  });
+  return getReport(id);
+}
+
+/** Dismiss a report (no violation found), with the reason the reporter will see. */
+function dismissReport(id, reasonIn, admin) {
+  const report = getReport(id);
+  if (!report) throw new AppError('Report not found.', { status: 404, code: 'NOT_FOUND' });
+  if (report.status === 'dismissed') throw new AppError('This report is already dismissed.', { code: 'INVALID_STATE', status: 409 });
+  if (report.penalty_count) throw new AppError('A penalty was applied for this report, so it cannot be dismissed.', { code: 'INVALID_STATE', status: 409 });
+  const reason = collapse(reasonIn);
+  if (reason.length < 5) throw new AppError('Please correct the highlighted fields.', { code: 'VALIDATION', fields: { reason: 'Say why the report is dismissed (at least 5 characters).' } });
+  if (reason.length > 1000) throw new AppError('Please correct the highlighted fields.', { code: 'VALIDATION', fields: { reason: 'Keep the reason under 1,000 characters.' } });
+  const now = time.nowLocal();
+  ctx.get().prepare(
+    `UPDATE etiquette_reports SET status = 'dismissed', admin_notes = ?, reviewed_by = ?, reviewed_at = ?, updated_at = ? WHERE id = ?`,
+  ).run(reason, admin.id, now, now, id);
+  audit.log(admin, 'etiquette.review', 'etiquette_report', id, {
+    plate: report.plate_number, status: [label(STATUSES, report.status), label(STATUSES, 'dismissed')], notes: reason,
   });
   return getReport(id);
 }
@@ -271,6 +297,8 @@ function applyPenalty({ plate: plateIn, reportId = null, kind: kindIn, amount, d
   const report = reportId ? getReport(toInt(reportId)) : null;
   if (reportId && !report) throw new AppError('Report not found.', { status: 404, code: 'NOT_FOUND' });
   if (report && report.plate_key !== plateKey(plate)) throw new AppError('That report is about a different plate.', { code: 'VALIDATION' });
+  if (report && report.penalty_count) fields.kind = 'A penalty was already applied for this report. Only one penalty is allowed per report.';
+  else if (report && report.status === 'dismissed') fields.kind = 'This report was dismissed, so it cannot lead to a penalty.';
   if (!PLATE.test(plate)) fields.plate_number = 'Enter a valid plate number.';
   if (!kind) fields.kind = 'Choose a penalty.';
   if (reason.length < 5) fields.reason = 'Give the reason for this penalty (at least 5 characters).';
@@ -293,16 +321,29 @@ function applyPenalty({ plate: plateIn, reportId = null, kind: kindIn, amount, d
 
   const now = time.nowLocal();
   const endsAt = kind === 'temp_ban' ? time.addDays(now, dayCount) : null;
-  const id = db
-    .prepare(
-      `INSERT INTO plate_penalties (plate_number, plate_key, report_id, kind, amount_centavos, starts_at, ends_at, reason, created_by, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .run(plate, plateKey(plate), report ? report.id : null, kind, amountCentavos, now, endsAt, reason, admin.id, now).lastInsertRowid;
-  audit.log(admin, 'penalty.apply', 'plate_penalty', id, {
-    plate, penalty: label(PENALTY_KINDS, kind), amount: amountCentavos, until: endsAt, report: report ? report.id : null, reason,
-  });
-  return getPenalty(id);
+  return db.transaction(() => {
+    // Under the transaction again: two quick submissions cannot both penalise the same report.
+    if (report && db.prepare('SELECT 1 FROM plate_penalties WHERE report_id = ?').get(report.id)) {
+      throw new AppError('Please correct the highlighted fields.', { code: 'VALIDATION', fields: { kind: 'A penalty was already applied for this report. Only one penalty is allowed per report.' } });
+    }
+    const id = db
+      .prepare(
+        `INSERT INTO plate_penalties (plate_number, plate_key, report_id, kind, amount_centavos, starts_at, ends_at, reason, created_by, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(plate, plateKey(plate), report ? report.id : null, kind, amountCentavos, now, endsAt, reason, admin.id, now).lastInsertRowid;
+    audit.log(admin, 'penalty.apply', 'plate_penalty', id, {
+      plate, penalty: label(PENALTY_KINDS, kind), amount: amountCentavos, until: endsAt, report: report ? report.id : null, reason,
+    });
+    // A penalty settles the report it came from.
+    if (report && report.status !== 'resolved') {
+      db.prepare(`UPDATE etiquette_reports SET status = 'resolved', reviewed_by = ?, reviewed_at = ?, updated_at = ? WHERE id = ?`).run(admin.id, now, now, report.id);
+      audit.log(admin, 'etiquette.review', 'etiquette_report', report.id, {
+        plate: report.plate_number, status: [label(STATUSES, report.status), label(STATUSES, 'resolved')], notes: `Resolved with a penalty: ${label(PENALTY_KINDS, kind)}.`,
+      });
+    }
+    return getPenalty(id);
+  })();
 }
 
 function liftPenalty(id, reasonIn, admin) {
@@ -385,6 +426,7 @@ module.exports = {
   listReports,
   countByStatus,
   reviewReport,
+  dismissReport,
   getPenalty,
   penaltiesForPlate,
   penaltiesForDriver,

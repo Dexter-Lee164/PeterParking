@@ -59,7 +59,13 @@
         <% } else { vehicles.forEach(function (v) { %>
           <div class="summary-row">
             <span class="k"><span class="plate"><%= v.plate_number %></span><span class="d-block small text-faint"><%= titleCase(v.vehicle_type) %> · <%= vehicleLabel(v) %></span></span>
-            <span class="v"><%- include('partials/status-badge', { kind: 'user', status: v.is_active ? 'active' : 'inactive' }) %></span>
+            <span class="v">
+              <% if (v.ban) { %>
+                <span class="badge-status tone-red"><i class="bi bi-slash-circle-fill" aria-hidden="true"></i><%= v.ban.kind === 'perm_ban' ? 'Banned permanently' : 'Banned until ' + fmtDateTime(v.ban.ends_at) %></span>
+              <% } else { %>
+                <%- include('partials/status-badge', { kind: 'user', status: v.is_active ? 'active' : 'inactive' }) %>
+              <% } %>
+            </span>
           </div>
         <% }) } %>
       </div>

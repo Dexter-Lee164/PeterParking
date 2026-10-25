@@ -1,7 +1,7 @@
 <div class="page-intro">
   <div>
     <h2>Parking Etiquette Reports</h2>
-    <p>Reports drivers submitted about other vehicles. Review each one, judge its severity, and penalise the plate when it is justified.</p>
+    <p>Reports drivers submitted about other vehicles. Review each one, then penalise the plate or dismiss the report.</p>
   </div>
 </div>
 
@@ -10,10 +10,9 @@
 <% } %>
 
 <div class="row g-3 mb-4">
-  <div class="col-6 col-md-3"><%- include('partials/stat-card', { label: 'Pending', value: counts.pending || 0, hint: 'Not reviewed yet', icon: 'bi-hourglass-split', tone: (counts.pending || 0) > 0 ? 'amber' : 'green' }) %></div>
-  <div class="col-6 col-md-3"><%- include('partials/stat-card', { label: 'Under review', value: counts.under_review || 0, hint: 'Being looked into', icon: 'bi-search', tone: 'blue' }) %></div>
-  <div class="col-6 col-md-3"><%- include('partials/stat-card', { label: 'Resolved', value: counts.resolved || 0, hint: 'Action taken or settled', icon: 'bi-check2-circle', tone: 'green' }) %></div>
-  <div class="col-6 col-md-3"><%- include('partials/stat-card', { label: 'Dismissed', value: counts.dismissed || 0, hint: 'No violation found', icon: 'bi-x-circle', tone: 'blue' }) %></div>
+  <div class="col-6 col-md-4"><%- include('partials/stat-card', { label: 'Under review', value: counts.under_review || 0, hint: 'Waiting for a decision', icon: 'bi-search', tone: (counts.under_review || 0) > 0 ? 'amber' : 'green' }) %></div>
+  <div class="col-6 col-md-4"><%- include('partials/stat-card', { label: 'Resolved', value: counts.resolved || 0, hint: 'Action taken or settled', icon: 'bi-check2-circle', tone: 'green' }) %></div>
+  <div class="col-6 col-md-4"><%- include('partials/stat-card', { label: 'Dismissed', value: counts.dismissed || 0, hint: 'No violation found', icon: 'bi-x-circle', tone: 'blue' }) %></div>
 </div>
 
 <%- include('partials/filter-toolbar', {
@@ -29,7 +28,7 @@
 
 <%- include('partials/data-table', {
   caption: 'Parking etiquette reports',
-  columns: [{ label: 'Report' }, { label: 'Plate' }, { label: 'Violation' }, { label: 'Incident' }, { label: 'Reported by' }, { label: 'Severity' }, { label: 'Status' }],
+  columns: [{ label: 'Report' }, { label: 'Plate' }, { label: 'Violation' }, { label: 'Incident' }, { label: 'Reported by' }, { label: 'Status' }],
   rows: rows,
   rowPartial: 'partials/rows/admin-report-row',
   pager: pager,

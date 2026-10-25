@@ -8,6 +8,5 @@
   <td data-label="Violation"><%= row.violation_label %><% if (row.has_evidence) { %> <i class="bi bi-image text-muted" title="Image attached" aria-label="Image attached"></i><% } %></td>
   <td data-label="Incident"><%= fmtDateTime(row.incident_at) %></td>
   <td data-label="Reported by"><%= row.reporter_name %><span class="sub"><%= row.reporter_email %></span></td>
-  <td data-label="Severity"><% if (row.severity) { %><%- include('partials/status-badge', { kind: 'severity', status: row.severity }) %><% } else { %><span class="text-faint">—</span><% } %></td>
   <td data-label="Status"><%- include('partials/status-badge', { kind: 'report', status: row.status }) %></td>
 </tr>

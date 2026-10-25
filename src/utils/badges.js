@@ -40,7 +40,6 @@ const MAP = {
     late: { label: 'Late', tone: 'amber', icon: 'bi-clock-history' },
   },
   report: {
-    pending: { label: 'Pending', tone: 'amber', icon: 'bi-hourglass-split' },
     under_review: { label: 'Under review', tone: 'blue', icon: 'bi-search' },
     resolved: { label: 'Resolved', tone: 'green', icon: 'bi-check2-circle' },
     dismissed: { label: 'Dismissed', tone: 'gray', icon: 'bi-x-circle' },

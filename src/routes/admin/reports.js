@@ -6,8 +6,8 @@ const { AppError } = require('../../utils/errors');
 const { toInt, clean, oneOf, plateKey } = require('../../utils/validate');
 
 /**
- * Parking Etiquette Reports for administrators: review what drivers reported, judge severity, set the status, and
- * penalise a plate (permanent additional fee, temporary or permanent ban) or lift a penalty. Every decision asks for
+ * Parking Etiquette Reports for administrators: review what drivers reported, set the status, dismiss a report with a
+ * reason, and penalise a plate (permanent additional fee, temporary or permanent ban; one per report) or lift a penalty. Every decision asks for
  * confirmation in the page and is written to the audit log (src/services/etiquette.js).
  */
 const router = express.Router();
@@ -113,6 +113,18 @@ router.post('/:id/review', (req, res) => {
     if (!(err instanceof AppError) || !err.fields) throw err;
     return res.status(422).view('admin/report-detail', reportPage(report, { values: req.body, errors: err.fields, formError: err.message }));
   }
+});
+
+router.post('/:id/dismiss', (req, res) => {
+  const report = getReportOr404(req.params.id);
+  try {
+    etiquette.dismissReport(report.id, req.body.reason, req.user); // the reason comes from the confirmation dialog
+    req.flash('success', `Report #${report.id} was dismissed.`);
+  } catch (err) {
+    if (!(err instanceof AppError)) throw err;
+    req.flash('error', err.fields ? err.fields.reason : err.message);
+  }
+  return res.redirect(`/admin/reports/${report.id}`);
 });
 
 router.post('/:id/penalties', (req, res) => {

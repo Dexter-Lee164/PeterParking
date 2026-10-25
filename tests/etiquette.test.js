@@ -52,6 +52,7 @@ describe('drivers report a plate; administrators review it', () => {
     const f = (input) => fieldsOf(() => etiquette.submitReport(d.alice.id, report(input), null));
     assert.ok(f({ plate_number: '!' }).plate_number);
     assert.match(f({ plate_number: 'AAA 1111' }).plate_number, /your own/);
+    assert.match(f({ plate_number: 'ZZZ 9999' }).plate_number, /not registered in the system/, 'only registered plates can be reported');
     assert.ok(f({ violation_type: 'littering' }).violation_type);
     assert.ok(f({ description: 'bad' }).description, 'too short');
     assert.ok(f({ incident_time: '09:30' }).incident_time, 'in the future');
@@ -68,13 +69,13 @@ describe('drivers report a plate; administrators review it', () => {
     const res = await alice.post('/driver/reports', report({ evidence_data: PNG }));
     assert.equal(res.status, 302);
     const row = env.db.prepare('SELECT * FROM etiquette_reports').get();
-    assert.deepEqual([row.plate_number, row.plate_key, row.status, row.incident_at], ['BBB 3333', 'BBB3333', 'pending', `${DAY} 07:30:00`]);
+    assert.deepEqual([row.plate_number, row.plate_key, row.status, row.incident_at], ['BBB 3333', 'BBB3333', 'under_review', `${DAY} 07:30:00`]);
     assert.equal(env.db.prepare('SELECT mime FROM etiquette_evidence WHERE report_id = ?').get(row.id).mime, 'image/png');
     assert.ok(env.db.prepare(`SELECT 1 FROM audit_logs WHERE action = 'etiquette.submit' AND entity_id = ?`).get(row.id));
 
     const list = await alice.get('/driver/reports');
     assert.match(list.text, /BBB 3333/);
-    assert.match(list.text, /Pending/);
+    assert.match(list.text, /Under review/);
     const img = await alice.get(`/driver/reports/${row.id}/evidence`);
     assert.equal(img.status, 200);
     assert.match(img.type, /image\/png/);
@@ -111,6 +112,28 @@ describe('drivers report a plate; administrators review it', () => {
     const detail = await alice.get(`/driver/reports/${id}`);
     assert.match(detail.text, /Checking the CCTV\./);
   });
+
+  test('the list has three statuses and no severity column; a report is dismissed from its page with a reason', async () => {
+    const id = env.db.prepare('SELECT id FROM etiquette_reports').get().id;
+    const list = await adminC.get('/admin/reports');
+    const statusSelect = list.text.match(/<select[^>]*name="status"[\s\S]*?<\/select>/)[0];
+    assert.deepEqual([...statusSelect.matchAll(/<option[^>]*>([^<]*)<\/option>/g)].map((m) => m[1].trim()), ['Any status', 'Under review', 'Resolved', 'Dismissed']);
+    assert.doesNotMatch(list.text, /Severity|Pending/);
+
+    const page = await adminC.get(`/admin/reports/${id}`);
+    assert.match(page.text, new RegExp(`action="/admin/reports/${id}/dismiss"[^>]*data-confirm-reason="Why is it dismissed\\?"`));
+    const noReason = await adminC.post(`/admin/reports/${id}/dismiss`, { reason: '' });
+    assert.equal(noReason.status, 302);
+    assert.equal(etiquette.getReport(id).status, 'under_review', 'a reason is required');
+    await adminC.post(`/admin/reports/${id}/dismiss`, { reason: 'The CCTV shows the car parked correctly.' });
+    const r = etiquette.getReport(id);
+    assert.deepEqual([r.status, r.admin_notes, r.reviewed_by], ['dismissed', 'The CCTV shows the car parked correctly.', d.admin.id]);
+    const after = await adminC.get(`/admin/reports/${id}`);
+    assert.doesNotMatch(after.text, /\/dismiss"/, 'no dismiss button once dismissed');
+    assert.match(after.text, /This report was dismissed, so it cannot lead to a penalty\./);
+    assert.ok(fieldsOf(() => etiquette.applyPenalty({ plate: 'BBB 3333', reportId: id, kind: 'perm_ban', reason: 'Trying anyway.' }, { id: d.admin.id })).kind);
+    assert.match((await alice.get(`/driver/reports/${id}`)).text, /The CCTV shows the car parked correctly\./);
+  });
 });
 
 describe('penalties on a plate are stored, enforced and audited', () => {
@@ -144,6 +167,15 @@ describe('penalties on a plate are stored, enforced and audited', () => {
   test('an additional fee is added to every new reservation for that plate, and to fees charged on it', async () => {
     const res = await adminC.post(`/admin/reports/${reportId}/penalties`, { kind: 'surcharge', amount: '50', reason: 'Blocked the exit lane.' });
     assert.equal(res.status, 302);
+    assert.equal(etiquette.getReport(reportId).status, 'resolved', 'the penalty resolves its report');
+    // One penalty per report: a second one is refused, and the report can no longer be dismissed.
+    const again = await adminC.post(`/admin/reports/${reportId}/penalties`, { kind: 'temp_ban', days: '3', reason: 'Second penalty on one report.' });
+    assert.equal(again.status, 422);
+    assert.match(again.text, /Only one penalty is allowed per report/);
+    assert.equal(env.db.prepare('SELECT COUNT(*) AS n FROM plate_penalties WHERE report_id = ?').get(reportId).n, 1);
+    assert.throws(() => etiquette.dismissReport(reportId, 'Changed my mind.', admin()), /cannot be dismissed/);
+    const page = await adminC.get(`/admin/reports/${reportId}`);
+    assert.doesNotMatch(page.text, /data-penalty-form|\/dismiss"/);
     assert.equal(etiquette.activeSurcharge('bbb3333'), 5000);
     const r = book(d.slots[0], '10:00', '12:00');
     assert.equal(r.surcharge_centavos, 5000);
@@ -166,7 +198,7 @@ describe('penalties on a plate are stored, enforced and audited', () => {
 
   test('a temporary ban stops new reservations and reschedules until it ends; the driver is told why', async () => {
     const upcoming = book(d.slots[2], '15:00', '16:00');
-    const res = await adminC.post(`/admin/reports/${reportId}/penalties`, { kind: 'temp_ban', days: '3', reason: 'Second blocking incident.' });
+    const res = await adminC.post('/admin/reports/plate/BBB3333/penalties', { kind: 'temp_ban', days: '3', reason: 'Second blocking incident.' });
     assert.equal(res.status, 302);
     failsWith(() => book(d.slots[3], '10:00', '11:00'), 'VEHICLE_BANNED');
     failsWith(() => reservations.rescheduleReservation(upcoming.id, d.bob, { date: DAY, start: '16:00', end: '17:00' }, null), 'VEHICLE_BANNED');
@@ -233,6 +265,24 @@ describe('penalties on a plate are stored, enforced and audited', () => {
     assert.match(bob.text, /Blocking another vehicle/);
     const alice = await adminC.get(`/admin/drivers/${d.alice.id}`);
     assert.doesNotMatch(alice.text, /id="driver-etiquette"/, 'no section for a driver without violations');
+    // His banned car shows the ban, not "Active"; his other vehicle is still active.
+    assert.match(bob.text, /<span class="plate">BBB 3333<\/span>[\s\S]*?Banned until/);
+  });
+
+  test('migration 009: pending reports go under review; a report that led to a penalty is resolved', () => {
+    const db = openDatabase(':memory:');
+    db.prepare('DELETE FROM schema_migrations WHERE version = 9').run();
+    const user = db.prepare(`INSERT INTO users (full_name, email, password_hash, role) VALUES ('Rep', 'rep@test.local', 'x', 'driver')`).run().lastInsertRowid;
+    const add = (status) => db.prepare(`INSERT INTO etiquette_reports (reporter_id, plate_number, plate_key, violation_type, description, incident_at, status)
+      VALUES (?, 'ABC 123', 'ABC123', 'other', 'Something happened here.', '2026-03-01 10:00:00', ?)`).run(user, status).lastInsertRowid;
+    const pending = add('pending');
+    const penalised = add('under_review');
+    const dismissed = add('dismissed');
+    db.prepare(`INSERT INTO plate_penalties (plate_number, plate_key, report_id, kind, starts_at, reason) VALUES ('ABC 123', 'ABC123', ?, 'perm_ban', '2026-03-01 11:00:00', 'Reckless.')`).run(penalised);
+    migrate(db);
+    const statusOf = (id) => db.prepare('SELECT status FROM etiquette_reports WHERE id = ?').get(id).status;
+    assert.deepEqual([statusOf(pending), statusOf(penalised), statusOf(dismissed)], ['under_review', 'resolved', 'dismissed']);
+    db.close();
   });
 });
 

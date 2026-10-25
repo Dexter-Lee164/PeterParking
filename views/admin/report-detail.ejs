@@ -44,11 +44,29 @@
             <div class="col-12"><button class="btn btn-primary" type="submit"><i class="bi bi-check2" aria-hidden="true"></i> Save review</button></div>
           </div>
         </form>
+        <% if (report.can_dismiss) { %>
+          <form class="mt-3 pt-3 border-top" method="post" action="/admin/reports/<%= report.id %>/dismiss"
+                data-confirm="Dismiss report #<%= report.id %> about <%= report.plate_number %>? No penalty will be applied. The reporter sees your reason."
+                data-confirm-title="Dismiss report" data-confirm-label="Dismiss report" data-confirm-tone="danger" data-confirm-reason="Why is it dismissed?">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="btn btn-outline-danger" type="submit"><i class="bi bi-x-circle" aria-hidden="true"></i> Dismiss report</button>
+            <span class="small text-muted ms-2">No violation found, or not enough to act on.</span>
+          </form>
+        <% } %>
       </div>
     </section>
 
     <div class="mt-3">
-      <%- include('partials/penalty-form', { action: '/admin/reports/' + report.id + '/penalties', plate: report.plate_number }) %>
+      <% if (report.can_penalise) { %>
+        <%- include('partials/penalty-form', { action: '/admin/reports/' + report.id + '/penalties', plate: report.plate_number }) %>
+      <% } else { %>
+        <section class="summary-card" id="penalty">
+          <div class="summary-head"><h3><i class="bi bi-shield-exclamation me-1" aria-hidden="true"></i>Penalty</h3></div>
+          <div class="p-3 small text-muted">
+            <%= report.penalty_count ? 'A penalty was applied for this report. Only one penalty is allowed per report; see Penalties on the right.' : 'This report was dismissed, so it cannot lead to a penalty.' %>
+          </div>
+        </section>
+      <% } %>
     </div>
   </div>
 

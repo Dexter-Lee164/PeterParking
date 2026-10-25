@@ -232,7 +232,7 @@ function seedDemoData(db) {
        VALUES (@reporter, @plate, replace(@plate, ' ', ''), @type, @text, @incident, @status, @severity, @notes, @reviewer, @reviewed, @created, @updated)`,
     );
     const report = (r) => insReport.run(Object.assign({ severity: null, notes: null, reviewer: null, reviewed: null }, r, { updated: r.reviewed || r.created })).lastInsertRowid;
-    report({ reporter: drivers[0].userId, plate: 'GHT 4410', type: 'improper_parking', text: 'Parked across two slots near the Engineering entrance most of the morning.', incident: at(1, '08:40'), status: 'pending', created: at(1, '09:05') });
+    report({ reporter: drivers[0].userId, plate: 'GHT 4410', type: 'improper_parking', text: 'Parked across two slots near the Engineering entrance most of the morning.', incident: at(1, '08:40'), status: 'under_review', created: at(1, '09:05') });
     report({
       reporter: drivers[3].userId, plate: 'NBD 5521', type: 'blocking', text: 'Left the car in the Main Building exit lane for about 20 minutes.', incident: at(3, '16:10'),
       status: 'under_review', severity: 'moderate', notes: 'Checking the gate camera footage.', reviewer: adminId, reviewed: at(2, '10:00'), created: at(3, '16:30'),

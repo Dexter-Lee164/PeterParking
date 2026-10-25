@@ -80,7 +80,8 @@ function detailPage(person, extra = {}) {
     nav: 'drivers',
     breadcrumbs: [{ label: 'Drivers', href: '/admin/drivers' }, { label: person.full_name }],
     person,
-    vehicles: users.listVehicles(person.id, { includeInactive: true }),
+    // A vehicle whose plate is banned right now shows the ban instead of "Active".
+    vehicles: users.listVehicles(person.id, { includeInactive: true }).map((v) => Object.assign(v, { ban: v.is_active ? etiquette.activeBan(v.plate_number) : null })),
     history: history.rows,
     totals,
     // Etiquette violations on the driver's plates: reports not dismissed, and penalties in force right now.
