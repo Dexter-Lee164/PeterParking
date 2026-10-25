@@ -8,6 +8,9 @@ const { parsePesoToCentavos } = require('../utils/money');
 const { nowLocal } = require('../utils/time');
 
 const SLOT_STATUSES = ['active', 'maintenance', 'inactive'];
+// What an administrator can set: Active or Out of Service ('maintenance'). 'inactive' is kept only for slots retired
+// from the lot plan (src/db/lotPlans.js).
+const ADMIN_SLOT_STATUSES = ['active', 'maintenance'];
 const VEHICLE_TYPES = ['car', 'motorcycle'];
 const SLOT_TYPE_VEHICLES = ['car', 'motorcycle', 'any'];
 const ICONS = ['bi-car-front', 'bi-person-wheelchair', 'bi-bicycle', 'bi-truck', 'bi-bus-front', 'bi-p-square'];
@@ -345,10 +348,10 @@ function updateSlotOperations(id, input, actor) {
   if (!existing) throw new AppError('Slot not found.', { status: 404, code: 'NOT_FOUND' });
   assertNotRetired(existing);
   const fields = {};
-  const status = oneOf(clean(input.status), SLOT_STATUSES);
+  const status = oneOf(clean(input.status), ADMIN_SLOT_STATUSES);
   const notes = clean(input.notes);
   let override = null;
-  if (!status) fields.status = 'Choose a valid status.';
+  if (!status) fields.status = 'Choose Active or Out of Service.';
   if (notes.length > 300) fields.notes = 'Keep notes under 300 characters.';
   if (clean(input.hourly_rate_override) !== '') {
     override = parsePesoToCentavos(input.hourly_rate_override);
@@ -372,7 +375,7 @@ function setSlotStatus(id, status, actor) {
   const existing = getSlot(id);
   if (!existing) throw new AppError('Slot not found.', { status: 404, code: 'NOT_FOUND' });
   assertNotRetired(existing);
-  if (!SLOT_STATUSES.includes(status)) throw new AppError('Invalid slot status.');
+  if (!ADMIN_SLOT_STATUSES.includes(status)) throw new AppError('Choose Active or Out of Service.');
   assertSlotCanLeaveService(existing, status);
   ctx.get().prepare(`UPDATE parking_slots SET status = ?, updated_at = datetime('now', 'localtime') WHERE id = ?`).run(status, id);
   audit.log(actor, 'slot.status', 'parking_slot', id, { from: existing.status, to: status });
@@ -509,6 +512,7 @@ function deleteRate(id, actor) {
 
 module.exports = {
   SLOT_STATUSES,
+  ADMIN_SLOT_STATUSES,
   VEHICLE_TYPES,
   SLOT_TYPE_VEHICLES,
   ICONS,

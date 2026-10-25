@@ -307,6 +307,9 @@ describe('forgot / reset password', () => {
     const weak = await c.post('/reset-password', { password: 'short', confirm_password: 'short' });
     assert.equal(weak.status, 422);
     assert.match(weak.text, /at least 8 characters/);
+    const same = await c.post('/reset-password', { password: PASSWORD, confirm_password: PASSWORD });
+    assert.equal(same.status, 422);
+    assert.match(same.text, /must be different from your current password/);
 
     const done = await c.post('/reset-password', { password: 'N3wPassword', confirm_password: 'N3wPassword' });
     assert.equal(done.status, 303);

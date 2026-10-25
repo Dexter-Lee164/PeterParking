@@ -116,6 +116,14 @@ function updateOwnProfile(userId, input, actor) {
   return getUser(userId);
 }
 
+const SAME_PASSWORD = 'Your new password must be different from your current password.';
+
+/** True when password is the one this account signs in with now (checked against the stored hash). */
+function isCurrentPassword(userId, password) {
+  const row = ctx.get().prepare('SELECT password_hash FROM users WHERE id = ?').get(userId);
+  return !!row && bcrypt.compareSync(String(password || ''), row.password_hash);
+}
+
 function changePassword(userId, { current_password, new_password, confirm_password }, actor) {
   const row = ctx.get().prepare('SELECT password_hash FROM users WHERE id = ?').get(userId);
   if (!row) throw new AppError('User not found.', { status: 404, code: 'NOT_FOUND' });
@@ -125,7 +133,7 @@ function changePassword(userId, { current_password, new_password, confirm_passwo
   const problem = passwordProblem(new_password);
   if (problem) fields.new_password = problem;
   // Checked against the stored hash (not just the typed text), and only once the current password is proven.
-  else if (currentOk && bcrypt.compareSync(new_password, row.password_hash)) fields.new_password = 'Your new password must be different from your current password.';
+  else if (currentOk && bcrypt.compareSync(new_password, row.password_hash)) fields.new_password = SAME_PASSWORD;
   else if (new_password !== confirm_password) fields.confirm_password = 'Passwords do not match.';
   if (Object.keys(fields).length) throw new AppError('Please correct the highlighted fields.', { code: 'VALIDATION', fields });
   // Only now, with every check passed, is the hash replaced.
@@ -190,6 +198,11 @@ function adminUpdateUser(id, input, actor) {
   const isActive = input.is_active === '0' ? 0 : 1;
   guardLastAdmin(existing, role, isActive, actor);
   if (!isActive && existing.is_active) assertNoActiveParking(id);
+  const newPassword = clean(input.new_password) ? input.new_password : '';
+  if (newPassword) {
+    const problem = passwordProblem(newPassword) || (isCurrentPassword(id, newPassword) ? SAME_PASSWORD : null);
+    if (problem) throw new AppError('Please correct the highlighted fields.', { code: 'VALIDATION', fields: { new_password: problem } });
+  }
   ctx
     .get()
     .prepare(
@@ -197,10 +210,8 @@ function adminUpdateUser(id, input, actor) {
          updated_at = datetime('now','localtime') WHERE id = ?`,
     )
     .run(v.university_id, v.full_name, v.phone, role, isActive, id);
-  if (clean(input.new_password)) {
-    const problem = passwordProblem(input.new_password);
-    if (problem) throw new AppError('Please correct the highlighted fields.', { code: 'VALIDATION', fields: { new_password: problem } });
-    ctx.get().prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hashPassword(input.new_password), id);
+  if (newPassword) {
+    ctx.get().prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hashPassword(newPassword), id);
     audit.log(actor, 'user.reset_password', 'user', id);
   }
   audit.log(actor, 'user.update', 'user', id, { role, is_active: isActive });
@@ -371,6 +382,7 @@ module.exports = {
   touchLastLogin,
   updateOwnProfile,
   changePassword,
+  isCurrentPassword,
   listUsers,
   adminCreateUser,
   adminUpdateUser,

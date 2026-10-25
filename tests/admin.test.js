@@ -110,6 +110,11 @@ describe('zones, slots, slot types and rates', () => {
     assert.equal(page.status, 200);
     assert.doesNotMatch(page.text, /New zone|Add several|New slot|Delete zone|Edit zone|\/delete"/);
     assert.match(page.text, /data-admin-slot-map/, 'the zone map is shown read-only');
+    // Status is Active or Out of Service only: the filter offers nothing else, and ?status=inactive is ignored.
+    const statusSelect = page.text.match(/<select[^>]*name="status"[\s\S]*?<\/select>/)[0];
+    assert.deepEqual([...statusSelect.matchAll(/<option[^>]*>([^<]*)<\/option>/g)].map((m) => m[1].trim()), ['Any status', 'Active', 'Out of Service']);
+    const inactive = await c.get(`/admin/slots?zone=${d.zone.id}&status=inactive`);
+    assert.doesNotMatch(inactive.text, /is-filtered-out/, 'an unknown status does not filter the map');
     // No route creates, deletes or restructures zones and slots any more.
     for (const url of ['/admin/slots/new', '/admin/slots/bulk', '/admin/slots/zones/new', `/admin/slots/zones/${d.zone.id}/edit`]) {
       assert.equal((await c.get(url)).status, 404, url);
@@ -161,6 +166,10 @@ describe('users and driver self-service', () => {
     const c = env.client();
     await c.login('admin@test.local');
     // The email address cannot be changed from the driver page: a different one posted with the form is ignored.
+    const same = await c.post(`/admin/drivers/${d.bob.id}`, { full_name: 'Robert Changed', role: 'driver', is_active: '1', new_password: PASSWORD });
+    assert.equal(same.status, 422);
+    assert.match(same.text, /must be different from your current password/);
+    assert.equal(users.getUser(d.bob.id).full_name, 'Bob Driver', 'a refused password saves nothing');
     const page = await c.get(`/admin/drivers/${d.bob.id}`);
     assert.match(page.text, /name="email"[^>]*readonly/);
     const res = await c.post(`/admin/drivers/${d.bob.id}`, { full_name: 'Bob Driver', email: 'robert@test.local', role: 'driver', is_active: '1', new_password: 'NewPassw0rd1' });

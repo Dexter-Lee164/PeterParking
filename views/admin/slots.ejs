@@ -1,7 +1,7 @@
 <div class="page-intro">
   <div>
     <h2>Parking Slots</h2>
-    <p>The parking layout is fixed. Manage how slots operate: take a slot out of service, make it inactive or return it. Slots with upcoming reservations cannot be taken out of service or made inactive until those bookings are cancelled.</p>
+    <p>The parking layout is fixed. Manage how slots operate: take a slot out of service or return it to service. Slots with upcoming reservations cannot be taken out of service until those bookings are cancelled.</p>
   </div>
 </div>
 
@@ -39,7 +39,6 @@
         <span class="lg"><span class="swatch s-available"></span> Available</span>
         <span class="lg"><span class="swatch s-reserved"></span> Reserved now</span>
         <span class="lg"><span class="swatch s-occupied"></span> Occupied</span>
-        <span class="lg"><span class="swatch s-unavailable"></span> Inactive</span>
         <span class="lg"><span class="swatch s-maintenance"></span> Out of Service</span>
         <span class="lg" data-filter-count<%- filtering ? '' : ' hidden' %>><%= counts.total %> of <%= mapSlots.length %> slots match the filters</span>
         <span class="map-counts">Choose a slot to change its status, notes or rate.</span>

@@ -89,7 +89,9 @@ function complete(tokenHash, { password, confirm_password } = {}, ip) {
   const problem = passwordProblem(password);
   if (problem) fields.password = problem;
   else if (password !== confirm_password) fields.confirm_password = 'Passwords do not match.';
-  if (!findValid(tokenHash)) return { status: 'invalid' };
+  const open = findValid(tokenHash);
+  if (!open) return { status: 'invalid' };
+  if (!fields.password && users.isCurrentPassword(open.user_id, password)) fields.password = 'Your new password must be different from your current password.';
   if (Object.keys(fields).length) throw new AppError('Please correct the highlighted fields.', { code: 'VALIDATION', fields });
 
   const hash = users.hashPassword(password);

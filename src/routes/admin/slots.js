@@ -3,13 +3,13 @@
 const express = require('express');
 const parking = require('../../services/parking');
 const { AppError } = require('../../utils/errors');
-const { toInt, clean } = require('../../utils/validate');
+const { toInt, clean, oneOf } = require('../../utils/validate');
 const { badge } = require('../../utils/badges');
 
 /**
  * Parking Slots for administrators. The campus layout is fixed (zones, slot codes, types and positions come from
  * src/db/lotPlans.js and are drawn by src/utils/lotLayout.js): nothing here creates, deletes, moves or re-types a zone
- * or slot. Administrators manage how existing slots operate: status (active / out of service, stored as 'maintenance' / inactive), notes and an
+ * or slot. Administrators manage how existing slots operate: status (active / out of service, stored as 'maintenance'), notes and an
  * hourly rate override.
  */
 const router = express.Router();
@@ -17,7 +17,6 @@ const router = express.Router();
 const STATUS_OPTIONS = [
   { value: 'active', label: 'Active' },
   { value: 'maintenance', label: 'Out of Service' },
-  { value: 'inactive', label: 'Inactive' },
 ];
 
 // ------------------------------------------------------------------ overview
@@ -27,7 +26,8 @@ router.get('/', (req, res) => {
   // There is no all-zones view: an unknown or missing zone falls back to the first one.
   const requested = toInt(req.query.zone);
   const zoneId = zones.some((z) => z.id === requested) ? requested : (zones[0] && zones[0].id) || null;
-  const status = clean(req.query.status);
+  // Only Active or Out of Service can be filtered on; anything else (e.g. ?status=inactive) means any status.
+  const status = oneOf(clean(req.query.status), parking.ADMIN_SLOT_STATUSES, '');
   const slotType = clean(req.query.type);
   const q = clean(req.query.q);
   const slots = parking.listSlots({ zoneId, status, slotType, q });

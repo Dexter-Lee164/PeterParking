@@ -148,7 +148,10 @@ describe('booking rules (service layer)', () => {
     assert.doesNotThrow(() => book(d.bob, d.moto, '10:00', '12:00', DAY, d.bobMoto));
     parking.setSlotStatus(d.slots[2].id, 'maintenance', { id: d.admin.id });
     fails(() => book(d.alice, d.slots[2], '10:00', '12:00'), 'SLOT_NOT_ACTIVE');
-    parking.setSlotStatus(d.slots[3].id, 'inactive', { id: d.admin.id });
+    // Administrators choose only Active or Out of Service; an 'inactive' slot (retired from the plan) still cannot be booked.
+    assert.throws(() => parking.setSlotStatus(d.slots[3].id, 'inactive', { id: d.admin.id }), /Active or Out of Service/);
+    assert.throws(() => parking.updateSlotOperations(d.slots[3].id, { status: 'inactive' }, { id: d.admin.id }), (e) => !!e.fields && !!e.fields.status);
+    env.db.prepare(`UPDATE parking_slots SET status = 'inactive' WHERE id = ?`).run(d.slots[3].id);
     fails(() => book(d.alice, d.slots[3], '10:00', '12:00'), 'SLOT_NOT_ACTIVE');
     fails(() => book(d.alice, d.slots[0], '10:00', '12:00', DAY, d.bobCar), 'VALIDATION');
   });
