@@ -10,6 +10,10 @@ const reservations = require('./src/services/reservations');
 try {
   config.assertReady();
   console.log(require('./src/services/mail').getMailer().describe());
+  console.log(`Links in e-mails point to ${config.appBaseUrl}`);
+  if (config.onRailway && !process.env.RAILWAY_VOLUME_MOUNT_PATH && !process.env.DATABASE_PATH) {
+    console.warn('Railway: no volume is attached, so the SQLite database is lost on every redeploy. Attach a volume to this service.');
+  }
 } catch (err) {
   console.error(`\nCannot start: ${err.message}\n\nFix this in your .env file (see .env.example), then start again.`);
   process.exit(1);

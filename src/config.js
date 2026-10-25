@@ -28,11 +28,18 @@ function originOf(value) {
 
 const env = process.env.NODE_ENV || 'development';
 const isProduction = env === 'production';
-const host = process.env.HOST || '127.0.0.1';
+
+// Railway (railway.com) sets these on every deploy. There the app must listen on all interfaces, sits behind Railway's
+// HTTPS proxy, and is reached at its public domain; each can still be overridden with the variables below.
+const onRailway = !!(process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID);
+const railwayDomain = (process.env.RAILWAY_PUBLIC_DOMAIN || '').trim();
+const railwayVolume = (process.env.RAILWAY_VOLUME_MOUNT_PATH || '').trim();
+
+const host = process.env.HOST || (onRailway ? '0.0.0.0' : '127.0.0.1');
 const port = int(process.env.PORT, 3000);
 
 const rawBaseUrl = (process.env.APP_BASE_URL || '').trim();
-const defaultBaseUrl = `http://${host === '0.0.0.0' ? 'localhost' : host}:${port}`;
+const defaultBaseUrl = railwayDomain ? `https://${railwayDomain}` : `http://${host === '0.0.0.0' ? 'localhost' : host}:${port}`;
 
 const rawMailMode = String(process.env.MAIL_MODE || (isProduction ? 'smtp' : 'console')).trim().toLowerCase();
 const smtpPort = int(process.env.SMTP_PORT, 587);
@@ -45,11 +52,13 @@ const config = {
   port,
   host,
   timezone: process.env.APP_TIMEZONE || 'Asia/Manila',
-  databasePath: path.resolve(rootDir, process.env.DATABASE_PATH || 'data/parking.sqlite'),
+  // On Railway with a volume attached, the database lives on the volume so it survives redeploys.
+  databasePath: path.resolve(rootDir, process.env.DATABASE_PATH || (railwayVolume ? path.join(railwayVolume, 'parking.sqlite') : 'data/parking.sqlite')),
   sessionSecret: process.env.SESSION_SECRET || '',
   sessionMaxAgeHours: int(process.env.SESSION_MAX_AGE_HOURS, 8),
-  cookieSecure: bool(process.env.COOKIE_SECURE, false),
-  trustProxy: bool(process.env.TRUST_PROXY, false),
+  cookieSecure: bool(process.env.COOKIE_SECURE, !!railwayDomain),
+  trustProxy: bool(process.env.TRUST_PROXY, onRailway),
+  onRailway,
   loginRateLimit: {
     windowMs: int(process.env.LOGIN_RATE_WINDOW_MINUTES, 15) * 60 * 1000,
     max: int(process.env.LOGIN_RATE_MAX_ATTEMPTS, 10),
@@ -132,7 +141,9 @@ config.problems = function problems() {
     out.push(`MAIL_MODE must be "console", "smtp" or "brevo" (got "${config.mail.mode}").`);
   }
   if (config.isProduction) {
-    if (!rawBaseUrl) out.push('APP_BASE_URL must be set when NODE_ENV=production (the public address of the site).');
+    if (!rawBaseUrl && !railwayDomain) {
+      out.push('APP_BASE_URL must be set when NODE_ENV=production (the public address of the site). On Railway, generate a public domain for the service.');
+    }
     const loopback = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i.test(config.appBaseUrl);
     if (config.appBaseUrl && !config.appBaseUrl.startsWith('https://') && !loopback) {
       out.push('APP_BASE_URL must start with https:// when NODE_ENV=production (reset links carry secrets).');

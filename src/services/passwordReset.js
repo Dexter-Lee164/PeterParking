@@ -34,9 +34,16 @@ function sameHash(a, b) {
   return x.length === 32 && y.length === 32 && crypto.timingSafeEqual(x, y);
 }
 
+/** 'missing' (no account with this address), 'inactive' (deactivated) or 'ok': checked before a link is requested. */
+function accountState(email) {
+  const user = ctx.get().prepare('SELECT is_active FROM users WHERE email = ? COLLATE NOCASE').get(clean(email));
+  if (!user) return 'missing';
+  return user.is_active ? 'ok' : 'inactive';
+}
+
 /**
  * @returns { user, token, expiresAt } when a link should be e-mailed, otherwise null (unknown, inactive, throttled).
- * The caller must give the same answer to the visitor either way.
+ * Throttled requests look the same to the visitor as a sent link.
  */
 function request(email, ip) {
   const db = ctx.get();
@@ -100,4 +107,4 @@ function complete(tokenHash, { password, confirm_password } = {}, ip) {
   });
 }
 
-module.exports = { TOKEN_TTL_MS, MAX_PER_HOUR, hashToken, request, findValid, complete };
+module.exports = { TOKEN_TTL_MS, MAX_PER_HOUR, hashToken, accountState, request, findValid, complete };

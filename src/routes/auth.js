@@ -292,12 +292,20 @@ module.exports = function authRoutes({ loginRateLimit, limits = {} } = {}) {
   router.post('/forgot-password', forgotLimiter, (req, res) => {
     const email = clean((req.body || {}).email).toLowerCase();
     // Lenient format check on purpose (the same as sign-in): accounts made under older, looser address rules must be
-    // able to reset too, and a stricter check here would reveal which addresses have accounts.
+    // able to reset too.
     if (!email || !isEmail(email)) {
       return screen(res, 'login', 'forgot', { forgot: { email, error: email ? 'Enter a valid email address.' : 'Enter your email address.' } }, 422);
     }
+    // A reset link is sent only to a registered, active account.
+    const state = passwordReset.accountState(email);
+    if (state !== 'ok') {
+      const error = state === 'missing'
+        ? 'No account is registered with this email address.'
+        : 'This account has been deactivated. Please contact the parking office.';
+      return screen(res, 'login', 'forgot', { forgot: { email, error } }, 422);
+    }
     const ip = req.ip;
-    // Do all the work after the response is on its way, so its timing is the same whether or not the account exists.
+    // Send after the response is on its way, so a slow mail server never holds up the page.
     setImmediate(() => {
       try {
         const result = passwordReset.request(email, ip);

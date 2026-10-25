@@ -74,49 +74,46 @@ function allocate(s, slots) {
   return { stalls, empty: free };
 }
 
-/* ------------------------------------------------------------------ Science: rows of ten, a tree island, labs */
+/* ------------------------------------------------------------------ Science: one drive-in lane to the labs */
 function science() {
-  const s = scene(400, 300);
-  // the lab block across the top, behind a planted strip
-  s.building(124, 0, 196, 34, 'bottom', 'Science Complex', 'Laboratories');
-  s.rect('pavers', 14, 34, 340, 9);
-  s.rect('bed', 66, 43, 262, 5);
-  s.rect('asphalt', 10, 48, 344, 230, 6);
-  s.rect('asphalt', 10, 270, 52, 30);
-  // left road with a long crossing beside the rows
-  s.rect('curb', 62, 54, 3, 220);
-  s.zebra(30, 104, 14, 190, 'y');
-  // three rows of ten; the first two open down, the last opens up onto the island aisle
-  for (let i = 0; i < 10; i += 1) s.stall(80 + i * 26, 80, 0);
-  for (let i = 0; i < 10; i += 1) s.stall(80 + i * 26, 154, 0);
-  for (let i = 0; i < 10; i += 1) s.stall(80 + i * 26, 248, 180);
-  s.line('dash', 68, 117, 92, 117);
-  s.line('dash', 68, 200, 92, 200);
-  // the aisle with its tree island, and the right road
-  s.rect('island', 166, 193, 112, 15, 7.5);
-  [180, 206, 236, 264].forEach((x) => s.tree(x, 200, 9));
-  s.lamp(222, 200);
-  s.arrow(110, 200, -90);
-  s.arrow(147, 200, 90, true);
-  s.arrow(302, 200, 90);
-  s.arrow(341, 160, 0, true);
-  s.rect('curb', 66, 274, 262, 4);
-  // covered motorcycle bays along the right road, opening onto it
-  s.rect('asphalt', 352, 80, 30, 122);
-  for (let i = 0; i < 8; i += 1) s.stall(367, 92 + i * 14, 90, 'moto');
-  s.rect('shelter', 354, 82, 28, 118, 2);
+  const s = scene(640, 260);
+  // the lab block along the right edge, its doors facing the lane, behind a planted strip
+  s.building(556, 14, 74, 232, 'left', 'Science Complex', 'Laboratories');
+  s.rect('pavers', 540, 14, 16, 232);
+  [[20, 92], [148, 92]].forEach(([y, h]) => s.rect('bed', 543, y, 9, h, 3));
+  s.rect('asphalt', 14, 44, 526, 168, 6);
+  // the entry road up from the gate on the bottom left, two-way
+  s.rect('asphalt', 14, 200, 44, 60);
+  s.line('dash', 36, 160, 36, 250);
+  s.arrow(26, 222, 0);
+  s.arrow(46, 182, 180);
+  s.gate(14, 256, 44);
+  s.text('paint', 36, 246, 'IN / OUT');
+  // the lane: in towards the labs on the top half, back out on the bottom half
+  s.line('dash', 70, 128, 466, 128);
+  [150, 330].forEach((x) => s.arrow(x, 115, 90));
+  [240, 420].forEach((x) => s.arrow(x, 141, -90));
+  // a row of fifteen on each side, numbered from the lab end; the accessible pair has a hatched access aisle
+  s.rect('access', 428, 48, 18, 52);
+  s.stall(459, 74, 0);
+  s.stall(415, 74, 0);
+  for (let i = 0; i < 13; i += 1) s.stall(389 - i * 26, 74, 0);
+  for (let i = 0; i < 15; i += 1) s.stall(459 - i * 26, 182, 180);
+  // turnaround around a tree island at the lab end
+  s.circle('islandc', 506, 128, 14);
+  s.tree(506, 128, 9);
+  s.arrow(532, 128, 180);
+  // covered motorcycle bays in the two corners of the turnaround, beside the entrance
+  for (let i = 0; i < 4; i += 1) s.stall(485 + i * 14, 61, 0, 'moto');
+  for (let i = 0; i < 4; i += 1) s.stall(485 + i * 14, 195, 180, 'moto');
+  s.rect('shelter', 478, 46, 56, 30, 2);
+  s.rect('shelter', 478, 180, 56, 30, 2);
   // landscaping and lights
-  for (let y = 92; y < 200; y += 28) s.tree(392, y, 6);
-  s.lamp(368, 214);
-  [[12, 12], [34, 20], [60, 10], [90, 22], [110, 8], [334, 10], [360, 22], [388, 12]].forEach(([x, y]) => s.tree(x, y, 10));
-  [150, 300].forEach((x) => s.lamp(x, 40));
-  s.lamp(346, 52);
-  for (let y = 70; y < 300; y += 28) s.tree(4 + (y % 3), y, 8);
-  [84, 160, 236].forEach((y) => s.lamp(6, y));
-  for (let y = 238; y < 300; y += 24) s.tree(390, y, 10);
-  s.tree(390, 54, 9);
-  for (let x = 84; x < 340; x += 34) s.tree(x, 292, 10);
-  [64, 340].forEach((x) => s.lamp(x, 284));
+  for (let x = 140; x < 540; x += 50) s.tree(x, 18 + ((x / 50) % 2) * 6, 10);
+  for (let x = 90; x < 540; x += 50) s.tree(x, 240 - ((x / 50) % 2) * 6, 10);
+  [[20, 26], [70, 16], [636, 10], [636, 250]].forEach(([x, y]) => s.tree(x, y, 8));
+  [120, 260, 400].forEach((x) => s.lamp(x, 38));
+  [120, 260, 400].forEach((x) => s.lamp(x, 218));
   return s;
 }
 
@@ -255,41 +252,41 @@ function mainBuilding() {
   return s;
 }
 
-/* ------------------------------------------------------------------ Motorcycle Parking: 80 covered bays on a loop */
+/* ------------------------------------------------------------------ Motorcycle Parking: 80 angled bays on two lanes */
 function motorcycles() {
-  const s = scene(420, 300);
-  s.building(200, 0, 206, 40, 'bottom', 'Student Center', 'Helmet lockers');
-  s.rect('pavers', 14, 40, 392, 10);
-  s.rect('bed', 40, 50, 336, 5);
-  s.rect('asphalt', 14, 58, 392, 206, 6);
-  s.rect('asphalt', 14, 258, 46, 42);
-  // a one-way loop (clockwise) around two double rows, each split by a planted walkway
-  [110, 300].forEach((x) => s.arrow(x, 75, 90));
-  s.arrow(391, 161, 180);
-  [110, 300].forEach((x) => s.arrow(x, 247, -90));
-  s.arrow(27, 161, 0);
-  [110, 300].forEach((x) => s.arrow(x, 161, 90, true));
-  s.gate(14, 296, 46);
-  s.text('paint', 37, 284, 'IN / OUT');
-  // four rows of twenty: rows 1 and 2 back to back (1 opens to the top road, 2 to the middle aisle), then rows 3 and 4
-  [[105, 180], [131, 0], [191, 180], [217, 0]].forEach(([cy, rot]) => {
-    for (let i = 0; i < 10; i += 1) s.stall(47 + i * 14, cy, rot, 'moto');
-    for (let i = 0; i < 10; i += 1) s.stall(243 + i * 14, cy, rot, 'moto');
+  const s = scene(490, 340);
+  // the Student Center along the bottom, between the entry and exit roads
+  s.building(70, 284, 350, 50, 'top', 'Student Center', 'Helmet lockers');
+  s.rect('pavers', 60, 272, 370, 12);
+  s.rect('asphalt', 14, 44, 460, 228, 6);
+  s.rect('asphalt', 14, 260, 44, 80);
+  s.rect('asphalt', 430, 260, 44, 80);
+  // one way through: in on the left road, along either lane, out on the right road
+  [[36, 300], [36, 170]].forEach(([x, y]) => s.arrow(x, y, 0));
+  [[452, 170], [452, 300]].forEach(([x, y]) => s.arrow(x, y, 180));
+  [95, 221].forEach((y) => [160, 340].forEach((x) => s.arrow(x, y, 90)));
+  s.gate(14, 336, 44);
+  s.gate(430, 336, 44);
+  s.text('paint', 36, 326, 'IN');
+  s.text('paint', 452, 326, 'OUT');
+  // two lanes, each lined on both sides with angled bays leaning with the traffic: rows of twenty, split by the
+  // walkway; numbered along the top lane (top side, then bottom side), then the bottom lane
+  [[62, 30], [128, 150], [188, 30], [254, 150]].forEach(([cy, rot]) => {
+    for (let i = 0; i < 10; i += 1) s.stall(84 + i * 16, cy, rot, 'moto');
+    for (let i = 0; i < 10; i += 1) s.stall(268 + i * 16, cy, rot, 'moto');
   });
-  // light roofs over each block of bays, and the walkway between the blocks with a crossing over the aisle
-  [[38, 90], [234, 90], [38, 176], [234, 176]].forEach(([x, y]) => s.rect('shelter', x, y, 144, 56, 2));
-  s.rect('island', 186, 94, 44, 48, 6);
-  s.rect('island', 186, 180, 44, 48, 6);
-  s.zebra(194, 144, 28, 34, 'y');
-  [[208, 106], [208, 130], [208, 192], [208, 216]].forEach(([x, y]) => s.tree(x, y, 9));
-  s.lamp(208, 161);
-  // landscaping and lights
-  [[14, 14], [40, 24], [70, 12], [100, 26], [130, 12], [165, 22]].forEach(([x, y]) => s.tree(x, y, 10));
-  [120, 300].forEach((x) => s.lamp(x, 45));
-  for (let x = 84; x < 420; x += 40) s.tree(x, 286, 10);
-  [70, 250].forEach((y) => s.tree(414, y, 9));
-  [130, 200].forEach((y) => s.lamp(410, y));
-  [110, 210].forEach((y) => s.tree(5, y, 7));
+  // light roofs over each run of bays
+  [47, 113, 173, 239].forEach((y) => [[71, 170], [255, 170]].forEach(([x, w]) => s.rect('shelter', x, y, w, 30, 2)));
+  // the planted median between the lanes, and the walkway from it down to the Student Center
+  s.rect('island', 72, 147, 352, 22, 8);
+  s.rect('pavers', 238, 239, 20, 33);
+  s.zebra(236, 204, 24, 34, 'y');
+  [160, 336].forEach((x) => s.lamp(x, 158));
+  // landscaping
+  for (let x = 130; x < 480; x += 45) s.tree(x, 18 + ((x / 45) % 2) * 6, 10);
+  [[22, 30], [70, 20]].forEach(([x, y]) => s.tree(x, y, 8));
+  [[64, 300], [426, 300]].forEach(([x, y]) => s.tree(x, y, 6));
+  [[482, 120], [482, 220], [6, 120], [6, 220]].forEach(([x, y]) => s.tree(x, y, 6));
   return s;
 }
 

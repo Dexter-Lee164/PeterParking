@@ -253,20 +253,26 @@ describe('forgot / reset password', () => {
     assert.match(page.text, /Back to sign in/);
   });
 
-  test('the answer is identical whether or not the account exists', async () => {
+  test('a link is sent only to a registered, active account', async () => {
     const a = env.client();
-    const b = env.client();
     const ra = await requestLink(a, 'alice@test.local');
-    const rb = await requestLink(b, 'nobody@test.local');
-    assert.equal(ra.status, rb.status);
-    assert.equal(ra.location, rb.location);
-    const pa = (await a.get('/forgot-password')).text.replace(/[a-f0-9]{64}/g, '').replaceAll('alice@test.local', 'X');
-    const pb = (await b.get('/forgot-password')).text.replace(/[a-f0-9]{64}/g, '').replaceAll('nobody@test.local', 'X');
-    assert.equal(pa, pb);
-    assert.match(pa, /If an account exists for <strong class="auth-email">X<\/strong>, we've sent a reset link\. It expires in 30 minutes\./);
+    assert.equal(ra.status, 303);
+    const pa = (await a.get('/forgot-password')).text;
+    assert.match(pa, /We've sent a reset link to <strong class="auth-email">alice@test\.local<\/strong>\. It expires in 30 minutes\./);
     assert.match(pa, /Wrong email\? <a class="auth-text-link" href="\/forgot-password" data-auth-goto="forgot">Edit<\/a>/);
     assert.ok(lastLink('alice@test.local'), 'a link went to the real account');
+
+    const b = env.client();
+    const rb = await requestLink(b, 'nobody@test.local');
+    assert.equal(rb.status, 422);
+    assert.match(rb.text, /No account is registered with this email address\./);
     assert.equal(outboxTo('nobody@test.local').length, 0);
+
+    env.db.prepare(`INSERT INTO users (full_name, email, password_hash, role, is_active, email_verified) VALUES ('Gone Driver', 'gone@test.local', 'x', 'driver', 0, 1)`).run();
+    const rc = await requestLink(env.client(), 'gone@test.local');
+    assert.equal(rc.status, 422);
+    assert.match(rc.text, /This account has been deactivated/);
+    assert.equal(outboxTo('gone@test.local').length, 0);
   });
 
   test('the token is stored only as a SHA-256 hash; the link is built from APP_BASE_URL', async () => {

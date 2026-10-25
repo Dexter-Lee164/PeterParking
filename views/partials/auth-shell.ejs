@@ -128,7 +128,7 @@
       </div>
 
       <% if (loginStep === 'sent') { %>
-      <%# ---- forgot password: the same answer whether or not the account exists %>
+      <%# ---- forgot password: the link has been sent to a registered account %>
       <div <%- stepAttrs(loginStep, 'sent') %>>
         <div class="auth-pane-inner">
           <div class="auth-head auth-r" style="--i:0">
@@ -136,7 +136,7 @@
           </div>
           <div class="auth-banner auth-banner--info auth-r" role="status" style="--i:1">
             <i class="bi bi-envelope-check" aria-hidden="true"></i>
-            <div>If an account exists for <strong class="auth-email"><%= forgot.email %></strong>, we've sent a reset link. It expires in 30 minutes.</div>
+            <div>We've sent a reset link to <strong class="auth-email"><%= forgot.email %></strong>. It expires in 30 minutes.</div>
           </div>
           <p class="auth-hint auth-r" style="--i:2">Can't find it? Check your spam or junk folder. Only the newest link works.</p>
           <p class="auth-foot auth-r" style="--i:3">Wrong email? <a class="auth-text-link" href="/forgot-password" data-auth-goto="forgot">Edit</a></p>
