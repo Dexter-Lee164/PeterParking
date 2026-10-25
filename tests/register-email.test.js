@@ -192,8 +192,9 @@ describe('existing accounts keep working', () => {
     // an administrator saving other fields of that account is not blocked by its (unchanged) address
     assert.doesNotThrow(() => users.adminUpdateUser(id, { full_name: 'Old Timer Jr', email: 'old_timer@gmail.com', role: 'driver', is_active: '1' }, env.data.admin.id));
     assert.equal(env.db.prepare('SELECT full_name FROM users WHERE id = ?').get(id).full_name, 'Old Timer Jr');
-    // but changing it to another invalid address is
-    assert.throws(() => users.adminUpdateUser(id, { full_name: 'Old Timer Jr', email: 'other_one@gmail.com', role: 'driver', is_active: '1' }, env.data.admin.id), /correct the highlighted fields/);
+    // and the address itself cannot be changed: a different one sent with the form is ignored
+    users.adminUpdateUser(id, { full_name: 'Old Timer Jr', email: 'other_one@gmail.com', role: 'driver', is_active: '1' }, env.data.admin.id);
+    assert.equal(env.db.prepare('SELECT email FROM users WHERE id = ?').get(id).email, 'Old_Timer@gmail.com');
   });
 
   test('the demo and minimal accounts still sign in (roles unchanged)', async () => {

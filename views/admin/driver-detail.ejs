@@ -37,7 +37,7 @@
           <input type="hidden" name="is_active" value="<%= person.is_active ? '1' : '0' %>">
           <div class="row g-3">
             <%- include('partials/form-field', { name: 'full_name', label: 'Full name', value: values.full_name, errors: errors, required: true }) %>
-            <%- include('partials/form-field', { name: 'email', label: 'Email address', type: 'email', value: values.email, errors: errors, required: true }) %>
+            <%- include('partials/form-field', { name: 'email', label: 'Email address', type: 'email', value: person.email, errors: {}, readonly: true, help: 'The email address is the sign-in identity and cannot be changed.' }) %>
             <%- include('partials/form-field', { name: 'university_id', label: 'University ID', value: values.university_id, errors: errors, col: 'col-sm-6' }) %>
             <%- include('partials/form-field', { name: 'phone', label: 'Mobile number', type: 'tel', value: values.phone, errors: errors, col: 'col-sm-6' }) %>
             <%- include('partials/form-field', { name: 'role', label: 'Role', type: 'select', value: values.role, errors: errors, options: roleOptions, disabled: person.id === currentUser.id }) %>

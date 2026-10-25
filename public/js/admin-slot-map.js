@@ -10,6 +10,16 @@
     if (stall) window.location.href = '/admin/slots/' + encodeURIComponent(stall.dataset.slotId) + '/edit';
   });
 
+  // Occupied stalls show the vehicle that is checked in there (its real type, model and colour).
+  var V = window.UPVehicle;
+  var parkedEl = document.getElementById('parkedVehicles');
+  var parked = parkedEl ? JSON.parse(parkedEl.textContent) : {};
+  if (V) {
+    map.querySelectorAll('.slot[data-state="occupied"]').forEach(function (btn) {
+      V.inStall(btn, parked[btn.dataset.slotId] || V.parked(btn.dataset.slotId, btn.dataset.type), 'parked');
+    });
+  }
+
   var form = document.getElementById('slotFilter');
   if (!form) return;
   var stalls = Array.prototype.slice.call(map.querySelectorAll('.slot[data-slot-id]'));

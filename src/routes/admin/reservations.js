@@ -25,7 +25,6 @@ const STATUS_OPTIONS = [
 const PAYMENT_OPTIONS = [
   { value: '', label: 'Any payment state' },
   { value: 'unpaid', label: 'Unpaid' },
-  { value: 'partial', label: 'Partially paid' },
   { value: 'paid', label: 'Paid' },
   { value: 'no_charge', label: 'No charge' },
 ];

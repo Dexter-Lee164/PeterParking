@@ -27,6 +27,7 @@
   <% }) %>
 </nav>
 <script type="application/json" id="zoneSlots"><%- JSON.stringify(zoneSlots).replace(/</g, '\\u003c') %></script>
+<script type="application/json" id="parkedVehicles"><%- JSON.stringify(parkedVehicles).replace(/</g, '\\u003c') %></script>
 
 <% const activeZone = zones.find(function (z) { return z.id === filters.zone; }); %>
 <% if (activeZone) { %>

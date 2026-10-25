@@ -257,5 +257,33 @@
       + '</svg>';
   }
 
-  window.UPVehicle = { styleOf: styleOf, colorOf: colorOf, size: size, svg: svg, side: side, parked: parked };
+  /* ---------------------------------------------------------------- in a map stall */
+  // Stall sizes in centimetres, matching src/utils/lotLayout.js (decimetres there).
+  var STALL_CM = { car: { w: 260, l: 520 }, moto: { w: 140, l: 260 }, parallel: { w: 240, l: 580 } };
+  /** Draws vehicle v (or clears the stall when v is null) into a lot-map stall button; kind: mine | parked. */
+  function inStall(btn, v, kind) {
+    var box = btn.querySelector('.slot-vehicle');
+    if (!box) return;
+    if (!v) {
+      box.innerHTML = '';
+      box.removeAttribute('data-kind');
+      box.removeAttribute('data-key');
+      btn.classList.remove('has-vehicle');
+      return;
+    }
+    var key = kind + ':' + [v.id, v.vehicle_type, v.make, v.model, v.color].join('|');
+    if (box.getAttribute('data-key') === key) return;
+    var dims = size(v);
+    var frame = STALL_CM[btn.dataset.kind] || STALL_CM.car;
+    box.innerHTML = svg(v);
+    var art = box.firstChild;
+    // The drawing keeps the vehicle's real size and proportions inside the stall (in centimetres).
+    art.style.width = Math.min(96, (dims.w / frame.w) * 100) + '%';
+    art.style.height = Math.min(94, (dims.l / frame.l) * 100) + '%';
+    box.setAttribute('data-kind', kind);
+    box.setAttribute('data-key', key);
+    btn.classList.add('has-vehicle');
+  }
+
+  window.UPVehicle = { styleOf: styleOf, colorOf: colorOf, size: size, svg: svg, side: side, parked: parked, inStall: inStall, STALL_CM: STALL_CM };
 })();

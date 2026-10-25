@@ -160,7 +160,11 @@ describe('users and driver self-service', () => {
     fails(() => users.adminCreateUser({ full_name: 'Bad Role', email: 'role@test.local', password: PASSWORD, role: 'superuser' }, admin()), 'VALIDATION');
     const c = env.client();
     await c.login('admin@test.local');
-    const res = await c.post(`/admin/drivers/${d.bob.id}`, { full_name: 'Bob Driver', email: 'bob@test.local', role: 'driver', is_active: '1', new_password: 'NewPassw0rd1' });
+    // The email address cannot be changed from the driver page: a different one posted with the form is ignored.
+    const page = await c.get(`/admin/drivers/${d.bob.id}`);
+    assert.match(page.text, /name="email"[^>]*readonly/);
+    const res = await c.post(`/admin/drivers/${d.bob.id}`, { full_name: 'Bob Driver', email: 'robert@test.local', role: 'driver', is_active: '1', new_password: 'NewPassw0rd1' });
+    assert.equal(users.getUser(d.bob.id).email, 'bob@test.local');
     assert.equal(res.status, 302);
     const bob = env.client();
     await bob.get('/login');
@@ -262,7 +266,7 @@ describe('dashboard and settings (deterministic data)', () => {
     sessions.checkIn(A.id, admin());
     setNow(`${DAY} 12:30`);
     sessions.checkOut(A.id, admin());
-    payments.recordPayment({ reservation_id: A.id, amount: '100', method: 'cash', reference: 'OR-1' }, admin());
+    payments.recordPayment({ reservation_id: A.id, amount: '105', method: 'cash', reference: 'OR-1' }, admin());
     setNow(`${DAY} 14:30`);
     reservations.markNoShow(C.id, admin());
     refs = { A, B, C, D };
@@ -287,7 +291,7 @@ describe('dashboard and settings (deterministic data)', () => {
     assert.equal(data.kpis.occupied, 0);
     assert.equal(data.charts.outcomes.values.join(','), '1,1,1,1');
     assert.equal(data.charts.outcomes.cancellationRate, 25);
-    assert.equal(data.charts.collections.totalCentavos, 10000);
+    assert.equal(data.charts.collections.totalCentavos, 10500);
     assert.equal(data.charts.reservationsOverTime.values.at(-1), 3);
     assert.equal(data.charts.reservationsOverTime.values.reduce((a, b) => a + b, 0), 3);
     assert.equal(data.recentActivity.length > 0, true);

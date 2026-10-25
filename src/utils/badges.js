@@ -29,7 +29,6 @@ const MAP = {
   },
   balance: {
     paid: { label: 'Paid', tone: 'green', icon: 'bi-cash-coin' },
-    partial: { label: 'Partially paid', tone: 'amber', icon: 'bi-hourglass-split' },
     unpaid: { label: 'Unpaid', tone: 'amber', icon: 'bi-exclamation-circle' },
     overpaid: { label: 'Credit', tone: 'blue', icon: 'bi-arrow-return-left' },
     no_charge: { label: 'No charge', tone: 'gray', icon: 'bi-dash-circle' },

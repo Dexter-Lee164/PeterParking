@@ -184,7 +184,8 @@ function adminCreateUser(input, actor) {
 function adminUpdateUser(id, input, actor) {
   const existing = getUser(id);
   if (!existing) throw new AppError('User not found.', { status: 404, code: 'NOT_FOUND' });
-  const v = validateProfile(input, { id });
+  // The email address is the sign-in identity and cannot be changed here: whatever the form sends, it is kept as is.
+  const v = validateProfile(Object.assign({}, input, { email: existing.email }), { id });
   const role = oneOf(clean(input.role), ['driver', 'admin'], existing.role);
   const isActive = input.is_active === '0' ? 0 : 1;
   guardLastAdmin(existing, role, isActive, actor);
@@ -192,10 +193,10 @@ function adminUpdateUser(id, input, actor) {
   ctx
     .get()
     .prepare(
-      `UPDATE users SET university_id = ?, full_name = ?, email = ?, phone = ?, role = ?, is_active = ?,
+      `UPDATE users SET university_id = ?, full_name = ?, phone = ?, role = ?, is_active = ?,
          updated_at = datetime('now','localtime') WHERE id = ?`,
     )
-    .run(v.university_id, v.full_name, v.email, v.phone, role, isActive, id);
+    .run(v.university_id, v.full_name, v.phone, role, isActive, id);
   if (clean(input.new_password)) {
     const problem = passwordProblem(input.new_password);
     if (problem) throw new AppError('Please correct the highlighted fields.', { code: 'VALIDATION', fields: { new_password: problem } });

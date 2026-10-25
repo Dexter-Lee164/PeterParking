@@ -180,28 +180,9 @@
   }
 
   // ---- vehicles on the map ------------------------------------------------------
-  var STALL_CM = { car: { w: 260, l: 520 }, moto: { w: 140, l: 260 }, parallel: { w: 240, l: 580 } };
+  var STALL_CM = V ? V.STALL_CM : { car: { w: 260, l: 520 } };
   function drawVehicle(btn, v, kind) {
-    var box = btn.querySelector('.slot-vehicle');
-    if (!box) return;
-    if (!v || !V) {
-      box.innerHTML = '';
-      box.removeAttribute('data-kind');
-      btn.classList.remove('has-vehicle');
-      return;
-    }
-    var key = kind + ':' + [v.id, v.vehicle_type, v.make, v.model, v.color].join('|');
-    if (box.getAttribute('data-key') === key) return;
-    var dims = V.size(v);
-    var frame = STALL_CM[btn.dataset.kind] || STALL_CM.car;
-    box.innerHTML = V.svg(v);
-    var art = box.firstChild;
-    // The drawing keeps the vehicle's real size and proportions inside the stall (in centimetres).
-    art.style.width = Math.min(96, (dims.w / frame.w) * 100) + '%';
-    art.style.height = Math.min(94, (dims.l / frame.l) * 100) + '%';
-    box.setAttribute('data-kind', kind);
-    box.setAttribute('data-key', key);
-    btn.classList.add('has-vehicle');
+    if (V) V.inStall(btn, v, kind);
   }
 
   function decorate() {

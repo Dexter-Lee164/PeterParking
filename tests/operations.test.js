@@ -241,25 +241,23 @@ describe('manual payments', () => {
   const invalid = (input, field) =>
     assert.throws(() => pay(input), (e) => e instanceof AppError && e.code === 'VALIDATION' && !!e.fields && !!e.fields[field]);
 
-  test('partial then full payment settles the balance without changing the booking or slot', () => {
+  test('a partial payment is refused; the full balance settles the booking without changing it or the slot', () => {
     complete();
     assert.equal(reservations.getReservation(r.id).balance_centavos, 6000);
-    const p1 = pay({ amount: '25' });
-    assert.match(p1.receipt_no, /^RCT-20260310-0001$/);
-    assert.equal(p1.amount_centavos, 2500);
-    assert.equal(p1.status, 'valid');
+    assert.throws(() => pay({ amount: '25' }), (e) => e instanceof AppError && /Partial payments are not accepted/.test(e.fields.amount));
     let res = reservations.getReservation(r.id);
-    assert.equal(res.paid_centavos, 2500);
-    assert.equal(res.balance_centavos, 3500);
-    assert.equal(res.payment_status, 'partial');
-    const p2 = pay({ amount: '35.00', reference: 'OR-778899' });
-    assert.match(p2.receipt_no, /0002$/);
+    assert.equal(res.paid_centavos, 0);
+    assert.equal(res.payment_status, 'unpaid');
+    const p = pay({ amount: '60.00', reference: 'OR-778899' });
+    assert.match(p.receipt_no, /^RCT-20260310-0001$/);
+    assert.equal(p.amount_centavos, 6000);
+    assert.equal(p.status, 'valid');
     res = reservations.getReservation(r.id);
     assert.equal(res.balance_centavos, 0);
     assert.equal(res.payment_status, 'paid');
     assert.equal(res.status, 'completed', 'payments never change reservation status');
     assert.equal(env.db.prepare(`SELECT status FROM parking_slots WHERE id = ?`).get(d.slots[0].id).status, 'active');
-    assert.equal(env.db.prepare(`SELECT COUNT(*) AS n FROM audit_logs WHERE action = 'payment.record'`).get().n, 2);
+    assert.equal(env.db.prepare(`SELECT COUNT(*) AS n FROM audit_logs WHERE action = 'payment.record'`).get().n, 1);
   });
 
   test('payment input is validated', () => {
@@ -338,8 +336,9 @@ describe('manual payments', () => {
     assert.equal(payments.totalOutstanding(), 6000);
     assert.equal(payments.totalOutstanding({ userId: d.alice.id }), 6000);
     assert.equal(payments.totalOutstanding({ userId: d.bob.id }), 0);
-    pay({ amount: '10' });
-    assert.equal(payments.outstandingBalances()[0].balance_centavos, 5000);
+    assert.equal(payments.outstandingBalances()[0].balance_centavos, 6000);
+    pay({ amount: '60' });
+    assert.equal(payments.totalOutstanding(), 0);
   });
 });
 
@@ -412,12 +411,16 @@ describe('admin and driver workflows over HTTP', () => {
     assert.equal(env.db.prepare('SELECT COUNT(*) AS n FROM payments').get().n, 0);
     assert.doesNotMatch(form.text, /GCash|Bank transfer/, 'the form offers no other method');
 
-    const ok = await adminC.post('/admin/payments', { reservation_id: res.id, amount: '100', method: 'cash', reference: 'OR-12345' });
+    const short = await adminC.post('/admin/payments', { reservation_id: res.id, amount: '100', method: 'cash' });
+    assert.equal(short.status, 422);
+    assert.match(short.text, /Collect the full remaining balance of ₱105\.00/);
+
+    const ok = await adminC.post('/admin/payments', { reservation_id: res.id, amount: '105', method: 'cash', reference: 'OR-12345' });
     assert.equal(ok.status, 302);
     assert.match(ok.location, /^\/admin\/payments\/\d+\/receipt$/);
     const receipt = await adminC.get(ok.location);
     assert.match(receipt.text, /RCT-20260310-0001/);
-    assert.match(receipt.text, /₱100\.00/);
+    assert.match(receipt.text, /₱105\.00/);
     assert.match(receipt.text, /Void payment/, 'admins can void from the receipt');
 
     const payId = ok.location.split('/')[3];
@@ -428,7 +431,6 @@ describe('admin and driver workflows over HTTP', () => {
 
     const driverPayments = await aliceC.get('/driver/payments');
     assert.match(driverPayments.text, /RCT-20260310-0001/);
-    assert.match(driverPayments.text, /₱5\.00/, 'remaining balance of ₱5 is shown');
     // Drivers cannot post payments or void them.
     const sneaky = await aliceC.post('/admin/payments', { reservation_id: res.id, amount: '5', method: 'cash' });
     assert.equal(sneaky.status, 302);

@@ -214,35 +214,44 @@ function administration() {
   return s;
 }
 
-/* ------------------------------------------------------------------ Main Building: covered rows beside the lobby */
+/* ------------------------------------------------------------------ Main Building: four covered blocks below the lobby */
 function mainBuilding() {
-  const s = scene(518, 548);
-  s.building(422, 16, 86, 518, 'left', 'Main Building', 'Lobby');
-  s.rect('pavers', 408, 10, 14, 528);
-  s.rect('asphalt', 14, 16, 394, 518, 8);
-  // one loop: two-way entry on the left, then clockwise
-  s.line('dash', 35, 60, 35, 494);
-  [250, 420].forEach((y) => s.arrow(26, y, 0));
-  [140, 330].forEach((y) => s.arrow(44, y, 180));
-  [120, 220, 320].forEach((x) => s.arrow(x, 36, 90));
-  [110, 280, 450].forEach((y) => s.arrow(388, y, 180));
-  [140, 240, 340].forEach((x) => s.arrow(x, 512, -90));
-  [192, 356].forEach((y) => [110, 230, 330].forEach((x) => s.arrow(x, y, -90)));
-  s.gate(14, 532, 42);
-  s.text('paint', 35, 526, 'IN / OUT');
-  // three double rows of twelve, numbered from the lobby side: in each, the first row opens up and the second down,
-  // onto the top road, the two aisles and the bottom road
-  [58, 222, 386].forEach((y) => {
-    for (let i = 0; i < 12; i += 1) s.stall(355 - i * 26, y + 26, 180);
-    for (let i = 0; i < 12; i += 1) s.stall(355 - i * 26, y + 78, 0);
+  const s = scene(652, 462);
+  // the lobby along the top, its doors on the walkway that runs down between the blocks
+  s.rect('lawn', 0, 0, 652, 78);
+  s.building(120, 8, 412, 56, 'bottom', 'Main Building', 'Lobby');
+  s.rect('pavers', 14, 64, 624, 14);
+  s.rect('asphalt', 14, 80, 624, 368, 8);
+  // one loop, clockwise: two-way entry road on the left, top aisle, right road, bottom aisle; the middle aisle runs left
+  s.line('dash', 36, 100, 36, 430);
+  [200, 380].forEach((y) => s.arrow(26, y, 0));
+  [140, 320].forEach((y) => s.arrow(46, y, 180));
+  [130, 230, 420, 520].forEach((x) => s.arrow(x, 105, 90));
+  [180, 340].forEach((y) => s.arrow(616, y, 180));
+  [130, 230, 420, 520].forEach((x) => s.arrow(x, 421, -90));
+  [175, 475].forEach((x) => s.arrow(x, 262, -90));
+  s.gate(14, 446, 44);
+  s.text('paint', 36, 438, 'IN / OUT');
+  // a 2 x 2 grid of double rows of nine, numbered outward from the walkway: top left, top right, bottom left, bottom
+  // right; in each, the first row opens up and the second down
+  [130, 290].forEach((y) => {
+    [[287, -26], [365, 26]].forEach(([x0, step]) => {
+      for (let i = 0; i < 9; i += 1) s.stall(x0 + i * step, y + 26, 180);
+      for (let i = 0; i < 9; i += 1) s.stall(x0 + i * step, y + 78, 0);
+    });
   });
-  // solar canopies over each double row
-  [58, 222, 386].forEach((y) => s.canopy(52, y + 2, 320, 100, y + 52));
-  // covered walkways to the lobby doors
-  [180, 344].forEach((y) => s.zebra(368, y, 40, 24, 'x'));
-  [60, 160, 260, 360, 460].forEach((y) => s.tree(6, y, 6));
-  [80, 180, 280, 380].forEach((x) => s.tree(x, 542, 6));
-  [192, 356].forEach((y) => [70, 170, 270].forEach((x) => s.lamp(x, y)));
+  // solar canopies over each block
+  [130, 290].forEach((y) => [62, 348].forEach((x) => s.canopy(x, y + 2, 242, 100, y + 52)));
+  // the planted walkway between the blocks, with crossings over the aisles up to the lobby doors
+  [134, 294].forEach((y) => s.rect('island', 306, y, 40, 96, 6));
+  s.zebra(306, 82, 40, 46, 'y');
+  s.zebra(306, 236, 40, 52, 'y');
+  // landscaping and lights
+  [[20, 22], [60, 50], [96, 18], [556, 20], [596, 46], [634, 16]].forEach(([x, y]) => s.tree(x, y, 10));
+  [110, 190, 270, 350, 430].forEach((y) => s.tree(6, y, 6));
+  [110, 190, 270, 350, 430].forEach((y) => s.tree(646, y, 6));
+  [100, 200, 300, 400, 500, 600].forEach((x) => s.tree(x, 456, 6));
+  [120, 230, 420, 530].forEach((x) => s.lamp(x, 262));
   return s;
 }
 

@@ -13,7 +13,7 @@ const lotLayout = require('../src/utils/lotLayout');
 const { PLANS } = require('../src/db/lotPlans');
 const time = require('../src/utils/time');
 
-const SCENE_WIDTHS = { MB: 518, EN: 566, SC: 400, AD: 420, MC: 420 };
+const SCENE_WIDTHS = { MB: 652, EN: 566, SC: 400, AD: 420, MC: 420 };
 // Planned motorcycle bays outside MC: EN-21..30, SC-31..38, AD-17..22.
 const LOT_MOTO = PLANS.filter((p) => p.code !== 'MC').flatMap((p) => p.slots.filter((s) => s.type === 'motorcycle').map((s) => s.code));
 

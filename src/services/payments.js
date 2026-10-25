@@ -63,10 +63,11 @@ function recordPayment(input, admin) {
     if (reference.length > 80) fields.reference = 'Keep the reference under 80 characters.';
     if (notes.length > 300) fields.notes = 'Keep notes under 300 characters.';
     if (res.status === 'cancelled' && res.due_centavos === 0) fields.reservation_id = 'This cancelled booking has no charge to pay.';
-    if (!fields.amount && amount > res.balance_centavos) {
-      fields.amount = res.balance_centavos > 0
-        ? `Amount exceeds the remaining balance of ${formatPeso(res.balance_centavos)}.`
-        : 'This reservation is already fully paid.';
+    // A payment settles the whole remaining balance: partial payments are not accepted.
+    if (!fields.amount && amount !== res.balance_centavos) {
+      if (res.balance_centavos <= 0) fields.amount = 'This reservation is already fully paid.';
+      else if (amount > res.balance_centavos) fields.amount = `Amount exceeds the remaining balance of ${formatPeso(res.balance_centavos)}.`;
+      else fields.amount = `Collect the full remaining balance of ${formatPeso(res.balance_centavos)}. Partial payments are not accepted.`;
     }
     if (Object.keys(fields).length) throw new AppError('Please correct the highlighted fields.', { code: 'VALIDATION', fields });
 

@@ -187,7 +187,7 @@ describe('3. cash-only payments', () => {
     const r = reservations.createReservation({ userId: d.alice.id, vehicleId: d.aliceCar.id, slotId: d.slots[0].id, date: DAY, start: '10:00', end: '11:00' }, { id: d.alice.id });
     const f = fieldsOf(() => payments.recordPayment({ reservation_id: r.id, amount: '10', method: 'gcash', reference: 'GC-1' }, admin()));
     assert.match(f.method, /Only cash/);
-    const p = payments.recordPayment({ reservation_id: r.id, amount: '10' }, admin());
+    const p = payments.recordPayment({ reservation_id: r.id, amount: (reservations.getReservation(r.id).balance_centavos / 100).toFixed(2) }, admin());
     assert.equal(p.method, 'cash', 'no method means cash');
     assert.throws(
       () => env.db.prepare(`INSERT INTO payments (receipt_no, reservation_id, user_id, amount_centavos, method, paid_at, recorded_by) VALUES ('X-1', ?, ?, 100, 'gcash', '2026-03-10 09:00:00', ?)`).run(r.id, d.alice.id, d.admin.id),
@@ -266,7 +266,7 @@ describe('5. sidebar notifications and highlighted records', () => {
   test('start empty, then count real driver activity', async () => {
     assert.deepEqual(await badges(), { reservations: 0, payments: 0, reports: 0 });
     const r = reservations.createReservation({ userId: d.alice.id, vehicleId: d.aliceCar.id, slotId: d.slots[0].id, date: DAY, start: '10:00', end: '12:00' }, { id: d.alice.id });
-    reservations.createReservation({ userId: d.bob.id, vehicleId: d.bobCar.id, slotId: d.slots[1].id, date: DAY, start: '10:00', end: '11:00' }, { id: d.bob.id });
+    const b = reservations.createReservation({ userId: d.bob.id, vehicleId: d.bobCar.id, slotId: d.slots[1].id, date: DAY, start: '10:00', end: '11:00' }, { id: d.bob.id });
     assert.deepEqual(await badges(), { reservations: 2, payments: 0, reports: 0 });
     // A balance owed is not announced (the Payments page lists paid bookings only); a payment recorded by another
     // staff member is, and the administrator's own payment does not notify them.
@@ -275,8 +275,9 @@ describe('5. sidebar notifications and highlighted records', () => {
     setNow(`${DAY} 12:00`);
     sessions.checkOut(r.id, admin());
     assert.equal((await badges()).payments, 0);
-    payments.recordPayment({ reservation_id: r.id, amount: '5' }, admin());
-    payments.recordPayment({ reservation_id: r.id, amount: '5' }, { id: d.bob.id, role: 'admin' }); // another staff member
+    const full = (id) => (reservations.getReservation(id).balance_centavos / 100).toFixed(2);
+    payments.recordPayment({ reservation_id: r.id, amount: full(r.id) }, admin());
+    payments.recordPayment({ reservation_id: b.id, amount: full(b.id) }, { id: d.bob.id, role: 'admin' }); // another staff member
     assert.deepEqual(await badges(), { reservations: 2, payments: 1, reports: 0 });
   });
 

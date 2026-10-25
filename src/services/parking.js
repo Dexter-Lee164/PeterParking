@@ -195,6 +195,21 @@ function decorateSlotsWithLiveState(rows) {
 
 const getSlot = (id) => ctx.get().prepare(`${SLOT_SELECT} WHERE s.id = ?`).get(id);
 
+/** { slot_id: vehicle } for every vehicle checked in right now (optionally in one zone), to draw on the admin map. */
+function parkedVehicles(zoneId = null) {
+  const rows = ctx
+    .get()
+    .prepare(
+      `SELECT ps.slot_id, v.id, v.vehicle_type, v.make, v.model, v.color, v.plate_number
+       FROM parking_sessions ps JOIN vehicles v ON v.id = ps.vehicle_id JOIN parking_slots s ON s.id = ps.slot_id
+       WHERE ps.check_out_at IS NULL ${zoneId ? 'AND s.zone_id = ?' : ''}`,
+    )
+    .all(...(zoneId ? [zoneId] : []));
+  const out = {};
+  for (const { slot_id: slotId, ...v } of rows) out[slotId] = v;
+  return out;
+}
+
 function assertNotRetired(slot) {
   if (slot.retired_at) {
     throw new AppError(`Slot ${slot.slot_code} was retired from ${slot.zone_name}; it is kept only for its booking history.`, { code: 'SLOT_RETIRED', status: 409 });
@@ -502,6 +517,7 @@ module.exports = {
   vehicleFitsSlotType,
   listZones,
   getZone,
+  parkedVehicles,
   createZone,
   updateZone,
   deleteZone,

@@ -41,7 +41,7 @@ const RES_SELECT = `
   JOIN users u ON u.id = r.user_id
   JOIN vehicles v ON v.id = r.vehicle_id`;
 
-/** Adds derived money fields: due, balance, payment status. */
+/** Adds derived money fields: due, balance, payment status (anything short of the full fee is unpaid). */
 function decorate(row) {
   if (!row) return row;
   const isFinal = row.fee_final_centavos !== null && row.fee_final_centavos !== undefined;
@@ -51,7 +51,6 @@ function decorate(row) {
   if (due === 0 && row.paid_centavos === 0) paymentStatus = 'no_charge';
   else if (row.paid_centavos > due) paymentStatus = 'overpaid';
   else if (row.paid_centavos >= due) paymentStatus = 'paid';
-  else if (row.paid_centavos > 0) paymentStatus = 'partial';
   return { ...row, fee_is_final: isFinal, due_centavos: due, balance_centavos: balance, payment_status: paymentStatus };
 }
 

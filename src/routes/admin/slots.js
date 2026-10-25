@@ -47,7 +47,7 @@ router.get('/', (req, res) => {
     ? parking.listSlots({ zoneId }).map((s) => ({
       id: s.id, code: s.slot_code, zone_name: s.zone_name, slot_type: s.slot_type, type_vehicle: s.type_vehicle, type_label: s.type_label,
       type_icon: s.type_icon, operational_status: s.status, hourly_rate_centavos: s.hourly_rate_centavos, est_fee_centavos: 0,
-      state: s.live_state, reason: s.status !== 'active' ? `Status: ${s.status}` : `Right now: ${s.live_state}`,
+      state: s.live_state, reason: s.status !== 'active' ? `Status: ${badge('slot', s.status).label}` : `Right now: ${badge('availability', s.live_state).label}`,
       notes: s.notes || '', filtered_out: filtering && !matching.has(s.id),
     }))
     : [];
@@ -66,10 +66,12 @@ router.get('/', (req, res) => {
     zone,
     zoneSlots,
     mapSlots,
+    // The vehicle checked into each occupied stall, drawn on the map (public/js/vehicle-art.js).
+    parkedVehicles: zone ? parking.parkedVehicles(zone.id) : {},
     slots,
     counts,
     filtering,
-    extraScripts: zone ? ['/js/admin-slot-map.js'] : [],
+    extraScripts: zone ? ['/js/vehicle-art.js', '/js/admin-slot-map.js'] : [],
     slotTypes: parking.listSlotTypes(),
     filters: { zone: zoneId || '', status, type: slotType, q },
     baseQuery: { zone: zoneId || '', status, type: slotType, q },
