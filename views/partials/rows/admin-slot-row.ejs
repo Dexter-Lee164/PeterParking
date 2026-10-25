@@ -12,7 +12,7 @@
         <form method="post" action="/admin/slots/<%= row.id %>/status">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <input type="hidden" name="status" value="maintenance">
-          <button class="btn btn-sm btn-outline-warning" type="submit" aria-label="Put slot <%= row.slot_code %> into maintenance">Maintenance</button>
+          <button class="btn btn-sm btn-outline-warning" type="submit" aria-label="Take slot <%= row.slot_code %> out of service">Out of Service</button>
         </form>
       <% } else { %>
         <form method="post" action="/admin/slots/<%= row.id %>/status">

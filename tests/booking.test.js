@@ -58,7 +58,7 @@ describe('booking rules (service layer)', () => {
     const byCode = Object.fromEntries(a.slots.filter((s) => s.zone_id === d.zone.id).map((s) => [s.code, s]));
     assert.equal(byCode.T1.state, 'reserved', 'partially overlapping booking blocks the slot');
     assert.equal(byCode.T2.state, 'unavailable');
-    assert.equal(byCode.T2.reason, 'Under maintenance');
+    assert.equal(byCode.T2.reason, 'Out of service');
     assert.equal(byCode.T3.state, 'available');
     assert.equal(a.zones.find((z) => z.id === d.zone.id).available, 3);
 

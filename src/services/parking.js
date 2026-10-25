@@ -229,7 +229,7 @@ function validateSlot(input, { id = null } = {}) {
   return { zone_id: zoneId, slot_code: slotCode, slot_type: slotType, status, hourly_rate_override_centavos: override, notes: notes || null, sort_order: sortOrder };
 }
 
-/** What stops a slot from being put into maintenance, deactivated or moved? */
+/** What stops a slot from being taken out of service (status 'maintenance'), deactivated or moved? */
 function slotBlockers(slotId) {
   const db = ctx.get();
   const now = nowLocal();

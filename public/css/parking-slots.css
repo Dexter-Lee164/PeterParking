@@ -211,15 +211,13 @@
 /* ------------------------------------------------------------- lot stage
    One drawing unit (a decimetre of lot) is --u; every size inside the stage is a multiple of it, so the map, its
    labels and the vehicles scale together, in the page and in the zoomed preview.
-   The stage is as wide as the card, but never taller than about a screen (--lot-fit-h); it then shrinks and centres.
+   The stage always fills the card's width (no empty margins beside it); its height follows the zone's aspect ratio.
    It never gets narrower than 760px: on small screens the lot scrolls sideways in .lot-scroll instead of shrinking. */
 .lot-stage {
   --u: calc(100cqw / var(--lot-w, 400));
-  --lot-fit-h: max(560px, 100dvh - 160px);
   position: relative;
-  width: min(100%, calc(var(--lot-fit-h) * var(--lot-w, 400) / var(--lot-h, 400)));
+  width: 100%;
   min-width: 760px;
-  margin-inline: auto;
   container-type: inline-size;
   overflow: hidden;
   background: #122a17;

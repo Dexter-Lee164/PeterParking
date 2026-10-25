@@ -14,7 +14,7 @@ const MAP = {
   },
   slot: {
     active: { label: 'Active', tone: 'green', icon: 'bi-check-circle' },
-    maintenance: { label: 'Maintenance', tone: 'amber', icon: 'bi-tools' },
+    maintenance: { label: 'Out of Service', tone: 'amber', icon: 'bi-tools' },
     inactive: { label: 'Inactive', tone: 'gray', icon: 'bi-slash-circle' },
   },
   availability: {

@@ -13,7 +13,7 @@
   const glyph = isSelected ? 'bi-check-circle-fill'
     : maintenance ? 'bi-cone-striped'
     : { available: 'bi-check-circle', reserved: 'bi-bookmark-fill', occupied: 'bi-car-front-fill', unavailable: 'bi-slash-circle' }[state];
-  const stateLabel = isSelected ? 'Selected' : maintenance ? 'Maintenance' : badge('availability', state).label;
+  const stateLabel = isSelected ? 'Selected' : maintenance ? 'Out of Service' : badge('availability', state).label;
   // Motorcycle bays get the motorcycle icon (Bootstrap Icons has none); others keep their slot type's icon.
   const typeIcon = slot.type_vehicle === 'motorcycle' ? 'vi vi-motorcycle' : 'bi ' + slot.type_icon;
   // A bay for the other kind of vehicle stays on the map (its state included) but is set back and cannot be chosen.

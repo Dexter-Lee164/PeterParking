@@ -64,7 +64,7 @@ function validateRange({ date, start, end }, settings = settingsService.getAll()
 /**
  * Real, SQLite-backed availability for every active zone over [startAt, endAt).
  * A slot is:
- *   unavailable — maintenance / inactive, or free but does not fit the chosen vehicle type
+ *   unavailable — out of service (status 'maintenance') / inactive, or free but does not fit the chosen vehicle type
  *   occupied    — a vehicle is physically parked (checked in) and the window overlaps its stay
  *   reserved    — another active booking overlaps the window
  *   available   — otherwise
@@ -107,7 +107,7 @@ function getAvailability({ startAt, endAt, vehicleType = '', userId = null, excl
     const compatible = !vehicleType || parking.vehicleFitsSlotType(s.type_vehicle, vehicleType);
     if (s.status !== 'active') {
       state = 'unavailable';
-      reason = s.status === 'maintenance' ? 'Under maintenance' : 'Not in service';
+      reason = s.status === 'maintenance' ? 'Out of service' : 'Inactive';
     } else if (bySlot.has(s.id)) {
       const c = bySlot.get(s.id);
       state = c.occupied ? 'occupied' : 'reserved';

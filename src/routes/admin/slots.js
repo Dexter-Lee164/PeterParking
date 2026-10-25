@@ -4,18 +4,19 @@ const express = require('express');
 const parking = require('../../services/parking');
 const { AppError } = require('../../utils/errors');
 const { toInt, clean } = require('../../utils/validate');
+const { badge } = require('../../utils/badges');
 
 /**
  * Parking Slots for administrators. The campus layout is fixed (zones, slot codes, types and positions come from
  * src/db/lotPlans.js and are drawn by src/utils/lotLayout.js): nothing here creates, deletes, moves or re-types a zone
- * or slot. Administrators manage how existing slots operate: status (active / maintenance / inactive), notes and an
+ * or slot. Administrators manage how existing slots operate: status (active / out of service, stored as 'maintenance' / inactive), notes and an
  * hourly rate override.
  */
 const router = express.Router();
 
 const STATUS_OPTIONS = [
   { value: 'active', label: 'Active' },
-  { value: 'maintenance', label: 'Maintenance' },
+  { value: 'maintenance', label: 'Out of Service' },
   { value: 'inactive', label: 'Inactive' },
 ];
 
@@ -112,7 +113,7 @@ router.post('/:id/status', (req, res) => {
   const id = toInt(req.params.id);
   try {
     const slot = parking.setSlotStatus(id, clean(req.body.status), req.actor);
-    req.flash('success', `Slot ${slot.slot_code} is now ${slot.status}.`);
+    req.flash('success', `Slot ${slot.slot_code} is now ${badge('slot', slot.status).label}.`);
   } catch (err) {
     if (!(err instanceof AppError)) throw err;
     req.flash('error', err.message);

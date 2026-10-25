@@ -34,12 +34,12 @@ function slotSnapshot() {
   const unavailable = db
     .prepare(`SELECT COUNT(*) AS n FROM parking_slots s JOIN parking_zones z ON z.id = s.zone_id WHERE s.retired_at IS NULL AND (s.status <> 'active' OR z.is_active = 0)`)
     .get().n;
-  // Under maintenance (in an active zone): shown on its own; the rest of `unavailable` is out of service.
+  // Out of service (status 'maintenance', in an active zone): shown on its own; the rest of `unavailable` is inactive.
   const maintenance = db
     .prepare(`SELECT COUNT(*) AS n FROM parking_slots s JOIN parking_zones z ON z.id = s.zone_id WHERE s.retired_at IS NULL AND s.status = 'maintenance' AND z.is_active = 1`)
     .get().n;
   const available = Math.max(0, total - occupied - reserved);
-  return { total, available, reserved, occupied, unavailable, maintenance, outOfService: unavailable - maintenance };
+  return { total, available, reserved, occupied, unavailable, maintenance, inactive: unavailable - maintenance };
 }
 
 function adminDashboard() {

@@ -80,13 +80,13 @@ describe('check-in, check-out, overstay and no-show', () => {
     assert.equal(dashboard.slotSnapshot().occupied, 0);
   });
 
-  test('slots under maintenance are counted on their own, apart from out of service', () => {
+  test('out-of-service slots (status maintenance) are counted on their own, apart from inactive', () => {
     const slot = d.slots[d.slots.length - 1];
     const before = dashboard.slotSnapshot();
     parking.setSlotStatus(slot.id, 'maintenance', admin());
     const snap = dashboard.slotSnapshot();
     assert.equal(snap.maintenance, before.maintenance + 1);
-    assert.equal(snap.outOfService, before.outOfService);
+    assert.equal(snap.inactive, before.inactive);
     assert.equal(dashboard.adminDashboard().kpis.maintenance, snap.maintenance);
     parking.setSlotStatus(slot.id, 'active', admin());
     assert.equal(dashboard.slotSnapshot().maintenance, before.maintenance);

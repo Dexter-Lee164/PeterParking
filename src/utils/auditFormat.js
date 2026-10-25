@@ -2,6 +2,7 @@
 
 const time = require('./time');
 const { formatPeso } = require('./money');
+const { badge } = require('./badges');
 
 /**
  * Turns an audit_logs row into something people can read: a title ("Reservation Created") and a list of labelled
@@ -82,6 +83,8 @@ const LABELS = {
   role: 'Role',
   is_active: 'Account Status',
   status: 'Status',
+  previous_status: 'Previous Status',
+  new_status: 'New Status',
   slot_code: 'Slot Code',
   slot_type: 'Slot Type',
   zone_id: 'Zone ID',
@@ -120,7 +123,9 @@ function formatValue(key, value) {
   if (typeof value === 'string') {
     if (DATETIME.test(value)) return fmtWhen(value);
     if (key === 'method') return { cash: 'Cash', gcash: 'GCash', bank_transfer: 'Bank transfer', other: 'Other' }[value] || value;
-    if (key === 'by' || key === 'role' || key === 'vehicle_type' || key === 'status') return titleCase(value);
+    // Slot status 'maintenance' is shown as "Out of Service".
+    if ((key === 'status' || key === 'previous_status' || key === 'new_status') && value === 'maintenance') return badge('slot', value).label;
+    if (key === 'by' || key === 'role' || key === 'vehicle_type' || key === 'status' || key === 'previous_status' || key === 'new_status') return titleCase(value);
     return value;
   }
   return null;
@@ -175,6 +180,11 @@ function describe(row) {
       parsed = JSON.parse(raw);
     } catch (err) {
       parsed = undefined;
+    }
+    // slot.status logs { from, to } as statuses, not times.
+    if (row.action === 'slot.status' && parsed && typeof parsed === 'object' && !Array.isArray(parsed) && ('from' in parsed || 'to' in parsed)) {
+      const { from, to, ...rest } = parsed;
+      parsed = { previous_status: from, new_status: to, ...rest };
     }
     if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) items.push(...itemsOf(parsed));
     else if (Array.isArray(parsed)) items.push({ label: 'Details', items: itemsOf(Object.fromEntries(parsed.map((v, i) => [`#${i + 1}`, v]))) });

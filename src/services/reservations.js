@@ -151,7 +151,7 @@ function createReservation({ userId, vehicleId, slotId, date, start, end }, acto
       const slot = parking.getSlot(slotId);
       if (!slot || !slot.zone_active) throw new AppError('That parking slot does not exist.', { status: 404, code: 'NOT_FOUND' });
       if (slot.status !== 'active') {
-        throw new AppError('That slot is not available for booking (maintenance or out of service).', { code: 'SLOT_NOT_ACTIVE', status: 409 });
+        throw new AppError('That slot is not available for booking (out of service or inactive).', { code: 'SLOT_NOT_ACTIVE', status: 409 });
       }
       if (!parking.vehicleFitsSlotType(slot.type_vehicle, vehicle.vehicle_type)) {
         throw new AppError(`A ${vehicle.vehicle_type} cannot use a ${slot.type_label} slot.`, { code: 'VEHICLE_MISMATCH', fields: { vehicle_id: 'This vehicle does not fit the selected slot type.' } });
