@@ -1,6 +1,6 @@
 <div class="page-intro">
   <div>
-    <h2>Report #<%= report.id %></h2>
+    <h2>Report ER#<%= report.id %></h2>
     <p>Sent <%= fmtDateTime(report.created_at) %>. Parking administration decides separately on any penalty for the reported vehicle.</p>
   </div>
   <a class="btn btn-outline-secondary btn-sm" href="/driver/etiquette?tab=reports"><i class="bi bi-arrow-left" aria-hidden="true"></i> My Reports</a>
@@ -23,7 +23,7 @@
     <% if (report.has_evidence) { %>
       <section class="summary-card mt-3">
         <div class="summary-head"><h3>Photo evidence</h3></div>
-        <div class="p-3"><a href="/driver/etiquette/reports/<%= report.id %>/evidence" target="_blank" rel="noopener"><img class="evidence-image" src="/driver/etiquette/reports/<%= report.id %>/evidence" alt="Photo attached to report #<%= report.id %>"></a></div>
+        <div class="p-3"><a href="/driver/etiquette/reports/<%= report.id %>/evidence" target="_blank" rel="noopener"><img class="evidence-image" src="/driver/etiquette/reports/<%= report.id %>/evidence" alt="Photo attached to report ER#<%= report.id %>"></a></div>
       </section>
     <% } %>
   </div>

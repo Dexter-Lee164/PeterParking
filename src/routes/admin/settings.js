@@ -6,7 +6,7 @@ const parking = require('../../services/parking');
 const audit = require('../../services/audit');
 const auditFormat = require('../../utils/auditFormat');
 const time = require('../../utils/time');
-const { paginate } = require('../../utils/paginate');
+const { paginate, PER_PAGE } = require('../../utils/paginate');
 const { AppError } = require('../../utils/errors');
 const { toInt, clean } = require('../../utils/validate');
 
@@ -177,7 +177,7 @@ router.get('/audit', (req, res) => {
     from: /^\d{4}-\d{2}-\d{2}$/.test(clean(req.query.from)) ? clean(req.query.from) : '',
     to: /^\d{4}-\d{2}-\d{2}$/.test(clean(req.query.to)) ? clean(req.query.to) : '',
   };
-  const perPage = 25;
+  const perPage = PER_PAGE;
   const first = audit.list({ action: filters.action, userQuery: filters.user, from: filters.from, to: filters.to, limit: 1, offset: 0 });
   const pager = paginate(first.total, req.query.page, perPage);
   const { rows } = audit.list({ action: filters.action, userQuery: filters.user, from: filters.from, to: filters.to, limit: perPage, offset: pager.offset });

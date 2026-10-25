@@ -88,5 +88,20 @@
   /** Value of the "Other" choice in the Manufacturer and Model dropdowns: the name is then typed in. */
   var OTHER = '__other__';
 
-  return { CATALOG: CATALOG, OTHER: OTHER, manufacturers: manufacturers, models: models, findManufacturer: findManufacturer, findModel: findModel, key: key };
+  /** Paint colours a vehicle can be registered with (each one is drawn by public/js/vehicle-art.js). */
+  var COLORS = ['Beige', 'Black', 'Blue', 'Bronze', 'Brown', 'Champagne', 'Charcoal', 'Gold', 'Gray', 'Green', 'Maroon',
+    'Navy Blue', 'Orange', 'Pearl White', 'Pink', 'Purple', 'Red', 'Silver', 'Teal', 'White', 'Yellow'];
+
+  /** The listed spelling of a colour (case and spacing insensitive, "Grey" for Gray), or null. */
+  function findColor(value) {
+    var k = key(value).replace(/^grey$/, 'gray');
+    for (var i = 0; i < COLORS.length; i++) if (key(COLORS[i]) === k) return COLORS[i];
+    return null;
+  }
+
+  /** Plate numbers: 3 to 8 letters or numbers, not counting spaces (hyphens count). */
+  var PLATE_MAX = 8;
+
+  return { CATALOG: CATALOG, OTHER: OTHER, COLORS: COLORS, PLATE_MAX: PLATE_MAX, manufacturers: manufacturers, models: models,
+    findManufacturer: findManufacturer, findModel: findModel, findColor: findColor, key: key };
 });

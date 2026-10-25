@@ -49,7 +49,7 @@ router.get('/', (req, res) => {
   const sorts = { today: 'start_desc', upcoming: 'start_asc', past: 'start_desc' };
   const panels = Object.keys(pages).map((period) => Object.assign(
     { period, pageParam: pages[period] },
-    reservations.listReservations(Object.assign({ period, sort: sorts[period] }, base), { page: req.query[pages[period]], perPage: 10 }),
+    reservations.listReservations(Object.assign({ period, sort: sorts[period] }, base), { page: req.query[pages[period]] }),
   ));
   const baseQuery = Object.assign({}, filters);
   for (const p of panels) baseQuery[p.pageParam] = p.pager.page;

@@ -9,7 +9,7 @@ const time = require('../utils/time');
 const { AppError } = require('../utils/errors');
 const { clean, collapse, toInt, oneOf } = require('../utils/validate');
 const { parsePesoToCentavos, formatPeso } = require('../utils/money');
-const { paginate } = require('../utils/paginate');
+const { paginate, PER_PAGE } = require('../utils/paginate');
 
 /**
  * Penalties an administrator issues against a driver account, through a registered vehicle whose ownership was
@@ -136,7 +136,7 @@ const penaltiesForUser = (userId) => select('WHERE p.user_id = @user', { user: u
 const penaltiesForPlate = (plate) => select('WHERE p.plate_key = @key', { key: etiquette.plateMatchKey(plate) }, 'ORDER BY p.issued_at DESC, p.id DESC');
 const penaltiesForReport = (reportId) => select('WHERE p.report_id = @report', { report: reportId }, 'ORDER BY p.id DESC');
 
-function listPenalties({ q = '', kind = '', state = '', userId = null } = {}, { page = 1, perPage = 15 } = {}) {
+function listPenalties({ q = '', kind = '', state = '', userId = null } = {}, { page = 1, perPage = PER_PAGE } = {}) {
   const where = [];
   const params = { now: time.nowLocal() };
   if (userId) {
@@ -568,7 +568,7 @@ const getAppeal = (id) => decorateAppeal(ctx.get().prepare(`${APPEAL_SELECT} WHE
 const appealForPenalty = (penaltyId) => decorateAppeal(ctx.get().prepare(`${APPEAL_SELECT} WHERE a.penalty_id = ?`).get(penaltyId));
 const getAppealEvidence = (id) => ctx.get().prepare('SELECT mime, size_bytes, data FROM appeal_evidence WHERE appeal_id = ?').get(id);
 
-function listAppeals({ status = '' } = {}, { page = 1, perPage = 15 } = {}) {
+function listAppeals({ status = '' } = {}, { page = 1, perPage = PER_PAGE } = {}) {
   const ok = APPEAL_STATUSES.some((s) => s.value === status);
   const whereSql = ok ? 'WHERE a.status = ?' : '';
   const params = ok ? [status] : [];

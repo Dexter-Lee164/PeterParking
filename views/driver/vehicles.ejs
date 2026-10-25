@@ -44,7 +44,7 @@
       <div class="summary-head"><h3><%= editing ? 'Update details' : 'Add a vehicle' %></h3></div>
       <div class="p-3">
         <%
-          // Manufacturer and model are dropdowns from the catalogue, each with an "Other" choice that reveals a text box.
+          // Manufacturer and model are dropdowns from the catalogue, each with an "Other" choice that turns the dropdown into a text box in the same place.
           // A saved name that is not in the catalogue (typed in, or from before the catalogue) shows as Other + its text.
           const OTHER = vehicleCatalog.OTHER;
           const vType = typeOptions.some(function (o) { return o.value === values.vehicle_type; }) ? values.vehicle_type : 'car';
@@ -70,21 +70,33 @@
         <form method="post" action="<%= editing ? '/driver/vehicles/' + editing.id : '/driver/vehicles' %>" novalidate data-vehicle-form>
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <div class="row g-3">
-            <%- include('partials/form-field', { name: 'plate_number', label: 'Plate number', value: values.plate_number, errors: errors, required: true, placeholder: 'ABC 1234', maxlength: 12, attrs: { style: 'text-transform:uppercase' } }) %>
+            <%- include('partials/form-field', { name: 'plate_number', label: 'Plate number', value: values.plate_number, errors: errors, required: true, placeholder: 'ABC 1234', maxlength: 12, attrs: { style: 'text-transform:uppercase', 'data-plate-max': vehicleCatalog.PLATE_MAX } }) %>
             <%- include('partials/form-field', { name: 'vehicle_type', label: 'Vehicle type', type: 'select', value: vType, errors: errors, options: typeOptions, required: true }) %>
+            <% [
+              { name: 'make', label: 'Manufacturer', sel: makeSel, other: makeOther, options: makeOptions, disabled: false, placeholder: 'Type the manufacturer' },
+              { name: 'model', label: 'Model', sel: modelSel, other: modelOther, options: modelOptions, disabled: !makeSel, placeholder: 'Type the model' }
+            ].forEach(function (f) {
+              const typing = f.sel === OTHER;
+              const err = errors[f.name] || errors[f.name + '_other'];
+            %>
             <div class="col-sm-6">
-              <div class="row g-2">
-                <%- include('partials/form-field', { name: 'make', label: 'Manufacturer', type: 'select', value: makeSel, errors: errors, options: makeOptions, attrs: { 'data-vehicle-make': '' } }) %>
-                <%- include('partials/form-field', { name: 'make_other', label: 'Manufacturer name', value: makeOther, errors: errors, col: 'col-12' + (makeSel === OTHER ? '' : ' d-none'), placeholder: 'Type the manufacturer', maxlength: 40, autocomplete: 'off', attrs: { 'data-other-for': 'make' } }) %>
+              <label class="form-label" for="f-<%= f.name %><%= typing ? '_other' : '' %>"><%= f.label %></label>
+              <select class="form-select<%= errors[f.name] ? ' is-invalid' : '' %><%= typing ? ' d-none' : '' %>" id="f-<%= f.name %>" name="<%= f.name %>" <%= f.disabled ? 'disabled' : '' %> data-vehicle-<%= f.name %>>
+                <% f.options.forEach(function (o) { %>
+                  <option value="<%= o.value %>" <%= String(o.value) === String(f.sel) ? 'selected' : '' %>><%= o.label %></option>
+                <% }) %>
+              </select>
+              <div class="input-group<%= typing ? '' : ' d-none' %>" data-other-group="<%= f.name %>">
+                <input class="form-control<%= errors[f.name + '_other'] ? ' is-invalid' : '' %>" type="text" id="f-<%= f.name %>_other" name="<%= f.name %>_other" value="<%= f.other %>"
+                       placeholder="<%= f.placeholder %>" maxlength="40" autocomplete="off" data-other-for="<%= f.name %>">
+                <button class="btn btn-outline-secondary" type="button" data-other-back="<%= f.name %>" title="Choose from the list" aria-label="Choose <%= f.label.toLowerCase() %> from the list"><i class="bi bi-list-ul" aria-hidden="true"></i></button>
               </div>
+              <% if (err) { %><div class="invalid-feedback d-block" id="f-<%= f.name %>-error"><%= err %></div><% } %>
             </div>
-            <div class="col-sm-6">
-              <div class="row g-2">
-                <%- include('partials/form-field', { name: 'model', label: 'Model', type: 'select', value: modelSel, errors: errors, options: modelOptions, disabled: !makeSel, attrs: { 'data-vehicle-model': '' } }) %>
-                <%- include('partials/form-field', { name: 'model_other', label: 'Model name', value: modelOther, errors: errors, col: 'col-12' + (modelSel === OTHER ? '' : ' d-none'), placeholder: 'Type the model', maxlength: 40, autocomplete: 'off', attrs: { 'data-other-for': 'model' } }) %>
-              </div>
-            </div>
-            <%- include('partials/form-field', { name: 'color', label: 'Color', value: values.color, errors: errors, placeholder: 'Silver' }) %>
+            <% }) %>
+            <%# A saved colour that is not on the list (typed in before the list) is left unselected, so a new one is chosen. %>
+            <%- include('partials/form-field', { name: 'color', label: 'Color', type: 'select', value: vehicleCatalog.findColor(values.color) || '', errors: errors,
+                  options: [{ value: '', label: 'Choose a colour' }].concat(vehicleCatalog.COLORS.map(function (c) { return { value: c, label: c }; })) }) %>
             <div class="col-12 d-flex gap-2">
               <button class="btn btn-primary" type="submit"><i class="bi bi-<%= editing ? 'check2' : 'plus-lg' %>" aria-hidden="true"></i> <%= editing ? 'Save changes' : 'Add vehicle' %></button>
               <% if (editing) { %><a class="btn btn-outline-secondary" href="/driver/vehicles">Cancel</a><% } %>

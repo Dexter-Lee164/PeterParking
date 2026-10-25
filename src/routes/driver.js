@@ -250,7 +250,7 @@ router.get('/reservations', (req, res) => {
   const tab = Object.keys(reservations.DRIVER_TABS).concat(['all']).includes(req.query.tab) ? req.query.tab : 'upcoming';
   const { rows, pager } = reservations.listReservations(
     { userId: req.user.id, tab: tab === 'all' ? undefined : tab },
-    { page: req.query.page, perPage: 10 },
+    { page: req.query.page },
   );
   res.view('driver/reservations', {
     title: 'My Reservations', nav: 'reservations', tab, counts, rows, pager,
@@ -324,7 +324,7 @@ router.post('/reservations/:id/reschedule', (req, res) => {
 
 router.get('/payments', (req, res) => {
   const db = ctx.get();
-  const { rows, pager } = payments.listPayments({ userId: req.user.id }, { page: req.query.page, perPage: 10 });
+  const { rows, pager } = payments.listPayments({ userId: req.user.id }, { page: req.query.page });
   const outstanding = payments.outstandingBalances({ userId: req.user.id });
   const totalPaid = db.prepare(`SELECT COALESCE(SUM(amount_centavos), 0) AS t FROM payments WHERE user_id = ? AND status = 'valid'`).get(req.user.id).t;
   const upcoming = reservations
@@ -415,7 +415,7 @@ function etiquettePage(req, { tab = null, values = {}, errors = {}, formError = 
   const status = oneOf(clean(req.query.status), ['under_review', 'resolved', 'dismissed'], '');
   // The reporter sees a new report as under review too.
   const filter = status === 'under_review' ? 'open' : status;
-  const { rows, pager } = etiquette.listReports({ reporterId: req.user.id, status: filter }, { page: req.query.page, perPage: 10 });
+  const { rows, pager } = etiquette.listReports({ reporterId: req.user.id, status: filter }, { page: req.query.page });
   const counts = etiquette.countByStatus({ reporterId: req.user.id });
   const myPenalties = penalties.penaltiesForUser(req.user.id);
   const chosen = tab || oneOf(clean(req.query.tab), ETIQUETTE_TABS, 'report');
@@ -441,7 +441,7 @@ router.get('/etiquette', (req, res) => res.view('driver/etiquette', etiquettePag
 router.post('/etiquette/reports', (req, res) => {
   try {
     const report = etiquette.submitReport(req.user.id, req.body || {}, req.actor);
-    req.flash('success', `Report #${report.id} about ${report.plate_number} was sent. Parking administration reviews every report; the other driver never sees who reported them.`);
+    req.flash('success', `Report ER#${report.id} about ${report.plate_number} was sent. Parking administration reviews every report; the other driver never sees who reported them.`);
     return res.redirect('/driver/etiquette?tab=reports');
   } catch (err) {
     if (!(err instanceof AppError)) throw err;
@@ -461,8 +461,8 @@ function ownReport(req) {
 router.get('/etiquette/reports/:id', (req, res) => {
   const report = ownReport(req);
   res.view('driver/etiquette-report', {
-    title: `Report #${report.id}`, nav: 'etiquette', report,
-    breadcrumbs: [{ label: 'Etiquette Reports', href: '/driver/etiquette?tab=reports' }, { label: `Report #${report.id}` }],
+    title: `Report ER#${report.id}`, nav: 'etiquette', report,
+    breadcrumbs: [{ label: 'Etiquette Reports', href: '/driver/etiquette?tab=reports' }, { label: `Report ER#${report.id}` }],
   });
 });
 

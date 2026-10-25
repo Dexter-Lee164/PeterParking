@@ -34,7 +34,7 @@ function penaltyOptions() {
 router.get('/', (req, res) => {
   const tab = oneOf(clean(req.query.tab), TABS, 'reports');
   const q = clean(req.query.q);
-  const page = { page: req.query.page, perPage: 15 };
+  const page = { page: req.query.page };
   const data = { title: 'Etiquette Reports', nav: 'etiquette', tab, q };
   data.counts = etiquette.countByStatus();
   data.inForce = penalties.countInForce();
@@ -131,14 +131,14 @@ function reportOr404(id) {
 
 function reportPage(report, extra = {}) {
   return Object.assign({
-    title: `Report #${report.id}`, nav: 'etiquette', report,
+    title: `Report ER#${report.id}`, nav: 'etiquette', report,
     matches: etiquette.vehiclesForPlate(report.plate_number),
     duplicates: etiquette.possibleDuplicates(report),
     linked: penalties.penaltiesForReport(report.id),
     ownerPenalties: report.owner_id ? penalties.penaltiesForUser(report.owner_id) : [],
     ownerReports: report.owner_id ? etiquette.listReports({ ownerId: report.owner_id }, { perPage: 50 }).rows.filter((r) => r.id !== report.id) : [],
     penaltyValues: {}, penaltyErrors: {}, formError: null,
-    breadcrumbs: [{ label: 'Etiquette Reports', href: '/admin/etiquette' }, { label: `Report #${report.id}` }],
+    breadcrumbs: [{ label: 'Etiquette Reports', href: '/admin/etiquette' }, { label: `Report ER#${report.id}` }],
     extraScripts: ['/js/penalty-form.js'],
   }, penaltyOptions(), extra);
 }
@@ -167,10 +167,10 @@ function reportAction(path, run, done) {
   });
 }
 
-reportAction('review', (r, req) => etiquette.markUnderReview(r.id, req.user), (r) => `Report #${r.id} is now under review.`);
-reportAction('approve', (r, req) => etiquette.approveReport(r.id, req.body.reason, req.user), (r) => `Report #${r.id} was approved. No penalty is applied until you issue one.`);
-reportAction('dismiss', (r, req) => etiquette.dismissReport(r.id, req.body.reason, req.user), (r) => `Report #${r.id} was dismissed.`);
-reportAction('verify', (r, req) => etiquette.verifyVehicle(r.id, req.body.vehicle_id, req.user), (r) => `Report #${r.id} is now linked to ${r.vehicle_plate}, registered to ${r.owner_name}.`);
+reportAction('review', (r, req) => etiquette.markUnderReview(r.id, req.user), (r) => `Report ER#${r.id} is now under review.`);
+reportAction('approve', (r, req) => etiquette.approveReport(r.id, req.body.reason, req.user), (r) => `Report ER#${r.id} was approved. No penalty is applied until you issue one.`);
+reportAction('dismiss', (r, req) => etiquette.dismissReport(r.id, req.body.reason, req.user), (r) => `Report ER#${r.id} was dismissed.`);
+reportAction('verify', (r, req) => etiquette.verifyVehicle(r.id, req.body.vehicle_id, req.user), (r) => `Report ER#${r.id} is now linked to ${r.vehicle_plate}, registered to ${r.owner_name}.`);
 
 router.post('/reports/:id/penalties', (req, res) => {
   const report = reportOr404(req.params.id);

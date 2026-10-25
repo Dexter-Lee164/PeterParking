@@ -8,7 +8,7 @@
         <span class="k">
           <a class="font-mono" href="/admin/etiquette/penalties/<%= p.id %>">#<%= p.id %></a> <strong><%= p.kind_label %></strong>
           <% if (locals.showDriver) { %><span class="small"> · <%= p.driver_name %></span><% } %>
-          <span class="d-block small text-faint"><%= p.summary %> · <span class="plate"><%= p.plate_number %></span> · <%= fmtDate(p.issued_at) %><% if (p.report_id) { %> · report #<%= p.report_id %><% } %></span>
+          <span class="d-block small text-faint"><%= p.summary %> · <span class="plate"><%= p.plate_number %></span> · <%= fmtDate(p.issued_at) %><% if (p.report_id) { %> · report ER#<%= p.report_id %><% } %></span>
         </span>
         <span class="v"><%- include('partials/status-badge', { kind: 'penalty', status: p.state }) %></span>
       </div>

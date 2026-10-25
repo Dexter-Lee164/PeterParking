@@ -28,7 +28,7 @@
         <% if (!plateReports.length) { %><div class="summary-row"><span class="k text-muted">No reports.</span></div><% } %>
         <% plateReports.forEach(function (r) { %>
           <div class="summary-row">
-            <span class="k"><a class="font-mono" href="/admin/etiquette/reports/<%= r.id %>">#<%= r.id %></a> <%= r.violation_label %>
+            <span class="k"><a class="font-mono" href="/admin/etiquette/reports/<%= r.id %>">ER#<%= r.id %></a> <%= r.violation_label %>
               <span class="d-block small text-faint"><%= fmtDateTime(r.incident_at) %> · <%= r.zone_name || '—' %><% if (r.vehicle_id && r.vehicle_id !== vehicle.id) { %> · verified to another record<% } %></span></span>
             <span class="v"><%- include('partials/status-badge', { kind: 'report', status: r.status }) %></span>
           </div>

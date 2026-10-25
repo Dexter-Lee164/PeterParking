@@ -7,7 +7,7 @@ const evidence = require('./evidence');
 const time = require('../utils/time');
 const { AppError } = require('../utils/errors');
 const { clean, collapse, toInt, normalizePlate, oneOf } = require('../utils/validate');
-const { paginate } = require('../utils/paginate');
+const { paginate, PER_PAGE } = require('../utils/paginate');
 
 /**
  * Parking etiquette reports.
@@ -96,7 +96,7 @@ const getReport = (id) => decorate(ctx.get().prepare(`${REPORT_SELECT} WHERE r.i
 const getEvidence = (reportId) => ctx.get().prepare('SELECT mime, size_bytes, data FROM etiquette_evidence WHERE report_id = ?').get(reportId);
 const activeZones = () => ctx.get().prepare('SELECT id, code, name FROM parking_zones WHERE is_active = 1 ORDER BY sort_order, name').all();
 
-function listReports({ reporterId = null, status = '', violation = '', zoneId = null, q = '', dateFrom = '', dateTo = '', ownerId = null, plateKey = '' } = {}, { page = 1, perPage = 15 } = {}) {
+function listReports({ reporterId = null, status = '', violation = '', zoneId = null, q = '', dateFrom = '', dateTo = '', ownerId = null, plateKey = '' } = {}, { page = 1, perPage = PER_PAGE } = {}) {
   const where = [];
   const params = [];
   const add = (sql, ...values) => {
@@ -115,7 +115,7 @@ function listReports({ reporterId = null, status = '', violation = '', zoneId = 
   if (q) {
     add(
       '(r.plate_key LIKE ? OR r.description LIKE ? OR u.full_name LIKE ? OR u.email LIKE ? OR CAST(r.id AS TEXT) = ?)',
-      `%${plateMatchKey(q)}%`, `%${q}%`, `%${q}%`, `%${q}%`, q.replace(/^#/, ''),
+      `%${plateMatchKey(q)}%`, `%${q}%`, `%${q}%`, `%${q}%`, q.replace(/^(ER)?#?/i, ''),
     );
   }
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
@@ -239,13 +239,13 @@ function submitReport(reporterId, input, actor) {
       )
       .get({ reporter: reporterId, key, from: time.addMinutes(incidentAt, -DUPLICATE_MINUTES), to: time.addMinutes(incidentAt, DUPLICATE_MINUTES), violation, day: date });
     if (dup) {
-      throw invalid({ plate_number: `You already reported this vehicle for an incident at ${time.fmtDateTime(dup.incident_at)} (report #${dup.id}). Follow that report instead of sending it again.` });
+      throw invalid({ plate_number: `You already reported this vehicle for an incident at ${time.fmtDateTime(dup.incident_at)} (report ER#${dup.id}). Follow that report instead of sending it again.` });
     }
     if (photo) {
       const samePhoto = db
         .prepare(`SELECT e.report_id FROM etiquette_evidence e JOIN etiquette_reports r ON r.id = e.report_id WHERE e.sha256 = ? AND r.reporter_id = ? LIMIT 1`)
         .get(photo.sha256, reporterId);
-      if (samePhoto) throw invalid({ evidence: `You already sent this photo with report #${samePhoto.report_id}.` });
+      if (samePhoto) throw invalid({ evidence: `You already sent this photo with report ER#${samePhoto.report_id}.` });
     }
 
     const id = db

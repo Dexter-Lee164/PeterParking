@@ -62,6 +62,17 @@ describe('1. vehicle manufacturer and model', () => {
     assert.equal(bare.make, null, 'manufacturer and model stay optional');
   });
 
+  test('plate numbers have at most 8 characters not counting spaces, and colours come from the list', () => {
+    const add = (input) => fieldsOf(() => users.addVehicle(d.bob.id, Object.assign({ plate_number: 'NEW 0001', vehicle_type: 'car' }, input), null));
+    assert.ok(add({ plate_number: 'ABCDE 1234' }).plate_number, '9 characters is too many');
+    assert.ok(add({ plate_number: 'AB' }).plate_number, 'too short');
+    assert.ok(add({ color: 'EWQQ' }).color, 'not a colour');
+    const v = users.addVehicle(d.bob.id, { plate_number: 'ABCD  1234', vehicle_type: 'car', color: ' grey ' }, null);
+    assert.equal(v.plate_number, 'ABCD 1234', '8 characters plus a space is fine');
+    assert.equal(v.color, 'Gray');
+    assert.equal(users.addVehicle(d.bob.id, { plate_number: 'NEW 0006', vehicle_type: 'car', color: '' }, null).color, null, 'colour stays optional');
+  });
+
   test('a vehicle saved before the catalogue stays editable; a type change must pick again', () => {
     const id = env.db.prepare(`INSERT INTO vehicles (user_id, plate_number, vehicle_type, make, model) VALUES (?, 'OLD 0001', 'car', 'Lada', 'Niva')`).run(d.alice.id).lastInsertRowid;
     users.updateVehicle(d.alice.id, id, { plate_number: 'OLD 0001', vehicle_type: 'car', make: 'Lada', model: 'Niva', color: 'Green' }, null);

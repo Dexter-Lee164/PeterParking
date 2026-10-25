@@ -29,7 +29,7 @@ router.get('/', (req, res) => {
   };
   const { rows, pager } = users.listUsers(
     { q: filters.q, role: filters.role === 'all' ? '' : filters.role, status: filters.status },
-    { page: req.query.page, perPage: 15 },
+    { page: req.query.page },
   );
   res.view('admin/drivers', {
     title: 'Drivers', nav: 'drivers', rows, pager, filters, baseQuery: filters,

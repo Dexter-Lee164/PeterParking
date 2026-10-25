@@ -1,5 +1,5 @@
 <tr>
-  <td data-label="Penalty"><a class="font-mono fw-semibold" href="/admin/etiquette/penalties/<%= row.id %>">#<%= row.id %></a> <%= row.kind_label %><% if (row.report_id) { %><span class="sub">Report #<%= row.report_id %></span><% } %></td>
+  <td data-label="Penalty"><a class="font-mono fw-semibold" href="/admin/etiquette/penalties/<%= row.id %>">#<%= row.id %></a> <%= row.kind_label %><% if (row.report_id) { %><span class="sub">Report ER#<%= row.report_id %></span><% } %></td>
   <td data-label="Driver"><a href="/admin/drivers/<%= row.user_id %>"><%= row.driver_name %></a><span class="sub"><span class="plate"><%= row.plate_number %></span></span></td>
   <td data-label="Details"><%= row.summary %><% if (row.appeal_status === 'pending') { %><span class="sub text-warning"><i class="bi bi-chat-square-text" aria-hidden="true"></i> Appeal waiting</span><% } %></td>
   <td data-label="Issued"><%= fmtDateTime(row.issued_at) %><span class="sub">by <%= row.issued_by_name || 'system' %></span></td>

@@ -109,7 +109,9 @@ function adminDashboard() {
   return {
     snapshot,
     kpis: {
-      totalSlots: snapshot.total,
+      // Every slot in an active zone, out of service included (snapshot.total counts only the in-service ones).
+      totalSlots: snapshot.total + snapshot.maintenance,
+      inService: snapshot.total,
       available: snapshot.available,
       reserved: snapshot.reserved,
       occupied: snapshot.occupied,

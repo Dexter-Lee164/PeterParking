@@ -57,8 +57,6 @@ const helpers = {
   vehicleLabel: (v) => [v.make, v.model].filter(Boolean).join(' ') || v.vehicle_type,
   /** Icon classes for a vehicle type: a car, or a motorcycle (.vi-motorcycle in components.css; Bootstrap Icons has none). */
   vehicleIcon: (type) => (type === 'motorcycle' ? 'vi vi-motorcycle' : 'bi bi-car-front'),
-  /** The same as a character, for places that cannot hold markup such as dropdown options. */
-  vehicleGlyph: (type) => (type === 'motorcycle' ? '🏍️' : '🚗'),
   /** Is this record one of the unread updates the page was opened for? (see src/services/notifications.js) */
   isUnread: () => false,
   initials: (name) =>

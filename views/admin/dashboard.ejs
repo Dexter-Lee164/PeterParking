@@ -1,8 +1,8 @@
 <%
   const snap = data.snapshot;
-  const pct = function (n) { return snap.total ? Math.round((n / snap.total) * 100) : 0; };
-  // The occupancy bar also shows out-of-service slots (status 'maintenance'), so it is measured against in-service + out of service.
+  // The KPIs and the occupancy bar include out-of-service slots (status 'maintenance'): in service + out of service.
   const barBase = snap.total + snap.maintenance;
+  const pct = function (n) { return barBase ? Math.round((n / barBase) * 100) : 0; };
   const barPct = function (n) { return barBase ? (n / barBase) * 100 : 0; };
 %>
 <section class="hero-card mb-4" aria-labelledby="adminHero">
@@ -28,7 +28,7 @@
 <% } %>
 
 <div class="row g-3 mb-4">
-  <div class="col-6 col-md-4"><%- include('partials/stat-card', { label: 'Total slots', value: data.kpis.totalSlots, hint: 'Active and in service', icon: 'bi-grid-3x3-gap', tone: 'blue', href: '/admin/slots' }) %></div>
+  <div class="col-6 col-md-4"><%- include('partials/stat-card', { label: 'Total slots', value: data.kpis.totalSlots, hint: data.kpis.maintenance ? data.kpis.inService + ' in service · ' + data.kpis.maintenance + ' out of service' : 'All in service', icon: 'bi-grid-3x3-gap', tone: 'blue', href: '/admin/slots' }) %></div>
   <div class="col-6 col-md-4"><%- include('partials/stat-card', { label: 'Available now', value: data.kpis.available, hint: pct(data.kpis.available) + '% of slots', icon: 'bi-check-circle', tone: 'green' }) %></div>
   <div class="col-6 col-md-4"><%- include('partials/stat-card', { label: 'Reserved now', value: data.kpis.reserved, hint: 'Booked, not yet arrived', icon: 'bi-bookmark', tone: 'blue' }) %></div>
   <div class="col-6 col-md-4"><%- include('partials/stat-card', { label: 'Occupied now', value: data.kpis.occupied, hint: 'Vehicles checked in', icon: 'bi-car-front-fill', tone: 'red', href: '/admin/operations' }) %></div>

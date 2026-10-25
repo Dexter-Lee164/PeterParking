@@ -23,7 +23,7 @@ router.get('/', (req, res) => {
   };
   const { rows, pager } = payments.listPayments(
     { q: filters.q, status: 'valid', dateFrom: filters.from, dateTo: filters.to },
-    { page: req.query.page, perPage: 15 },
+    { page: req.query.page },
   );
   const today = time.todayLocal();
   const todayRows = payments.listPayments({ status: 'valid', dateFrom: today, dateTo: today }, { all: true }).rows;

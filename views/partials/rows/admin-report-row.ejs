@@ -1,6 +1,6 @@
 <% const fresh = isUnread('etiquette_report', row.id); %>
 <tr class="<%= fresh ? 'is-unread' : '' %>">
-  <td data-label="Report"><a class="font-mono fw-semibold" href="/admin/etiquette/reports/<%= row.id %>">#<%= row.id %></a><% if (fresh) { %><span class="new-pill">New</span><% } %><span class="sub"><%= fmtDateTime(row.created_at) %></span></td>
+  <td data-label="Report"><a class="font-mono fw-semibold" href="/admin/etiquette/reports/<%= row.id %>">ER#<%= row.id %></a><% if (fresh) { %><span class="new-pill">New</span><% } %><span class="sub"><%= fmtDateTime(row.created_at) %></span></td>
   <td data-label="Plate">
     <span class="plate"><%= row.plate_number %></span>
     <span class="sub">
@@ -12,4 +12,5 @@
   <td data-label="Incident"><%= fmtDateTime(row.incident_at) %></td>
   <td data-label="Reported by"><%= row.reporter_name %><span class="sub"><%= row.reporter_email %></span></td>
   <td data-label="Status"><%- include('partials/status-badge', { kind: 'report', status: row.status }) %><% if (row.active_penalty_count) { %><span class="sub text-danger"><%= row.active_penalty_count %> penalt<%= row.active_penalty_count === 1 ? 'y' : 'ies' %></span><% } %></td>
+  <td data-label="" class="text-end"><a class="btn btn-sm btn-outline-secondary" href="/admin/etiquette/reports/<%= row.id %>" aria-label="Open report ER#<%= row.id %>">Open</a></td>
 </tr>

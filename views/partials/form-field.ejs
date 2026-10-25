@@ -1,6 +1,6 @@
 <%# Reusable form control with validation feedback.
     Params: name, label, type (text|email|password|number|date|time|tel|search|select|textarea|checkbox), value, errors (object),
-            options [{ value, label }] (select), required, help, placeholder, rows, min, max, step, maxlength, autocomplete,
+            options [{ value, label, icon }] (select; icon needs attrs data-icon-select), required, help, placeholder, rows, min, max, step, maxlength, autocomplete,
             prefix, suffix, disabled, readonly, col (wrapper class), id, attrs (object of extra attributes) %>
 <%
   const fType = locals.type || 'text';
@@ -25,7 +25,7 @@
               <% if (describedBy) { %>aria-describedby="<%= describedBy %>"<% } %>
               <% Object.keys(extra).forEach(function (k) { %> <%= k %>="<%= extra[k] %>"<% }) %>>
         <% (locals.options || []).forEach(function (o) { %>
-          <option value="<%= o.value %>" <%= String(o.value) === String(fVal) ? 'selected' : '' %>><%= o.label %></option>
+          <option value="<%= o.value %>"<% if (o.icon) { %> data-icon="<%= o.icon %>"<% } %> <%= String(o.value) === String(fVal) ? 'selected' : '' %>><%= o.label %></option>
         <% }) %>
       </select>
     <% } else if (fType === 'textarea') { %>

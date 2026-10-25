@@ -51,20 +51,20 @@
       </div>
     </div>
     <div class="tb-field">
-      <%# The icon in front of the dropdown follows the chosen vehicle (car or motorcycle); options carry the same glyph. %>
+      <%# The icon in front of the dropdown follows the chosen vehicle (car or motorcycle); options show the matching icon (data-icon-select, public/js/app.js). %>
       <% if (vehicles.length) { %>
         <label class="form-label" for="vehiclePicker">Vehicle</label>
         <div class="tb-input"><i class="<%= vehicleIcon(vehicle ? vehicle.vehicle_type : search.vehicleType) %>" id="vehiclePickerIcon" aria-hidden="true"></i>
-          <select class="form-select" id="vehiclePicker" name="vehicle_id">
-            <% vehicles.forEach(function (v) { %><option value="<%= v.id %>"<%= vehicle && vehicle.id === v.id ? ' selected' : '' %>><%= vehicleGlyph(v.vehicle_type) %> <%= v.plate_number %></option><% }) %>
+          <select class="form-select" id="vehiclePicker" name="vehicle_id" data-icon-select>
+            <% vehicles.forEach(function (v) { %><option value="<%= v.id %>" data-icon="<%= vehicleIcon(v.vehicle_type) %>"<%= vehicle && vehicle.id === v.id ? ' selected' : '' %>><%= v.plate_number %></option><% }) %>
           </select>
         </div>
         <input type="hidden" name="vehicle_type" value="<%= search.vehicleType %>">
       <% } else { %>
         <label class="form-label" for="searchForm-vehicle_type">Vehicle type</label>
         <div class="tb-input"><i class="<%= vehicleIcon(search.vehicleType) %>" id="vehiclePickerIcon" aria-hidden="true"></i>
-          <select class="form-select" id="searchForm-vehicle_type" name="vehicle_type">
-            <% vehicleTypeOptions.forEach(function (o) { %><option value="<%= o.value %>"<%= String(o.value) === String(search.vehicleType) ? ' selected' : '' %>><%= o.value ? vehicleGlyph(o.value) + ' ' : '' %><%= o.label %></option><% }) %>
+          <select class="form-select" id="searchForm-vehicle_type" name="vehicle_type" data-icon-select>
+            <% vehicleTypeOptions.forEach(function (o) { %><option value="<%= o.value %>"<% if (o.value) { %> data-icon="<%= vehicleIcon(o.value) %>"<% } %><%= String(o.value) === String(search.vehicleType) ? ' selected' : '' %>><%= o.label %></option><% }) %>
           </select>
         </div>
       <% } %>

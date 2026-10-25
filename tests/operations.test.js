@@ -88,6 +88,9 @@ describe('check-in, check-out, overstay and no-show', () => {
     assert.equal(snap.maintenance, before.maintenance + 1);
     assert.equal(snap.inactive, before.inactive);
     assert.equal(dashboard.adminDashboard().kpis.maintenance, snap.maintenance);
+    const kpis = dashboard.adminDashboard().kpis;
+    assert.equal(kpis.totalSlots, before.total + before.maintenance, 'the total still counts the slot taken out of service');
+    assert.equal(kpis.inService, before.total - 1);
     parking.setSlotStatus(slot.id, 'active', admin());
     assert.equal(dashboard.slotSnapshot().maintenance, before.maintenance);
   });

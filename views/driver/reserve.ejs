@@ -53,8 +53,8 @@
             <input type="hidden" name="vehicle_type" value="<%= params.vehicle_type %>">
             <div class="row g-3">
               <%- include('partials/form-field', {
-                name: 'vehicle_id', label: 'Vehicle', type: 'select', required: true, errors: errors, value: values.vehicle_id,
-                options: vehicles.map(function (v) { return { value: v.id, label: vehicleGlyph(v.vehicle_type) + ' ' + v.plate_number + ' — ' + vehicleLabel(v) + (v.color ? ' (' + v.color + ')' : '') + (v.ban ? ' — banned' : '') }; })
+                name: 'vehicle_id', label: 'Vehicle', type: 'select', required: true, errors: errors, value: values.vehicle_id, attrs: { 'data-icon-select': '' },
+                options: vehicles.map(function (v) { return { value: v.id, icon: vehicleIcon(v.vehicle_type), label: v.plate_number + ' — ' + vehicleLabel(v) + (v.color ? ' (' + v.color + ')' : '') + (v.ban ? ' — banned' : '') }; })
               }) %>
             </div>
             <% const banned = vehicles.filter(function (v) { return v.ban; }); %>

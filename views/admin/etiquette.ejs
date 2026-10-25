@@ -26,7 +26,7 @@
     formId: 'reportFilter', action: '/admin/etiquette', hideSubmit: true, toolbarClass: 'filter-bar mb-3',
     fields: [
       { type: 'hidden', name: 'tab', value: 'reports' },
-      { type: 'search', name: 'q', label: 'Search', value: filters.q, placeholder: 'Plate, report no., reporter, text', attrs: { 'data-autosubmit': '' } },
+      { type: 'search', name: 'q', label: 'Search', value: filters.q, placeholder: 'Plate, report no. (ER#8), reporter, text', attrs: { 'data-autosubmit': '' } },
       { type: 'select', name: 'status', label: 'Status', value: filters.status, options: statusOptions, attrs: { 'data-autosubmit': '' } },
       { type: 'select', name: 'zone_id', label: 'Zone', value: filters.zoneId || '', options: zoneOptions, attrs: { 'data-autosubmit': '' } },
       { type: 'date', name: 'from', label: 'Incident from', value: filters.dateFrom, attrs: { 'data-autosubmit': '' } },
@@ -35,7 +35,7 @@
   }) %>
   <%- include('partials/data-table', {
     caption: 'Parking etiquette reports',
-    columns: [{ label: 'Report' }, { label: 'Plate' }, { label: 'Violation' }, { label: 'Incident' }, { label: 'Reported by' }, { label: 'Status' }],
+    columns: [{ label: 'Report' }, { label: 'Plate' }, { label: 'Violation' }, { label: 'Incident' }, { label: 'Reported by' }, { label: 'Status' }, { label: '' }],
     rows: rows, rowPartial: 'partials/rows/admin-report-row',
     pager: pager, baseQuery: baseQuery, noun: 'reports',
     empty: { icon: 'bi-flag', title: 'No reports found', text: q || filters.status || filters.zoneId || filters.dateFrom || filters.dateTo ? 'Try other filters.' : 'Reports that drivers send appear here.' }

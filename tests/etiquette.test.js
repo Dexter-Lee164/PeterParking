@@ -106,7 +106,7 @@ describe('etiquette reports, penalties and appeals', () => {
 
   test('the same incident cannot be sent twice; the same photo neither', () => {
     const dup = fieldsOf(() => etiquette.submitReport(d.alice.id, reportForm({ incident_time: '07:50', plate_number: 'BBB 3333' }), null));
-    assert.match(dup.plate_number, new RegExp(`report #${reportId}`));
+    assert.match(dup.plate_number, new RegExp(`report ER#${reportId}`));
     const samePhoto = fieldsOf(() => etiquette.submitReport(d.alice.id, reportForm({ plate_number: 'ZZZ 0001', evidence_data: PNG }), null));
     assert.match(samePhoto.evidence, /already sent this photo/);
     // Another driver reporting the same incident is fine (it corroborates it); admins see it as a possible duplicate.

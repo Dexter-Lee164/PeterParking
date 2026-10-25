@@ -2,8 +2,9 @@
  * My Vehicles form: dependent Manufacturer and Model dropdowns (window.VehicleCatalog), each with an "Other" choice.
  *  - the vehicle type decides which manufacturers are offered; the manufacturer decides the models
  *  - changing the type or the manufacturer clears a choice that no longer fits
- *  - choosing Other reveals a text box for the name; a manufacturer typed in has no listed models, so its model is
- *    typed in too (or left out)
+ *  - choosing Other turns the dropdown into a text box in the same place (its list button turns it back); a
+ *    manufacturer typed in has no listed models, so its model is typed in too (or left out)
+ *  - the plate number stops at C.PLATE_MAX characters, not counting spaces
  * The server validates the same catalogue and rules (src/services/users.js); this only gives instant feedback.
  */
 (function () {
@@ -20,6 +21,7 @@
   var makeOther = form.querySelector('[data-other-for="make"]');
   var modelOther = form.querySelector('[data-other-for="model"]');
   var setError = window.UPFieldError; // app.js
+  var plateEl = form.querySelector('[data-plate-max]');
 
   function fill(select, first, values, withOther) {
     var keep = select.value;
@@ -37,10 +39,13 @@
     if (select.value !== keep) select.value = '';
   }
 
-  /** Show the text box under a dropdown only while Other is chosen. */
+  /** While Other is chosen the text box stands in for the dropdown (the hidden dropdown still sends Other). */
   function toggleOther(select, input) {
     var on = select.value === OTHER && !select.disabled;
-    input.closest('[class*="col-"]').classList.toggle('d-none', !on);
+    select.classList.toggle('d-none', on);
+    input.closest('[data-other-group]').classList.toggle('d-none', !on);
+    var label = form.querySelector('label[for="' + (on ? select.id : input.id) + '"]');
+    if (label) label.htmlFor = on ? input.id : select.id;
     if (!on) setError(input, '');
     return on;
   }
@@ -80,6 +85,30 @@
     setError(modelEl, '');
     toggleOther(modelEl, modelOther);
     if (modelEl.value === OTHER) modelOther.focus();
+  });
+  form.querySelector('[data-other-back="make"]').addEventListener('click', function () {
+    makeEl.value = '';
+    syncModels();
+    makeEl.focus();
+  });
+  form.querySelector('[data-other-back="model"]').addEventListener('click', function () {
+    modelEl.value = '';
+    toggleOther(modelEl, modelOther);
+    modelEl.focus();
+  });
+  // Drop whatever is typed or pasted past the limit (spaces do not count towards it).
+  plateEl.addEventListener('input', function () {
+    var count = 0;
+    var kept = '';
+    for (var i = 0; i < plateEl.value.length; i++) {
+      var ch = plateEl.value[i];
+      if (ch !== ' ' && ++count > C.PLATE_MAX) continue;
+      kept += ch;
+    }
+    if (kept !== plateEl.value) {
+      plateEl.value = kept;
+      setError(plateEl, 'Plate numbers have at most ' + C.PLATE_MAX + ' letters or numbers (spaces do not count).');
+    } else setError(plateEl, '');
   });
   [makeOther, modelOther].forEach(function (input) {
     input.addEventListener('input', function () { setError(input, ''); });

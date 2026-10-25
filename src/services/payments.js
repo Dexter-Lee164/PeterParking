@@ -8,7 +8,7 @@ const time = require('../utils/time');
 const { AppError } = require('../utils/errors');
 const { clean } = require('../utils/validate');
 const { parsePesoToCentavos, formatPeso } = require('../utils/money');
-const { paginate } = require('../utils/paginate');
+const { paginate, PER_PAGE } = require('../utils/paginate');
 
 /** Cash is the only way to pay. The other methods exist only on older records, which are kept as they were. */
 const METHODS = ['cash'];
@@ -118,7 +118,7 @@ function getPayment(id) {
   return ctx.get().prepare(`${PAYMENT_SELECT} WHERE p.id = ?`).get(id);
 }
 
-function listPayments({ q = '', status = '', method = '', dateFrom = '', dateTo = '', userId = null, reservationId = null } = {}, { page = 1, perPage = 15, all = false } = {}) {
+function listPayments({ q = '', status = '', method = '', dateFrom = '', dateTo = '', userId = null, reservationId = null } = {}, { page = 1, perPage = PER_PAGE, all = false } = {}) {
   const where = [];
   const params = [];
   if (userId) {

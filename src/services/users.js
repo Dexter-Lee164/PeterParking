@@ -10,7 +10,7 @@ const emailRules = require('../../public/js/email-rules');
 const nameRules = require('../../public/js/name-rules');
 const vehicleCatalog = require('../../public/js/vehicle-catalog');
 const { nowLocal } = require('../utils/time');
-const { paginate } = require('../utils/paginate');
+const { paginate, PER_PAGE } = require('../utils/paginate');
 
 const VEHICLE_TYPES = ['car', 'motorcycle'];
 
@@ -143,7 +143,7 @@ function changePassword(userId, { current_password, new_password, confirm_passwo
 
 // ------------------------------------------------------------- admin: users
 
-function listUsers({ q = '', role = '', status = '' } = {}, { page = 1, perPage = 15 } = {}) {
+function listUsers({ q = '', role = '', status = '' } = {}, { page = 1, perPage = PER_PAGE } = {}) {
   const where = [];
   const params = [];
   if (q) {
@@ -314,8 +314,12 @@ function validateVehicle(input, { id = null } = {}) {
   const fields = {};
   const plate = normalizePlate(input.plate_number);
   const type = oneOf(clean(input.vehicle_type), VEHICLE_TYPES);
-  const color = collapse(input.color);
-  if (!/^[A-Z0-9][A-Z0-9 -]{2,11}$/.test(plate)) fields.plate_number = 'Enter a valid plate number (3–12 letters/numbers, e.g. ABC 1234).';
+  const colorIn = collapse(input.color);
+  const color = colorIn ? vehicleCatalog.findColor(colorIn) : '';
+  const plateChars = plate.replace(/ /g, '').length;
+  if (!/^[A-Z0-9][A-Z0-9 -]*$/.test(plate) || plateChars < 3 || plateChars > vehicleCatalog.PLATE_MAX) {
+    fields.plate_number = `Enter a valid plate number (3–${vehicleCatalog.PLATE_MAX} letters/numbers, not counting spaces, e.g. ABC 1234).`;
+  }
   else if (db.prepare(`SELECT id FROM vehicles WHERE replace(plate_number, ' ', '') = ? AND is_active = 1 AND id <> ?`).get(plate.replace(/\s/g, ''), id || 0)) {
     fields.plate_number = 'That plate number is already registered.';
   }
@@ -323,7 +327,7 @@ function validateVehicle(input, { id = null } = {}) {
   const picked = type ? catalogMakeModel(type, input, id ? getVehicle(id) : null, fields) : { make: null, model: null };
   const make = picked.make || '';
   const model = picked.model || '';
-  if (color.length > 30) fields.color = 'Too long.';
+  if (color === null) fields.color = 'Choose a colour from the list.';
   if (Object.keys(fields).length) throw new AppError('Please correct the highlighted fields.', { code: 'VALIDATION', fields });
   return { plate_number: plate, vehicle_type: type, make: make || null, model: model || null, color: color || null };
 }

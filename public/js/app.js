@@ -237,4 +237,117 @@
     typed.focus();
     typed.setSelectionRange(typed.value.length, typed.value.length);
   }
+
+  // ---- dropdowns whose options carry an icon (<select data-icon-select>, <option data-icon="bi bi-car-front">) ----
+  // An <option> can only hold text, so with a mouse or the keyboard the list opens as a menu that draws each icon
+  // (the same .bi / .vi icons as the rest of the page). The <select> stays the real control: choosing sets its value
+  // and fires change. Touch screens keep the phone's own picker, which shows the text alone.
+  var iconMenu = null;
+  function closeIconMenu(refocus) {
+    if (!iconMenu) return;
+    var select = iconMenu.select;
+    iconMenu.el.remove();
+    iconMenu = null;
+    select.setAttribute('aria-expanded', 'false');
+    if (refocus) select.focus();
+  }
+  function pickIconOption(index) {
+    var select = iconMenu.select;
+    closeIconMenu(true);
+    if (select.selectedIndex === index) return;
+    select.selectedIndex = index;
+    select.dispatchEvent(new Event('input', { bubbles: true }));
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  function markIconOption(index) {
+    var items = iconMenu.el.children;
+    if (!items[index]) return;
+    if (items[iconMenu.active]) items[iconMenu.active].classList.remove('is-active');
+    iconMenu.active = index;
+    items[index].classList.add('is-active');
+    items[index].scrollIntoView({ block: 'nearest' });
+  }
+  function openIconMenu(select) {
+    closeIconMenu(false);
+    var rect = select.getBoundingClientRect();
+    var el = document.createElement('div');
+    el.className = 'icon-select-menu';
+    el.setAttribute('role', 'listbox');
+    el.style.left = rect.left + 'px';
+    el.style.top = rect.bottom + 2 + 'px';
+    el.style.minWidth = rect.width + 'px';
+    Array.prototype.forEach.call(select.options, function (o, i) {
+      var item = document.createElement('div');
+      item.className = 'icon-select-item' + (o.selected ? ' is-selected' : '') + (o.disabled ? ' is-disabled' : '');
+      item.setAttribute('role', 'option');
+      item.setAttribute('aria-selected', o.selected ? 'true' : 'false');
+      var icon = document.createElement('i');
+      icon.className = (o.dataset.icon || '') + ' icon-select-icon';
+      icon.setAttribute('aria-hidden', 'true');
+      var text = document.createElement('span');
+      text.textContent = o.textContent;
+      item.append(icon, text);
+      item.addEventListener('mousedown', function (event) { event.preventDefault(); });
+      item.addEventListener('mousemove', function () { if (!o.disabled) markIconOption(i); });
+      item.addEventListener('click', function () { if (!o.disabled) pickIconOption(i); });
+      el.appendChild(item);
+    });
+    document.body.appendChild(el);
+    // Open upwards when there is no room below.
+    if (rect.bottom + el.offsetHeight > window.innerHeight && rect.top > el.offsetHeight) {
+      el.style.top = rect.top - el.offsetHeight - 2 + 'px';
+    }
+    iconMenu = { select: select, el: el, active: -1 };
+    select.setAttribute('aria-expanded', 'true');
+    markIconOption(Math.max(select.selectedIndex, 0));
+  }
+  if (!window.matchMedia('(pointer: coarse)').matches) {
+    document.addEventListener('mousedown', function (event) {
+      var select = event.target.closest && event.target.closest('select[data-icon-select]');
+      if (iconMenu && !iconMenu.el.contains(event.target)) {
+        var same = iconMenu.select === select;
+        closeIconMenu(false);
+        if (same) { event.preventDefault(); return; }
+      }
+      if (!select || select.disabled || event.button !== 0) return;
+      event.preventDefault(); // no native list
+      select.focus();
+      openIconMenu(select);
+    });
+    document.addEventListener('keydown', function (event) {
+      var select = event.target.closest && event.target.closest('select[data-icon-select]');
+      if (!select) return;
+      var open = iconMenu && iconMenu.select === select;
+      if (!open) {
+        if (event.key === ' ' || event.key === 'Enter' || event.key === 'F4' || (event.altKey && event.key === 'ArrowDown')) {
+          event.preventDefault();
+          openIconMenu(select);
+        }
+        return; // arrows on a closed dropdown still change it the usual way
+      }
+      var step = function (dir) {
+        for (var i = iconMenu.active + dir; i >= 0 && i < select.options.length; i += dir) {
+          if (!select.options[i].disabled) return markIconOption(i);
+        }
+      };
+      if (event.key === 'ArrowDown') step(1);
+      else if (event.key === 'ArrowUp') step(-1);
+      else if (event.key === 'Home') { iconMenu.active = -1; step(1); }
+      else if (event.key === 'End') { iconMenu.active = select.options.length; step(-1); }
+      else if (event.key === 'Enter' || event.key === ' ') pickIconOption(iconMenu.active);
+      else if (event.key === 'Escape') closeIconMenu(true);
+      else if (event.key === 'Tab') { closeIconMenu(false); return; }
+      else return;
+      event.preventDefault();
+    });
+    document.addEventListener('focusout', function (event) {
+      if (iconMenu && event.target === iconMenu.select) setTimeout(function () {
+        if (iconMenu && document.activeElement !== iconMenu.select) closeIconMenu(false);
+      }, 0);
+    });
+    window.addEventListener('resize', function () { closeIconMenu(false); });
+    window.addEventListener('scroll', function (event) {
+      if (iconMenu && !iconMenu.el.contains(event.target)) closeIconMenu(false);
+    }, true);
+  }
 })();

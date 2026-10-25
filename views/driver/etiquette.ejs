@@ -93,7 +93,7 @@
   }) %>
   <%- include('partials/data-table', {
     caption: 'Etiquette reports you sent',
-    columns: [{ label: 'Report' }, { label: 'Plate' }, { label: 'Violation' }, { label: 'Incident' }, { label: 'Status' }],
+    columns: [{ label: 'Report' }, { label: 'Plate' }, { label: 'Violation' }, { label: 'Incident' }, { label: 'Status' }, { label: '' }],
     rows: rows,
     rowPartial: 'partials/rows/driver-report-row',
     pager: pager, baseQuery: { tab: 'reports', status: status }, noun: 'reports',

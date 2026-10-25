@@ -12,7 +12,7 @@ const penalties = require('./penalties');
 const time = require('../utils/time');
 const { AppError } = require('../utils/errors');
 const { clean, normalizePlate } = require('../utils/validate');
-const { paginate } = require('../utils/paginate');
+const { paginate, PER_PAGE } = require('../utils/paginate');
 
 const ACTIVE = ['confirmed', 'checked_in'];
 const STATUSES = ['confirmed', 'checked_in', 'completed', 'cancelled', 'no_show'];
@@ -394,7 +394,7 @@ function orderClause(filters) {
   return { sql: filters.tab === 'upcoming' || filters.tab === 'active' ? 'r.start_at ASC' : 'r.start_at DESC', params: [] };
 }
 
-function listReservations(filters = {}, { page = 1, perPage = 15, all = false } = {}) {
+function listReservations(filters = {}, { page = 1, perPage = PER_PAGE, all = false } = {}) {
   const db = ctx.get();
   const { where, params, paymentStatus } = buildFilters(filters);
   const { sql: order, params: orderParams } = orderClause(filters);
