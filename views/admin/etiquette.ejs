@@ -23,15 +23,14 @@
 
 <% if (tab === 'reports') { %>
   <%- include('partials/filter-toolbar', {
-    formId: 'reportFilter', action: '/admin/etiquette', submitLabel: 'Filter', toolbarClass: 'filter-bar mb-3',
+    formId: 'reportFilter', action: '/admin/etiquette', hideSubmit: true, toolbarClass: 'filter-bar mb-3',
     fields: [
       { type: 'hidden', name: 'tab', value: 'reports' },
-      { type: 'search', name: 'q', label: 'Search', value: filters.q, placeholder: 'Plate, report no., reporter, text', col: 'col-12 col-md-4' },
-      { type: 'select', name: 'status', label: 'Status', value: filters.status, options: statusOptions, col: 'col-6 col-md-2' },
-      { type: 'select', name: 'violation', label: 'Violation', value: filters.violation, options: violationOptions, col: 'col-6 col-md-2' },
-      { type: 'select', name: 'zone_id', label: 'Zone', value: filters.zoneId || '', options: zoneOptions, col: 'col-6 col-md-2' },
-      { type: 'date', name: 'from', label: 'Incident from', value: filters.dateFrom, col: 'col-6 col-md-2' },
-      { type: 'date', name: 'to', label: 'Incident to', value: filters.dateTo, col: 'col-6 col-md-2' }
+      { type: 'search', name: 'q', label: 'Search', value: filters.q, placeholder: 'Plate, report no., reporter, text', attrs: { 'data-autosubmit': '' } },
+      { type: 'select', name: 'status', label: 'Status', value: filters.status, options: statusOptions, attrs: { 'data-autosubmit': '' } },
+      { type: 'select', name: 'zone_id', label: 'Zone', value: filters.zoneId || '', options: zoneOptions, attrs: { 'data-autosubmit': '' } },
+      { type: 'date', name: 'from', label: 'Incident from', value: filters.dateFrom, attrs: { 'data-autosubmit': '' } },
+      { type: 'date', name: 'to', label: 'Incident to', value: filters.dateTo, attrs: { 'data-autosubmit': '' } }
     ]
   }) %>
   <%- include('partials/data-table', {
@@ -39,18 +38,18 @@
     columns: [{ label: 'Report' }, { label: 'Plate' }, { label: 'Violation' }, { label: 'Incident' }, { label: 'Reported by' }, { label: 'Status' }],
     rows: rows, rowPartial: 'partials/rows/admin-report-row',
     pager: pager, baseQuery: baseQuery, noun: 'reports',
-    empty: { icon: 'bi-flag', title: 'No reports found', text: q || filters.status || filters.violation || filters.zoneId || filters.dateFrom || filters.dateTo ? 'Try other filters.' : 'Reports that drivers send appear here.' }
+    empty: { icon: 'bi-flag', title: 'No reports found', text: q || filters.status || filters.zoneId || filters.dateFrom || filters.dateTo ? 'Try other filters.' : 'Reports that drivers send appear here.' }
   }) %>
 <% } %>
 
 <% if (tab === 'penalties') { %>
   <%- include('partials/filter-toolbar', {
-    formId: 'penaltyFilter', action: '/admin/etiquette', submitLabel: 'Filter', toolbarClass: 'filter-bar mb-3',
+    formId: 'penaltyFilter', action: '/admin/etiquette', hideSubmit: true, toolbarClass: 'filter-bar mb-3',
     fields: [
       { type: 'hidden', name: 'tab', value: 'penalties' },
-      { type: 'search', name: 'q', label: 'Search', value: filters.q, placeholder: 'Plate, driver, reason', col: 'col-12 col-md-5' },
-      { type: 'select', name: 'kind', label: 'Type', value: filters.kind, options: kindOptions, col: 'col-6 col-md-3' },
-      { type: 'select', name: 'state', label: 'State', value: filters.state, options: stateOptions, col: 'col-6 col-md-3' }
+      { type: 'search', name: 'q', label: 'Search', value: filters.q, placeholder: 'Plate, driver, reason', attrs: { 'data-autosubmit': '' } },
+      { type: 'select', name: 'kind', label: 'Type', value: filters.kind, options: kindOptions, attrs: { 'data-autosubmit': '' } },
+      { type: 'select', name: 'state', label: 'State', value: filters.state, options: stateOptions, attrs: { 'data-autosubmit': '' } }
     ]
   }) %>
   <%- include('partials/data-table', {

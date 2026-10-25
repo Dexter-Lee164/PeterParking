@@ -42,17 +42,15 @@ router.get('/', (req, res) => {
   if (tab === 'reports') {
     const filters = {
       q,
-      status: oneOf(clean(req.query.status), ['open'].concat(etiquette.STATUSES.map((s) => s.value)), ''),
-      violation: oneOf(clean(req.query.violation), etiquette.VIOLATIONS.map((v) => v.value), ''),
+      status: oneOf(clean(req.query.status), etiquette.STATUSES.map((s) => s.value), ''),
       zoneId: toInt(req.query.zone_id),
       dateFrom: clean(req.query.from),
       dateTo: clean(req.query.to),
     };
     Object.assign(data, etiquette.listReports(filters, page), {
       filters,
-      baseQuery: { tab, q, status: filters.status, violation: filters.violation, zone_id: filters.zoneId || '', from: filters.dateFrom, to: filters.dateTo },
-      statusOptions: any('Any status').concat([{ value: 'open', label: 'Open (new or under review)' }], etiquette.STATUSES),
-      violationOptions: any('Any violation').concat(etiquette.VIOLATIONS),
+      baseQuery: { tab, q, status: filters.status, zone_id: filters.zoneId || '', from: filters.dateFrom, to: filters.dateTo },
+      statusOptions: any('Any status').concat(etiquette.STATUSES),
       zoneOptions: any('Any zone').concat(etiquette.activeZones().map((z) => ({ value: z.id, label: z.name }))),
     });
   } else if (tab === 'penalties') {

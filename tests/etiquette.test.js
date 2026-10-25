@@ -151,7 +151,11 @@ describe('etiquette reports, penalties and appeals', () => {
     const list = await adminC.get('/admin/etiquette?tab=reports&q=bbb3333');
     assert.equal(list.status, 200);
     assert.match(list.text, new RegExp(`/admin/etiquette/reports/${reportId}`));
-    assert.match((await adminC.get(`/admin/etiquette?tab=reports&status=pending&zone_id=${d.zone.id}`)).text, new RegExp(`#${reportId}`));
+    const fresh = await adminC.get(`/admin/etiquette?tab=reports&status=pending&zone_id=${d.zone.id}`);
+    assert.match(fresh.text, new RegExp(`#${reportId}`), 'a new report is listed under "New"');
+    assert.match(fresh.text, /<option value="pending" selected>New<\/option>/);
+    assert.doesNotMatch(fresh.text, /value="open"|name="violation"|reportFilter-submit/, 'no Open status, no violation filter, no Filter button');
+    assert.doesNotMatch((await adminC.get('/admin/etiquette?tab=reports&status=under_review')).text, new RegExp(`/admin/etiquette/reports/${reportId}"`), 'not yet under review');
     assert.doesNotMatch((await adminC.get('/admin/etiquette?tab=reports&status=dismissed')).text, new RegExp(`/admin/etiquette/reports/${reportId}"`));
     const found = etiquette.searchVehicles('bbb-33');
     assert.deepEqual(found.map((v) => v.plate_number), ['BBB 3333']);
