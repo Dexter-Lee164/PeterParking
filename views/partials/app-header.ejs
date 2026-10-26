@@ -18,7 +18,8 @@
         </ol>
       </nav>
     <% } %>
-    <h1 class="page-title"><%= title || appName %></h1>
+    <%# Hidden on screen: each page shows its own heading in the content. Kept as the page's h1 for screen readers. %>
+    <h1 class="page-title visually-hidden"><%= title || appName %></h1>
   </div>
 
   <% if (currentUser.role === 'admin') { %>

@@ -109,3 +109,24 @@ test('unknown routes return a styled 404', async () => {
   assert.match(res.text, /not found/i);
 });
 
+
+test('My Vehicles lists 10 vehicles per page', async () => {
+  const c = env.client();
+  await c.login(DEMO_CREDENTIALS.driver.email, DEMO_CREDENTIALS.driver.password);
+  const userId = env.db.prepare('SELECT id FROM users WHERE email = ?').get(DEMO_CREDENTIALS.driver.email).id;
+  const add = env.db.prepare(`INSERT INTO vehicles (user_id, plate_number, vehicle_type) VALUES (?, ?, 'car')`);
+  for (let i = 0; i < 12; i++) add.run(userId, `PGT ${String(i).padStart(4, '0')}`);
+  const total = env.db.prepare('SELECT COUNT(*) AS n FROM vehicles WHERE user_id = ? AND is_active = 1').get(userId).n;
+  const rows = (html) => (html.match(/<td data-label="Plate">/g) || []).length;
+
+  const first = await c.get('/driver/vehicles');
+  ok(first, 'vehicles page 1');
+  assert.equal(rows(first.text), 10);
+  assert.match(first.text, new RegExp(`Showing 1–10 of ${total} vehicles`));
+  assert.match(first.text, /href="\?page=2"/);
+
+  const second = await c.get('/driver/vehicles?page=2');
+  ok(second, 'vehicles page 2');
+  assert.equal(rows(second.text), Math.min(total - 10, 10));
+  assert.match(second.text, /\/edit\?page=2"/, 'Edit keeps the list on the same page');
+});

@@ -221,6 +221,7 @@ function submitReport(reporterId, input, actor) {
     if (!err.fields) throw err;
     Object.assign(fields, err.fields);
   }
+  if (!photo && !fields.evidence) fields.evidence = 'Attach a photo of the violation.';
   if (Object.keys(fields).length) throw invalid(fields);
 
   return immediate(db, () => {

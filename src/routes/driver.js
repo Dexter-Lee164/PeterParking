@@ -20,6 +20,7 @@ const time = require('../utils/time');
 const { AppError } = require('../utils/errors');
 const { clean, toInt, oneOf } = require('../utils/validate');
 const { formatPeso } = require('../utils/money');
+const { paginate } = require('../utils/paginate');
 
 const router = express.Router();
 
@@ -349,10 +350,12 @@ router.get('/payments/:id/receipt', (req, res) => {
 // ------------------------------------------------------------------ vehicles
 
 function vehiclesPage(req, { values = {}, errors = {}, formError = null, editing = null } = {}) {
+  const all = users.listVehicles(req.user.id);
+  const pager = paginate(all.length, req.query.page);
   return {
     title: editing ? 'Edit Vehicle' : 'My Vehicles', nav: 'vehicles',
     breadcrumbs: editing ? [{ label: 'My Vehicles', href: '/driver/vehicles' }, { label: 'Edit' }] : [],
-    vehicles: users.listVehicles(req.user.id), values, errors, formError, editing,
+    vehicles: all.slice(pager.offset, pager.offset + pager.perPage), pager, values, errors, formError, editing,
     typeOptions: [{ value: 'car', label: 'Car' }, { value: 'motorcycle', label: 'Motorcycle' }],
     vehicleCatalog,
     extraScripts: ['/js/vehicle-catalog.js', '/js/vehicle-form.js'],

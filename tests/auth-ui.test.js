@@ -131,6 +131,7 @@ describe('unified auth screen', () => {
       assert.equal(attr(t, 'aria-pressed'), 'false');
       assert.match(attr(t, 'aria-label'), /^Show password$/);
       assert.match(attr(t, 'type'), /^button$/, 'a toggle must never submit the form');
+      assert.equal(attr(t, 'tabindex'), '-1', 'Tab from a password goes to the next field, not the eye');
       assert.ok(html.includes(`id="${attr(t, 'aria-controls')}"`), 'aria-controls points at a real field');
     }
   });

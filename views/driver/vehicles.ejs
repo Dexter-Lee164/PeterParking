@@ -23,7 +23,7 @@
                   <td data-label="Vehicle"><%= vehicleLabel(v) %><% if (v.color) { %><span class="sub"><%= v.color %></span><% } %></td>
                   <td data-label="" class="text-end">
                     <div class="table-actions">
-                      <a class="btn btn-sm btn-outline-secondary" href="/driver/vehicles/<%= v.id %>/edit" aria-label="Edit <%= v.plate_number %>">Edit</a>
+                      <a class="btn btn-sm btn-outline-secondary" href="/driver/vehicles/<%= v.id %>/edit<%= pager.page > 1 ? '?page=' + pager.page : '' %>" aria-label="Edit <%= v.plate_number %>">Edit</a>
                       <form method="post" action="/driver/vehicles/<%= v.id %>/delete" data-confirm="Remove <%= v.plate_number %> from your vehicles? Past reservation history is kept." data-confirm-title="Remove vehicle" data-confirm-label="Remove" data-confirm-tone="danger">
                         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                         <button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Remove <%= v.plate_number %>">Remove</button>
@@ -35,6 +35,7 @@
             </tbody>
           </table>
         </div>
+        <%- include('partials/pagination', { pager: pager, baseQuery: {}, noun: 'vehicles' }) %>
       <% } %>
     </div>
   </div>
@@ -99,7 +100,7 @@
                   options: [{ value: '', label: 'Choose a colour' }].concat(vehicleCatalog.COLORS.map(function (c) { return { value: c, label: c }; })) }) %>
             <div class="col-12 d-flex gap-2">
               <button class="btn btn-primary" type="submit"><i class="bi bi-<%= editing ? 'check2' : 'plus-lg' %>" aria-hidden="true"></i> <%= editing ? 'Save changes' : 'Add vehicle' %></button>
-              <% if (editing) { %><a class="btn btn-outline-secondary" href="/driver/vehicles">Cancel</a><% } %>
+              <% if (editing) { %><a class="btn btn-outline-secondary" href="/driver/vehicles<%= pager.page > 1 ? '?page=' + pager.page : '' %>">Cancel</a><% } %>
             </div>
           </div>
         </form>

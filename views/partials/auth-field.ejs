@@ -24,7 +24,8 @@
            <% if (fType === 'email') { %> autocapitalize="none" spellcheck="false"<% } %>
            aria-describedby="<%= describedBy %>"<% if (fErr) { %> aria-invalid="true"<% } %>>
     <% if (locals.toggle) { %>
-      <button type="button" class="auth-toggle" data-auth-toggle aria-controls="<%= id %>" aria-pressed="false" aria-label="Show password"><i class="bi bi-eye" aria-hidden="true"></i></button>
+      <%# Out of the Tab order: Tab from a password goes straight to the next field (e.g. the confirmation). %>
+      <button type="button" class="auth-toggle" data-auth-toggle tabindex="-1" aria-controls="<%= id %>" aria-pressed="false" aria-label="Show password"><i class="bi bi-eye" aria-hidden="true"></i></button>
     <% } %>
   </div>
   <% if (action) { %>

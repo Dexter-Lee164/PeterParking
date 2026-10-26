@@ -34,6 +34,9 @@ const failure = (fn) => {
   assert.fail('expected an AppError');
 };
 const fieldsOf = (fn) => failure(fn).fields || {};
+// A different valid PNG on every call: reports need a photo, and the same reporter cannot send the same photo twice.
+let photoCount = 0;
+const freshPhoto = () => `data:image/png;base64,${Buffer.concat([Buffer.from(PNG.split(',')[1], 'base64'), Buffer.from(`#${++photoCount}`)]).toString('base64')}`;
 
 describe('etiquette reports, penalties and appeals', () => {
   let env;
@@ -49,7 +52,7 @@ describe('etiquette reports, penalties and appeals', () => {
     admin = { id: d.admin.id };
     reportForm = (extra = {}) => Object.assign({
       plate_number: 'bbb-3333', violation_type: 'improper_parking', zone_id: String(d.zone.id),
-      incident_date: DAY, incident_time: '07:30', description: 'Parked across T1 and T2 for the whole morning.',
+      incident_date: DAY, incident_time: '07:30', description: 'Parked across T1 and T2 for the whole morning.', evidence_data: freshPhoto(),
     }, extra);
     alice = env.client();
     await alice.login('alice@test.local');
@@ -96,6 +99,7 @@ describe('etiquette reports, penalties and appeals', () => {
     assert.ok(f({ incident_time: '23:00' }).incident_time, 'future incident');
     assert.ok(f({ incident_date: '2026-01-01' }).incident_date, 'older than 30 days');
     assert.ok(f({ description: 'short' }).description);
+    assert.match(f({ evidence_data: '' }).evidence, /Attach a photo/, 'a photo is required');
     assert.ok(f({ evidence_data: 'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=' }).evidence, 'SVG is refused');
     assert.ok(f({ evidence_data: 'data:image/png;base64,SGVsbG8gd29ybGQh' }).evidence, 'bytes that are not a PNG');
     assert.ok(f({ evidence_data: `data:image/jpeg;base64,${Buffer.alloc(2 * 1024 * 1024 + 10, 0xff).toString('base64')}` }).evidence, 'over 2 MB');

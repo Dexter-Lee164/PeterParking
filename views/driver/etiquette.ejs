@@ -52,7 +52,7 @@
               <%- include('partials/form-field', { name: 'incident_time', label: 'Time', type: 'time', value: values.incident_time, errors: errors, required: true, col: 'col-sm-4' }) %>
               <%- include('partials/form-field', { name: 'zone_id', label: 'Parking zone', type: 'select', value: values.zone_id, errors: errors, required: true, options: zoneOptions, col: 'col-sm-4' }) %>
               <%- include('partials/form-field', { name: 'description', label: 'What happened', type: 'textarea', value: values.description, errors: errors, required: true, rows: 4, maxlength: 1000, placeholder: 'Where exactly and what you saw, e.g. "Parked across MB-14 and MB-15 from 9 to 11 AM."' }) %>
-              <%- include('partials/evidence-field', { errors: errors, maxBytes: maxEvidenceBytes }) %>
+              <%- include('partials/evidence-field', { errors: errors, maxBytes: maxEvidenceBytes, required: true }) %>
               <div class="col-12">
                 <button class="btn btn-primary" type="submit"><i class="bi bi-send" aria-hidden="true"></i> Send report</button>
               </div>

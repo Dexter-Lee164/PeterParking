@@ -1,11 +1,11 @@
-<%# Optional photo for a report or an appeal. The image is read in the browser (public/js/evidence-input.js) and posted
+<%# Photo for a report (required) or an appeal (optional). The image is read in the browser (public/js/evidence-input.js) and posted
     as a data: URL in the hidden evidence_data field; the server checks it again (src/services/evidence.js).
-    Params: errors, maxBytes, label (optional), id (optional). The enclosing form needs data-evidence-form. %>
+    Params: errors, maxBytes, label (optional), id (optional), required (optional). The enclosing form needs data-evidence-form. %>
 <% const evId = locals.id || 'evidenceFile'; const evErr = errors && errors.evidence; %>
 <div class="col-12">
   <input type="hidden" name="evidence_data" value="">
-  <label class="form-label" for="<%= evId %>"><%= locals.label || 'Photo evidence (optional)' %></label>
-  <input class="form-control<%= evErr ? ' is-invalid' : '' %>" type="file" id="<%= evId %>" data-evidence-input data-max-bytes="<%= maxBytes %>"
+  <label class="form-label" for="<%= evId %>"><%= locals.label || (locals.required ? 'Photo evidence' : 'Photo evidence (optional)') %><% if (locals.required) { %> <span class="text-danger" aria-hidden="true">*</span><% } %></label>
+  <input class="form-control<%= evErr ? ' is-invalid' : '' %>" type="file" id="<%= evId %>" data-evidence-input data-max-bytes="<%= maxBytes %>"<%= locals.required ? ' required' : '' %>
          accept="image/jpeg,image/png,image/webp,image/gif" aria-describedby="<%= evId %>-help<%= evErr ? ' ' + evId + '-error' : '' %>">
   <% if (evErr) { %><div class="invalid-feedback d-block" id="<%= evId %>-error"><%= evErr %></div><% } %>
   <div class="form-text" id="<%= evId %>-help">JPEG, PNG, WebP or GIF, up to <%= Math.round(maxBytes / 1048576) %> MB.<noscript> Attaching a photo needs JavaScript.</noscript></div>

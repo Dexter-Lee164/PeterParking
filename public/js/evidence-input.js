@@ -1,5 +1,5 @@
 /*
- * Optional photo evidence (etiquette report, penalty appeal): the chosen image is read in the browser and sent as a
+ * Photo evidence (etiquette report: required; penalty appeal: optional): the chosen image is read in the browser and sent as a
  * data: URL in the hidden evidence_data field (the app has no multipart uploads). Type and size are checked here for
  * instant feedback and again on the server (src/services/evidence.js), which also checks the file really is an image.
  */
